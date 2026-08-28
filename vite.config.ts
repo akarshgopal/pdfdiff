@@ -1,5 +1,5 @@
 import vinext from "vinext";
-import stylex from "@stylexjs/unplugin";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
@@ -49,10 +49,7 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
-      stylex.vite({
-        devMode: "full",
-        useCSSLayers: true,
-      }),
+      tailwindcss(),
       vinext(),
       sites(),
       cloudflare({
