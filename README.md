@@ -1,24 +1,74 @@
-# vinext-starter
+# PDF Diff
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+PDF Diff compares two PDF revisions locally in the browser. It renders visual
+diffs, extracts semantic text changes, and provides a focused page-by-page
+review workspace. See HELP.md for the user guide.
 
 ## Prerequisites
 
 - Node.js `>=22.13.0`
+- pnpm `>=11`
 
 ## Quick Start
 
 ```bash
-npm install
-npm run dev
-npm run build
+pnpm install
+pnpm dev
+pnpm build
 ```
 
-This starter does not use `wrangler.jsonc`.
+## Package architecture
 
-## Included Shape
+The application is split into three workspace packages so the comparison
+logic can be reused independently of the browser app:
+
+- `@pdfdiff/core` — headless raster, alignment, connected-region, and semantic
+  text comparison algorithms. It has no DOM or PDF.js dependency.
+- `@pdfdiff/pdfjs-browser` — the browser/PDF.js adapter that loads and renders
+  PDF files, then orchestrates the core algorithms.
+- `@pdfdiff/viewer-react` — a reusable React viewer for a completed comparison.
+  It owns navigation, view modes, inspection controls, and keyboard shortcuts.
+- `app/` — the product shell: upload flow, privacy messaging, loading state,
+  default engine wiring, analytics callbacks, and the in-app help section.
+
+Build the packages independently with:
+
+```bash
+pnpm build:packages
+```
+
+The package manifests contain `main`, `types`, `exports`, `files`, and
+workspace dependency boundaries for a future publish step. The browser adapter
+expects its host bundler to provide the PDF.js worker URL:
+
+```ts
+import { createPdfJsEngine } from "@pdfdiff/pdfjs-browser";
+
+const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl });
+const comparison = await engine.compare({
+  earlier: earlierFile,
+  newer: newerFile,
+  options: { sensitivity: 28, alignment: "none" },
+  signal: new AbortController().signal,
+});
+```
+
+## Useful commands
+
+- `pnpm dev`: start local development
+- `pnpm build`: build the packages and the vinext app
+- `pnpm test`: build and run the rendered HTML, client helper, and semantic tests
+- `pnpm lint`: run ESLint
+- `pnpm db:generate`: generate Drizzle migrations when needed
+
+## Included platform shape
+
+The app runs on [vinext](https://github.com/cloudflare/vinext) and keeps the
+starter's optional Cloudflare D1/Drizzle support. `.openai/hosting.json`
+declares the Sites project configuration; no server-side PDF upload endpoint is
+used.
+
+## Repository notes
 
 - edit site code under `app/`
 - `.openai/hosting.json` declares optional Sites D1 and R2 bindings
@@ -86,13 +136,6 @@ or enforce explicit server-side membership or allowlist checks.
 
 Use SIWC for account pages, user-specific dashboards, saved records, and write
 actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
 
 ## Learn More
 

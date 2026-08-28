@@ -1,0 +1,30 @@
+{
+  "name": "@pdfdiff/viewer-react",
+  "version": "0.1.0",
+  "description": "Reusable React viewer for PDF Diff comparisons.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@pdfdiff/core": "workspace:*",
+    "tailwind-merge": "^3.6.0"
+  }
+}

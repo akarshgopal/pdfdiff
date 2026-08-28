@@ -1,0 +1,26 @@
+{
+  "name": "@pdfdiff/core",
+  "version": "0.1.0",
+  "description": "Headless PDF and raster comparison algorithms.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "pixelmatch": "^7.2.0"
+  }
+}

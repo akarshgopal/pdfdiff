@@ -37,6 +37,8 @@ removed with the × button before starting the comparison.
 Use the view mode buttons above the canvas to switch between:
 
 - **Diff** — the visual change overlay.
+- **Semantic text** — compare extracted text and inspect anchored native-PDF
+  highlights for additions, removals, and replacements.
 - **Side by side** — the Earlier and Newer pages next to each other.
 - **Swipe** — drag the divider across the page to reveal the Newer version.
 - **Blink** — alternates between the two versions automatically.
@@ -65,7 +67,8 @@ setting, and compare again.
   comparison page.
 - `Shift` + `←` / `→`: previous or next Earlier source page.
 - `Ctrl`/`Cmd` + `←` / `→`: previous or next Newer source page.
-- `1`–`6`: choose Diff, Side by side, Swipe, Blink, Earlier, or Newer.
+- `1`–`7`: choose Diff, Semantic text, Side by side, Swipe, Blink, Earlier,
+  or Newer.
 - `[` / `]` or `Shift` + `M` / `M`: cycle view modes backward or forward.
 - `Home` / `End`: jump to the first or last page. With `Shift`, target Earlier;
   with `Ctrl`/`Cmd`, target Newer.

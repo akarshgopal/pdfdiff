@@ -1,0 +1,27 @@
+{
+  "name": "@pdfdiff/pdfjs-browser",
+  "version": "0.1.0",
+  "description": "Browser PDF.js adapter for PDF Diff.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@pdfdiff/core": "workspace:*",
+    "pdfjs-dist": "^6.2.108"
+  }
+}

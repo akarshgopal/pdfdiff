@@ -3,10 +3,19 @@ export * from "./types";
 export * from "./worker";
 export * from "./pdf";
 export * from "./render";
-export * from "./regions";
-export * from "./visual-diff";
 export * from "./text";
-export * from "./semantic";
+export { findChangeRegions } from "./regions";
+export { diffImages, diffRenderedPages } from "./visual-diff";
+export { diffSemanticText, diffSemanticPages } from "./semantic";
+export type {
+  SemanticRunKind,
+  SemanticChangeKind,
+  SemanticTextRun,
+  SemanticTextChange,
+  SemanticTextDiff,
+  SemanticTextOverlay,
+  SemanticPageDiff,
+} from "./semantic";
 
 import { loadPdf } from "./pdf";
 import type { LoadedPdf, PdfLoadOptions, PdfSource } from "./types";
