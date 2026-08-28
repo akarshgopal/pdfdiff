@@ -58,7 +58,7 @@ async function renderIntoCanvas(
     background,
     annotationMode: options.includeAnnotations === false ? AnnotationMode.DISABLE : AnnotationMode.ENABLE,
   });
-  const signal = options.signal as AbortSignal | undefined;
+  const signal = options.signal;
   const onAbort = (): void => renderTask.cancel();
   signal?.addEventListener("abort", onAbort, { once: true });
   if (signal?.aborted) onAbort();

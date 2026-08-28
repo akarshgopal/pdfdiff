@@ -6,18 +6,27 @@ import type { ComparisonPage, ComparisonResult, RasterImage, VisualPageGeometry 
 import type { DiffComparison, DiffPage, DiffSemanticOverlay, DiffRegion, DiffTextChange } from "@pdfdiff/viewer-react";
 import type { PdfDiffEngine } from "./pdfdiff/PdfDiffApp";
 
+const MAX_VIEWER_TEXT_CHANGES = 80;
+const MAX_VIEWER_SEMANTIC_OVERLAYS = 160;
+
 function imageDataFromRaster(image: RasterImage): ImageData {
   return new ImageData(image.data as ImageDataArray, image.width, image.height);
 }
 
-function imageUrl(image: RasterImage, format: "webp" | "png" = "webp"): string {
+async function imageUrl(image: RasterImage, format: "webp" | "png" = "webp"): Promise<string> {
   const canvas = document.createElement("canvas");
   canvas.width = image.width;
   canvas.height = image.height;
   const context = canvas.getContext("2d", { alpha: false });
   if (!context) throw new Error("Your browser does not provide a 2D canvas context.");
   context.putImageData(imageDataFromRaster(image), 0, 0);
-  return format === "png" ? canvas.toDataURL("image/png") : canvas.toDataURL("image/webp", 0.9);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Unable to encode a comparison preview.")), format === "png" ? "image/png" : "image/webp", 0.9);
+  });
+  const url = URL.createObjectURL(blob);
+  canvas.width = 0;
+  canvas.height = 0;
+  return url;
 }
 
 function regionsForPage(page: ComparisonPage): DiffRegion[] {
@@ -35,7 +44,7 @@ function regionsForPage(page: ComparisonPage): DiffRegion[] {
 }
 
 function textChangesForPage(page: ComparisonPage): DiffTextChange[] {
-  return (page.semantic?.changes ?? []).slice(0, 80).map((change) => ({
+  return (page.semantic?.changes ?? []).slice(0, MAX_VIEWER_TEXT_CHANGES).map((change) => ({
     id: change.id,
     text: change.kind === "changed" ? `${change.before} → ${change.after}` : change.kind === "removed" ? change.before : change.after,
     kind: change.kind,
@@ -60,7 +69,7 @@ function normalizedQuad(
 function semanticOverlaysForPage(page: ComparisonPage, side: "earlier" | "newer"): DiffSemanticOverlay[] {
   const overlays = side === "earlier" ? page.semantic?.beforeOverlays ?? [] : page.semantic?.afterOverlays ?? [];
   const geometry = page.visualGeometry?.[side];
-  return overlays.slice(0, 160).map((overlay) => ({
+  return overlays.slice(0, MAX_VIEWER_SEMANTIC_OVERLAYS).map((overlay) => ({
     id: overlay.id,
     kind: overlay.kind,
     text: overlay.text,
@@ -68,19 +77,25 @@ function semanticOverlaysForPage(page: ComparisonPage, side: "earlier" | "newer"
   }));
 }
 
-function toViewerPage(page: ComparisonPage): DiffPage {
+async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
+  const [beforeSrc, afterSrc, diffSrc] = await Promise.all([
+    page.earlier ? imageUrl(page.earlier) : undefined,
+    page.newer ? imageUrl(page.newer) : undefined,
+    page.diff ? imageUrl(page.diff, "png") : undefined,
+  ]);
   return {
     index: page.index,
     width: page.width,
     height: page.height,
     status: page.status,
-    beforeSrc: page.earlier ? imageUrl(page.earlier) : undefined,
-    afterSrc: page.newer ? imageUrl(page.newer) : undefined,
-    diffSrc: page.diff ? imageUrl(page.diff, "png") : undefined,
+    beforeSrc,
+    afterSrc,
+    diffSrc,
     changedPixels: page.changedPixels,
     changedPercent: page.changedPercent,
     regions: regionsForPage(page),
     textChanges: textChangesForPage(page),
+    textChangeCount: page.semantic?.changes.length ?? 0,
     semantic: page.semantic,
     semanticBeforeOverlays: semanticOverlaysForPage(page, "earlier"),
     semanticAfterOverlays: semanticOverlaysForPage(page, "newer"),
@@ -88,12 +103,20 @@ function toViewerPage(page: ComparisonPage): DiffPage {
   };
 }
 
-function toViewerComparison(result: ComparisonResult): DiffComparison {
+async function toViewerComparison(result: ComparisonResult): Promise<DiffComparison> {
+  const pages = await Promise.all(result.pages.map(toViewerPage));
+  const urls = pages.flatMap((page) => [page.beforeSrc, page.afterSrc, page.diffSrc]).filter((url): url is string => Boolean(url));
+  let disposed = false;
   return {
     earlierName: result.earlierName ?? "Earlier PDF",
     newerName: result.newerName ?? "Newer PDF",
-    pages: result.pages.map(toViewerPage),
+    pages,
     elapsedMs: result.elapsedMs,
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    },
   };
 }
 

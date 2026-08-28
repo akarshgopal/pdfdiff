@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { diffSemanticPages, diffSemanticText } from "../lib/pdfdiff/semantic.ts";
-import type { PageText } from "../lib/pdfdiff/types.ts";
+import { diffSemanticPages, diffSemanticText, type PageText } from "@pdfdiff/core";
 
 test("semantic diff ignores whitespace reflow", () => {
   const result = diffSemanticText("The quick\n brown fox.", "The  quick brown fox.");

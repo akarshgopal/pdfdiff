@@ -31,28 +31,30 @@ export interface DiffSemanticOverlay {
 }
 
 export interface DiffPage {
-  index: number;
-  width?: number;
-  height?: number;
-  status?: "same" | "changed" | "added" | "removed" | "processing" | "error";
-  beforeSrc?: string;
-  afterSrc?: string;
-  diffSrc?: string;
-  changedPixels?: number;
-  changedPercent?: number;
-  regions?: DiffRegion[];
-  textChanges?: DiffTextChange[];
-  semantic?: SemanticPageDiff;
-  semanticBeforeOverlays?: DiffSemanticOverlay[];
-  semanticAfterOverlays?: DiffSemanticOverlay[];
-  error?: string;
+  readonly index: number;
+  readonly width?: number;
+  readonly height?: number;
+  readonly status?: "same" | "changed" | "added" | "removed" | "processing" | "error";
+  readonly beforeSrc?: string;
+  readonly afterSrc?: string;
+  readonly diffSrc?: string;
+  readonly changedPixels?: number;
+  readonly changedPercent?: number;
+  readonly regions?: readonly DiffRegion[];
+  readonly textChanges?: readonly DiffTextChange[];
+  readonly textChangeCount?: number;
+  readonly semantic?: SemanticPageDiff;
+  readonly semanticBeforeOverlays?: readonly DiffSemanticOverlay[];
+  readonly semanticAfterOverlays?: readonly DiffSemanticOverlay[];
+  readonly error?: string;
 }
 
 export interface DiffComparison {
-  earlierName: string;
-  newerName: string;
-  pages: DiffPage[];
-  elapsedMs?: number;
+  readonly earlierName: string;
+  readonly newerName: string;
+  readonly pages: readonly DiffPage[];
+  readonly elapsedMs?: number;
+  readonly dispose?: () => void;
 }
 
 export interface ViewerAnalyticsEvent {
@@ -61,8 +63,8 @@ export interface ViewerAnalyticsEvent {
 }
 
 export interface ViewerOptions {
-  sensitivity: number;
-  alignment: AlignmentMode;
+  readonly sensitivity: number;
+  readonly alignment: AlignmentMode;
 }
 
 export interface PdfDiffViewerProps {

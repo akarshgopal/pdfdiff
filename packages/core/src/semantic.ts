@@ -77,32 +77,23 @@ function joinTokens(tokens: readonly Token[]): string {
   return result;
 }
 
-function primitiveDiff(before: readonly Token[], after: readonly Token[], signal?: AbortSignalLike): PrimitiveEdit[] {
-  const n = before.length;
-  const m = after.length;
-  if (!n && !m) return [];
-  if (!n) return after.map((token) => ({ kind: "added", token }));
-  if (!m) return before.map((token) => ({ kind: "removed", token }));
-
-  const max = n + m;
+function findDiffTrace(before: readonly Token[], after: readonly Token[], signal?: AbortSignalLike): Array<Map<number, number>> | null {
+  const max = before.length + after.length;
   const maxWork = Math.max(250_000, Math.min(4_000_000, max * 240));
   let work = 0;
   const v = new Map<number, number>([[1, 0]]);
   const trace: Array<Map<number, number>> = [];
-  let found = false;
 
   outer: for (let distance = 0; distance <= max; distance += 1) {
     throwIfAborted(signal);
     trace.push(new Map(v));
     for (let k = -distance; k <= distance; k += 2) {
       work += 1;
-      if (work > maxWork) break outer;
+      if (work > maxWork) return null;
       const down = k === -distance || (k !== distance && (v.get(k - 1) ?? -1) < (v.get(k + 1) ?? -1));
-      const previousX = down ? (v.get(k + 1) ?? 0) : (v.get(k - 1) ?? 0) + 1;
-      const previousY = previousX - k;
-      let x = previousX;
-      let y = previousY;
-      while (x < n && y < m && before[x]!.value === after[y]!.value) {
+      let x = down ? (v.get(k + 1) ?? 0) : (v.get(k - 1) ?? 0) + 1;
+      let y = x - k;
+      while (x < before.length && y < after.length && before[x]!.value === after[y]!.value) {
         x += 1;
         y += 1;
         work += 1;
@@ -110,23 +101,16 @@ function primitiveDiff(before: readonly Token[], after: readonly Token[], signal
         if (work > maxWork) break outer;
       }
       v.set(k, x);
-      if (x >= n && y >= m) {
-        found = true;
-        break outer;
-      }
+      if (x >= before.length && y >= after.length) return trace;
     }
   }
+  return null;
+}
 
-  if (!found) {
-    return [
-      ...before.map((token) => ({ kind: "removed" as const, token })),
-      ...after.map((token) => ({ kind: "added" as const, token })),
-    ];
-  }
-
+function backtrackEdits(before: readonly Token[], after: readonly Token[], trace: Array<Map<number, number>>, signal?: AbortSignalLike): PrimitiveEdit[] {
   const edits: PrimitiveEdit[] = [];
-  let x = n;
-  let y = m;
+  let x = before.length;
+  let y = after.length;
   for (let distance = trace.length - 1; distance > 0; distance -= 1) {
     throwIfAborted(signal);
     const previousV = trace[distance]!;
@@ -162,6 +146,17 @@ function primitiveDiff(before: readonly Token[], after: readonly Token[], signal
     y -= 1;
   }
   return edits.reverse();
+}
+
+function primitiveDiff(before: readonly Token[], after: readonly Token[], signal?: AbortSignalLike): PrimitiveEdit[] {
+  if (!before.length && !after.length) return [];
+  if (!before.length) return after.map((token) => ({ kind: "added", token }));
+  if (!after.length) return before.map((token) => ({ kind: "removed", token }));
+  const trace = findDiffTrace(before, after, signal);
+  return trace ? backtrackEdits(before, after, trace, signal) : [
+    ...before.map((token) => ({ kind: "removed" as const, token })),
+    ...after.map((token) => ({ kind: "added" as const, token })),
+  ];
 }
 
 interface Segment {

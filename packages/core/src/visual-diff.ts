@@ -40,36 +40,20 @@ function validColor(value: RgbColor | undefined, fallback: RgbColor): RgbColor {
   ];
 }
 
-/** Compare two equal-size RGBA images without requiring a DOM or canvas. */
-export function diffImages(
-  earlier: RasterImage,
-  newer: RasterImage,
-  options: VisualDiffOptions = {},
-): VisualDiffResult {
-  if (earlier.width !== newer.width || earlier.height !== newer.height) throw new RangeError("Images must have equal dimensions before diffing.");
-  const { width, height } = earlier;
-  const total = width * height;
-  if (earlier.data.length !== total * 4 || newer.data.length !== total * 4) throw new RangeError("Raster buffers do not match their dimensions.");
-  throwIfAborted(options.signal);
-
-  const changedMask = new Uint8Array(total);
-  const pixelmatchOutput = new Uint8ClampedArray(total * 4);
-  pixelmatch(earlier.data, newer.data, pixelmatchOutput, width, height, {
-    threshold: clamp(options.threshold ?? 0.1, 0, 1),
-    includeAA: options.includeAA ?? false,
-    diffMask: true,
-    alpha: 1,
-  });
-
-  let changedPixels = 0;
+function changedMaskFromPixelmatch(output: Uint8ClampedArray, total: number, signal?: VisualDiffOptions["signal"]): { mask: Uint8Array; count: number } {
+  const mask = new Uint8Array(total);
+  let count = 0;
   for (let index = 0; index < total; index += 1) {
-    if ((index & 0x3fff) === 0) throwIfAborted(options.signal);
-    if (pixelmatchOutput[index * 4 + 3] !== 0) {
-      changedMask[index] = 1;
-      changedPixels += 1;
-    }
+    if ((index & 0x3fff) === 0) throwIfAborted(signal);
+    if (output[index * 4 + 3] === 0) continue;
+    mask[index] = 1;
+    count += 1;
   }
+  return { mask, count };
+}
 
+function overlayForMask(earlier: RasterImage, newer: RasterImage, changedMask: Uint8Array, options: VisualDiffOptions): { overlay: RasterImage; directionMask: Uint8Array; addedPixels: number; removedPixels: number } {
+  const total = earlier.width * earlier.height;
   const addedColor = validColor(options.addedColor, DEFAULT_ADDED);
   const removedColor = validColor(options.removedColor, DEFAULT_REMOVED);
   const unchangedOpacity = clamp(options.unchangedOpacity ?? 0.25, 0, 1);
@@ -104,20 +88,37 @@ export function diffImages(
     else if (direction === 2) removedPixels += 1;
   }
 
-  const regions = findChangeRegions(changedMask, width, height, {
-    ...options.regionOptions,
-    signal: options.signal ?? options.regionOptions?.signal,
+  return { overlay: { width: earlier.width, height: earlier.height, data: overlayData }, directionMask, addedPixels, removedPixels };
+}
+
+/** Compare two equal-size RGBA images without requiring a DOM or canvas. */
+export function diffImages(earlier: RasterImage, newer: RasterImage, options: VisualDiffOptions = {}): VisualDiffResult {
+  if (earlier.width !== newer.width || earlier.height !== newer.height) throw new RangeError("Images must have equal dimensions before diffing.");
+  const { width, height } = earlier;
+  const total = width * height;
+  if (earlier.data.length !== total * 4 || newer.data.length !== total * 4) throw new RangeError("Raster buffers do not match their dimensions.");
+  throwIfAborted(options.signal);
+
+  const pixelmatchOutput = new Uint8ClampedArray(total * 4);
+  pixelmatch(earlier.data, newer.data, pixelmatchOutput, width, height, {
+    threshold: clamp(options.threshold ?? 0.1, 0, 1),
+    includeAA: options.includeAA ?? false,
+    diffMask: true,
+    alpha: 1,
   });
+  const { mask: changedMask, count: changedPixels } = changedMaskFromPixelmatch(pixelmatchOutput, total, options.signal);
+  const overlay = overlayForMask(earlier, newer, changedMask, options);
+  const regions = findChangeRegions(changedMask, width, height, { ...options.regionOptions, signal: options.signal ?? options.regionOptions?.signal });
   return {
     width,
     height,
     changedPixels,
     changedPercent: total === 0 ? 0 : (changedPixels / total) * 100,
     changedMask,
-    directionMask,
-    overlay: { width, height, data: overlayData },
-    addedPixels,
-    removedPixels,
+    directionMask: overlay.directionMask,
+    overlay: overlay.overlay,
+    addedPixels: overlay.addedPixels,
+    removedPixels: overlay.removedPixels,
     regions,
   };
 }

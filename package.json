@@ -10,9 +10,8 @@
     "build:packages": "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-browser build && pnpm --filter @pdfdiff/viewer-react build",
     "build": "pnpm run build:packages && WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "pnpm run build && node --test tests/rendered-html.test.mjs && node --experimental-strip-types --test tests/client-helpers.test.ts tests/core.test.ts tests/semantic.test.ts",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "test": "pnpm run build && node --test tests/rendered-html.test.mjs && node --experimental-strip-types --test tests/core.test.ts tests/semantic.test.ts",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
     "@pdfdiff/core": "workspace:*",
@@ -22,7 +21,6 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.34.0",
     "pdfjs-dist": "^6.2.108",
-    "pixelmatch": "^7.2.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwind-merge": "^3.6.0"

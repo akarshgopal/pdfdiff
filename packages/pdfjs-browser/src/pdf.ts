@@ -41,7 +41,7 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
       void task?.destroy();
       abortReject?.(new PdfDiffAbortError());
     };
-    const signal = options.signal as AbortSignal | undefined;
+    const signal = options.signal;
     signal?.addEventListener("abort", onAbort, { once: true });
     if (signal?.aborted) onAbort();
     try {
@@ -63,7 +63,7 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
     }
   } catch (error) {
     if (task) await task.destroy().catch(() => undefined);
-    if ((options.signal as AbortSignal | undefined)?.aborted) throw new PdfDiffAbortError();
+    if (options.signal?.aborted) throw new PdfDiffAbortError();
     throw error;
   }
 }

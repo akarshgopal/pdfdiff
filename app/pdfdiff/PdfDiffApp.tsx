@@ -10,10 +10,9 @@ import {
 } from "react";
 import type { DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
 import { PdfDiffViewer, type DiffComparison, type DiffViewMode } from "@pdfdiff/viewer-react";
-import { Button } from "../../components/ui/button";
-import { FileDropzone } from "../../components/ui/file-dropzone";
-import { ThemeToggle } from "../../components/ui/theme-toggle";
 import { styles, styleProps } from "./styles";
+import { LoadingScreen } from "./LoadingScreen";
+import { UploadScreen } from "./UploadScreen";
 
 export type DiffOptions = CoreDiffOptions;
 
@@ -75,12 +74,13 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   const abortRef = useRef<AbortController | null>(null);
 
   const setFile = useCallback((side: "earlier" | "newer", file: File | null) => {
+    comparison?.dispose?.();
     if (side === "earlier") setEarlierFile(file);
     else setNewerFile(file);
     setError(null);
     setComparison(null);
     setPhase("upload");
-  }, []);
+  }, [comparison]);
 
   const chooseFile = (side: "earlier" | "newer") => {
     if (side === "earlier") inputEarlier.current?.click();
@@ -158,39 +158,24 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
 
   const reset = () => {
     abortRef.current?.abort();
-    setEarlierFile(null);
-    setNewerFile(null);
+    comparison?.dispose?.();
     setComparison(null);
     setError(null);
     setPhase("upload");
     setProgress(0);
   };
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    comparison?.dispose?.();
+  }, [comparison]);
 
   if (phase === "upload") {
-    return (
-      <main {...styleProps(styles.root)}>
-        <div {...styleProps(styles.shell)}>
-          <header {...styleProps(styles.topbar)}><div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div><div {...styleProps(styles.topbarActions)}><div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Files stay on your device</div><button {...styleProps(styles.helpButton)} type="button" onClick={() => document.getElementById("how-to-heading")?.scrollIntoView({ behavior: "smooth" })}><span {...styleProps(styles.helpButtonMark)} aria-hidden="true">?</span> How it works</button><ThemeToggle /></div></header>
-          <section {...styleProps(styles.intro)} aria-labelledby="upload-heading">
-            <p {...styleProps(styles.eyebrow)}>PDF comparison</p>
-            <h1 id="upload-heading" {...styleProps(styles.headline)}>Compare PDFs.<br /><em {...styleProps(styles.headlineAccent)}>Spot the difference.</em></h1>
-            <p {...styleProps(styles.introCopy)}>Drop two versions to review what changed, page by page. Or select both PDFs from either picker; the first fills the card you opened.</p>
-            <div {...styleProps(styles.uploadGrid)}><FileDropzone label="Earlier" description="Original PDF" file={earlierFile} active={activeDrop === "earlier"} onChoose={() => chooseFile("earlier")} onRemove={() => setFile("earlier", null)} onActive={(active) => setActiveDrop(active ? "earlier" : null)} onDrop={(event) => handleDrop("earlier", event)} /><button {...styleProps(styles.swapUpload)} type="button" aria-label="Swap earlier and newer files" onClick={swapFiles}>↔</button><FileDropzone label="Newer" description="Revised PDF" file={newerFile} active={activeDrop === "newer"} onChoose={() => chooseFile("newer")} onRemove={() => setFile("newer", null)} onActive={(active) => setActiveDrop(active ? "newer" : null)} onDrop={(event) => handleDrop("newer", event)} /></div>
-            <input ref={inputEarlier} {...styleProps(styles.srOnly)} type="file" multiple accept="application/pdf,.pdf" aria-label="Choose one or two PDFs for earlier and newer" onChange={(event) => handleInput("earlier", event)} />
-            <input ref={inputNewer} {...styleProps(styles.srOnly)} type="file" multiple accept="application/pdf,.pdf" aria-label="Choose one or two PDFs for newer and earlier" onChange={(event) => handleInput("newer", event)} />
-            <Button size="lg" className={styles.compareButton} disabled={!earlierFile || !newerFile} onClick={() => void runComparison()}>Compare PDFs <span aria-hidden="true">→</span></Button>
-            {error ? <div {...styleProps(styles.errorBox)} role="alert">{error}</div> : null}
-            <section {...styleProps(styles.howTo)} aria-labelledby="how-to-heading"><div {...styleProps(styles.howToHeader)}><p {...styleProps(styles.eyebrow)}>How it works</p><h2 id="how-to-heading" {...styleProps(styles.howToTitle)}>A clear path from revision to review.</h2><p {...styleProps(styles.howToCopy)}>PDF Diff turns two versions into a focused review workspace. Everything happens locally, so you can move from upload to evidence without sending the documents anywhere.</p></div><div {...styleProps(styles.howToGrid)}><article {...styleProps(styles.howToCard)}><span {...styleProps(styles.howToStep)}>1</span><h3 {...styleProps(styles.howToCardTitle)}>Load both versions</h3><p {...styleProps(styles.howToCardCopy)}>Add the original to Earlier and the revision to Newer. Drop files or browse, then swap them if needed.</p></article><article {...styleProps(styles.howToCard)}><span {...styleProps(styles.howToStep)}>2</span><h3 {...styleProps(styles.howToCardTitle)}>Compare page by page</h3><p {...styleProps(styles.howToCardCopy)}>The browser renders each page, finds visual differences, and checks the extracted text.</p></article><article {...styleProps(styles.howToCard)}><span {...styleProps(styles.howToStep)}>3</span><h3 {...styleProps(styles.howToCardTitle)}>Inspect the evidence</h3><p {...styleProps(styles.howToCardCopy)}>Switch views, zoom in, select regions, and use Next changed page to work through the review.</p></article></div><div {...styleProps(styles.featureGrid)}><div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Local by design</strong><p {...styleProps(styles.featureCopy)}>PDFs stay on this device while they are processed.</p></div><div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Seven ways to compare</strong><p {...styleProps(styles.featureCopy)}>Diff, semantic text, side by side, swipe, blink, Earlier, and Newer.</p></div><div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Review-ready detail</strong><p {...styleProps(styles.featureCopy)}>Page status, change regions, text changes, and full-page views.</p></div></div></section>
-          </section>
-        </div>
-      </main>
-    );
+    return <UploadScreen earlierFile={earlierFile} newerFile={newerFile} activeDrop={activeDrop} error={error} onChoose={chooseFile} onRemove={(side) => setFile(side, null)} onActive={(side, active) => setActiveDrop(active ? side : null)} onDrop={handleDrop} onInput={handleInput} onSwap={swapFiles} onCompare={() => void runComparison()} onHelp={() => document.getElementById("how-to-heading")?.scrollIntoView({ behavior: "smooth" })} inputEarlier={inputEarlier} inputNewer={inputNewer} />;
   }
 
   if (phase === "loading") {
-    return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><header {...styleProps(styles.topbar)}><div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div><div {...styleProps(styles.topbarActions)}><div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Processing</div><ThemeToggle /></div></header><section {...styleProps(styles.loading)} aria-live="polite" aria-busy="true"><div {...styleProps(styles.loadingCard)}><div {...styleProps(styles.loadingMark)} aria-hidden="true">◐</div><h1 {...styleProps(styles.loadingTitle)}>Comparing your PDFs</h1><p {...styleProps(styles.loadingCopy)}>Rendering pages and finding changes.</p><div {...styleProps(styles.progressTrack)}><div {...styleProps(styles.progressFill)} style={{ width: `${progress}%` }} /></div><p {...styleProps(styles.progressLabel)}>{progress ? `${progress}% complete` : "Preparing pages…"}</p></div></section></div></main>;
+    return <LoadingScreen progress={progress} />;
   }
 
   if (!comparison) return null;

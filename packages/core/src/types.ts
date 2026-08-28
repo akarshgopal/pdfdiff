@@ -1,7 +1,7 @@
 export interface RasterImage {
   readonly width: number;
   readonly height: number;
-  /** RGBA pixels in row-major order. This type is transferable between workers. */
+  /** RGBA pixels in row-major order; transfer the backing ArrayBuffer between workers. */
   readonly data: Uint8ClampedArray;
 }
 
@@ -119,6 +119,15 @@ export type AlignmentMode = "none" | "translation";
 export interface DiffOptions {
   readonly sensitivity: number;
   readonly alignment: AlignmentMode;
+  readonly policy?: DiffPolicy;
+}
+
+/** Optional resource and region limits applied by an adapter during comparison. */
+export interface DiffPolicy {
+  readonly maxPixels?: number;
+  readonly maxDimension?: number;
+  readonly regionMinPixels?: number;
+  readonly maxRegions?: number;
 }
 
 export interface VisualPageGeometry {
@@ -156,12 +165,12 @@ export interface ComparisonResult {
   readonly elapsedMs?: number;
 }
 
-export interface DiffEngine<Source> {
+export interface DiffEngine<Source, Signal extends AbortSignalLike = AbortSignalLike> {
   compare(request: {
     earlier: Source;
     newer: Source;
     options: DiffOptions;
-    signal: AbortSignalLike;
+    signal: Signal;
     onProgress?: (progress: ProgressEvent) => void;
   }): Promise<ComparisonResult>;
 }

@@ -18,6 +18,29 @@ const pageTitle = "PDF Diff — compare documents privately";
 const pageDescription = "Compare PDF revisions page by page. Your documents stay entirely in your browser.";
 const faviconPath = "/favicon.svg";
 const touchIconPath = "/apple-touch-icon.png";
+const fallbackOrigin = "http://localhost:3000";
+
+function requestOrigin(requestHeaders: Headers): string {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL;
+  if (configuredOrigin) {
+    try {
+      const origin = new URL(configuredOrigin);
+      if (origin.protocol === "http:" || origin.protocol === "https:") return origin.origin;
+    } catch {
+      return fallbackOrigin;
+    }
+  }
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  if (!host || (protocol !== "http" && protocol !== "https")) return fallbackOrigin;
+  try {
+    const origin = new URL(`${protocol}://${host}`);
+    if (origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash) return fallbackOrigin;
+    return origin.origin;
+  } catch {
+    return fallbackOrigin;
+  }
+}
 
 export const viewport: Viewport = {
   colorScheme: "light dark",
@@ -26,9 +49,7 @@ export const viewport: Viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const origin = `${protocol}://${host}`;
+  const origin = requestOrigin(requestHeaders);
 
   return {
     metadataBase: new URL(origin),

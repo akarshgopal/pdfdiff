@@ -4,7 +4,7 @@
   "description": "Reusable React viewer for PDF Diff comparisons.",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": ["dist/theme.css"],
   "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,10 +15,11 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./theme.css": "./dist/theme.css"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json && node copy-theme.mjs"
   },
   "peerDependencies": {
     "react": ">=18"

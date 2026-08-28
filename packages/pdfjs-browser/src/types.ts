@@ -1,6 +1,5 @@
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import type {
-  AbortSignalLike,
   PageText,
   ProgressEvent,
   RenderedPage as CoreRenderedPage,
@@ -9,7 +8,7 @@ import type {
 export type PdfSource = File | ArrayBuffer | Uint8Array;
 
 export interface PdfLoadOptions {
-  signal?: AbortSignalLike;
+  signal?: AbortSignal;
   onProgress?: (loaded: number, total?: number) => void;
   password?: string;
   workerSrc?: string;
@@ -43,11 +42,11 @@ export interface RenderOptions {
   maxDimension?: number;
   includeAnnotations?: boolean;
   background?: string;
-  signal?: AbortSignalLike;
+  signal?: AbortSignal;
 }
 
 export interface DocumentTextOptions {
-  signal?: AbortSignalLike;
+  signal?: AbortSignal;
   onProgress?: (event: ProgressEvent) => void;
   includeMarkedContent?: boolean;
   disableNormalization?: boolean;
