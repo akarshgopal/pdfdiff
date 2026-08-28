@@ -4,7 +4,6 @@ import {
   type ChangeEvent,
   type CSSProperties,
   type DragEvent,
-  type KeyboardEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -12,6 +11,7 @@ import {
   useState,
 } from "react";
 import { Button } from "../../components/ui/button";
+import { FileDropzone } from "../../components/ui/file-dropzone";
 import { styles, styleProps, type TailwindClass } from "./styles";
 
 /**
@@ -116,11 +116,6 @@ const viewModes: Array<{ id: DiffViewMode; label: string; shortcut: string }> = 
 const zoomLevels = [50, 75, 100, 125, 150, 200] as const;
 
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(bytes > 10 * 1024 * 1024 ? 0 : 1)} MB`;
-}
-
 function sizeBucket(bytes: number): string {
   if (bytes < 2 * 1024 * 1024) return "small";
   if (bytes < 20 * 1024 * 1024) return "medium";
@@ -170,89 +165,6 @@ function getRegionStyle(region: DiffRegion): CSSProperties {
   return { left: x, top: y, width, height };
 }
 
-function FileGlyph() {
-  return <span {...styleProps(styles.fileGlyph)} aria-hidden="true">PDF</span>;
-}
-
-function FileCard({
-  side,
-  file,
-  active,
-  onChoose,
-  onRemove,
-  onDrop,
-  onActive,
-}: {
-  side: "earlier" | "newer";
-  file: File | null;
-  active: boolean;
-  onChoose: () => void;
-  onRemove: () => void;
-  onDrop: (event: DragEvent<HTMLDivElement>) => void;
-  onActive: (active: boolean) => void;
-}) {
-  const label = side === "earlier" ? "Earlier version" : "Newer version";
-  const description = side === "earlier" ? "The baseline PDF" : "The PDF to compare against";
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onChoose();
-    }
-  };
-
-  return (
-    <div
-      {...styleProps(styles.uploadCard, active && styles.uploadCardActive, file && styles.uploadCardFilled)}
-      role="button"
-      tabIndex={0}
-      aria-label={`${label}: ${file ? file.name : "choose a PDF"}`}
-      onClick={onChoose}
-      onKeyDown={handleKeyDown}
-      onDragEnter={(event) => {
-        event.preventDefault();
-        onActive(true);
-      }}
-      onDragOver={(event) => event.preventDefault()}
-      onDragLeave={() => onActive(false)}
-      onDrop={onDrop}
-    >
-      <div>
-        <div {...styleProps(styles.uploadTop)}>
-          <div>
-            <span {...styleProps(styles.uploadLabel)}>{label}</span>
-            <h2 {...styleProps(styles.uploadTitle)}>{file ? "Ready to compare" : description}</h2>
-          </div>
-          <span {...styleProps(styles.uploadIcon)} aria-hidden="true">{file ? "✓" : "+"}</span>
-        </div>
-        {file ? (
-          <div {...styleProps(styles.fileRow)}>
-            <FileGlyph />
-            <div {...styleProps(styles.fileDetails)}>
-              <span {...styleProps(styles.fileName)} title={file.name}>{file.name}</span>
-              <span {...styleProps(styles.fileMeta)}>{formatFileSize(file.size)} · PDF document</span>
-            </div>
-            <button
-              {...styleProps(styles.fileRemove)}
-              type="button"
-              aria-label={`Remove ${label.toLowerCase()} file`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onRemove();
-              }}
-            >
-              ×
-            </button>
-          </div>
-        ) : (
-          <p {...styleProps(styles.uploadHint)}>Drop a PDF here, or choose one from your device. Files never leave this browser.</p>
-        )}
-      </div>
-      <span {...styleProps(styles.uploadAction)}>{file ? "Replace PDF" : "Choose PDF →"}</span>
-    </div>
-  );
-}
-
 function ThumbPlaceholder() {
   return (
     <div {...styleProps(styles.thumbPlaceholder)} aria-hidden="true">
@@ -281,6 +193,7 @@ function PagePreview({
   zoom,
   swipe,
   blinkOn,
+  showBoundingBoxes,
   selectedRegion,
   onRegionClick,
 }: {
@@ -289,6 +202,7 @@ function PagePreview({
   zoom: number;
   swipe: number;
   blinkOn: boolean;
+  showBoundingBoxes: boolean;
   selectedRegion: string | null;
   onRegionClick: (region: DiffRegion) => void;
 }) {
@@ -299,7 +213,7 @@ function PagePreview({
   const renderImage = (source: string | undefined, alt: string, imageStyle: TailwindClass = styles.pageImage) =>
     source ? <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} /> : <PaperFallback label="Preview is still rendering" />;
 
-  const overlays = mode === "diff" && page.regions?.length ? (
+  const overlays = showBoundingBoxes && mode === "diff" && page.regions?.length ? (
     <>
       {page.regions.map((region) => (
         <button
@@ -395,6 +309,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   const [sensitivity, setSensitivity] = useState(28);
   const [alignment, setAlignment] = useState<AlignmentMode>("none");
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
   const [blinkOn, setBlinkOn] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const inputEarlier = useRef<HTMLInputElement>(null);
@@ -452,18 +367,29 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   };
 
   const handleInput = (side: "earlier" | "newer", event: ChangeEvent<HTMLInputElement>) => {
-    const file = normalizeFile(event.target.files?.[0]);
-    if (!file) {
-      setError("Please choose a PDF file. Other file types are not supported.");
+    const selectedFiles = Array.from(event.target.files ?? []);
+    if (!selectedFiles.length) {
       event.target.value = "";
       return;
     }
-    if (file.size > MAX_FILE_SIZE) {
-      setError("That PDF is over 150 MB. Try a smaller export to keep processing fast and private.");
+
+    if (selectedFiles.length > 2 || selectedFiles.some((file) => !normalizeFile(file))) {
+      setError("Choose one or two PDF files.");
       event.target.value = "";
       return;
     }
-    setFile(side, file);
+
+    const files = selectedFiles.map((file) => normalizeFile(file) as File);
+    if (files.some((file) => file.size > MAX_FILE_SIZE)) {
+      setError("That PDF exceeds the 150 MB limit. Choose a smaller file.");
+      event.target.value = "";
+      return;
+    }
+
+    setFile(side, files[0]);
+    if (files[1]) {
+      setFile(side === "earlier" ? "newer" : "earlier", files[1]);
+    }
     event.target.value = "";
   };
 
@@ -472,11 +398,11 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
     setActiveDrop(null);
     const file = normalizeFile(event.dataTransfer.files?.[0]);
     if (!file) {
-      setError("Please drop a PDF file. Other file types are not supported.");
+      setError("Drop a PDF file.");
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      setError("That PDF is over 150 MB. Try a smaller export to keep processing fast and private.");
+      setError("That PDF exceeds the 150 MB limit. Choose a smaller file.");
       return;
     }
     setFile(side, file);
@@ -562,22 +488,21 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
         <div {...styleProps(styles.shell)}>
           <header {...styleProps(styles.topbar)}>
             <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
-            <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Runs locally in your browser</div>
+            <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Files stay on your device</div>
           </header>
           <section {...styleProps(styles.intro)} aria-labelledby="upload-heading">
-            <p {...styleProps(styles.eyebrow)}>Visual document comparison</p>
-            <h1 id="upload-heading" {...styleProps(styles.headline)}>See every change.<br /><em {...styleProps(styles.headlineAccent)}>Miss nothing.</em></h1>
-            <p {...styleProps(styles.introCopy)}>Compare drawings, schematics, and contracts page by page. Your files stay on this device from start to finish.</p>
+            <p {...styleProps(styles.eyebrow)}>PDF comparison</p>
+            <h1 id="upload-heading" {...styleProps(styles.headline)}>Compare PDFs.<br /><em {...styleProps(styles.headlineAccent)}>Spot the difference.</em></h1>
+            <p {...styleProps(styles.introCopy)}>Drop two versions to review what changed, page by page.</p>
             <div {...styleProps(styles.uploadGrid)}>
-              <FileCard side="earlier" file={earlierFile} active={activeDrop === "earlier"} onChoose={() => chooseFile("earlier")} onRemove={() => setFile("earlier", null)} onActive={(active) => setActiveDrop(active ? "earlier" : null)} onDrop={(event) => handleDrop("earlier", event)} />
+              <FileDropzone label="Earlier" description="Original PDF" file={earlierFile} active={activeDrop === "earlier"} onChoose={() => chooseFile("earlier")} onRemove={() => setFile("earlier", null)} onActive={(active) => setActiveDrop(active ? "earlier" : null)} onDrop={(event) => handleDrop("earlier", event)} />
               <button {...styleProps(styles.swapUpload)} type="button" aria-label="Swap earlier and newer files" onClick={swapFiles}>↔</button>
-              <FileCard side="newer" file={newerFile} active={activeDrop === "newer"} onChoose={() => chooseFile("newer")} onRemove={() => setFile("newer", null)} onActive={(active) => setActiveDrop(active ? "newer" : null)} onDrop={(event) => handleDrop("newer", event)} />
+              <FileDropzone label="Newer" description="Revised PDF" file={newerFile} active={activeDrop === "newer"} onChoose={() => chooseFile("newer")} onRemove={() => setFile("newer", null)} onActive={(active) => setActiveDrop(active ? "newer" : null)} onDrop={(event) => handleDrop("newer", event)} />
             </div>
-            <input ref={inputEarlier} {...styleProps(styles.srOnly)} type="file" accept="application/pdf,.pdf" aria-label="Choose earlier PDF" onChange={(event) => handleInput("earlier", event)} />
-            <input ref={inputNewer} {...styleProps(styles.srOnly)} type="file" accept="application/pdf,.pdf" aria-label="Choose newer PDF" onChange={(event) => handleInput("newer", event)} />
+            <input ref={inputEarlier} {...styleProps(styles.srOnly)} type="file" multiple accept="application/pdf,.pdf" aria-label="Choose one or two PDFs for earlier and newer" onChange={(event) => handleInput("earlier", event)} />
+            <input ref={inputNewer} {...styleProps(styles.srOnly)} type="file" multiple accept="application/pdf,.pdf" aria-label="Choose one or two PDFs for newer and earlier" onChange={(event) => handleInput("newer", event)} />
             <Button size="lg" className={styles.compareButton} disabled={!earlierFile || !newerFile} onClick={() => void runComparison()}>Compare PDFs <span aria-hidden="true">→</span></Button>
             {error ? <div {...styleProps(styles.errorBox)} role="alert">{error}</div> : null}
-            <p {...styleProps(styles.uploadFooter)}><span {...styleProps(styles.footerShield)} aria-hidden="true">♢</span> No uploads · no accounts · no document data collected</p>
           </section>
         </div>
       </main>
@@ -590,15 +515,15 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
         <div {...styleProps(styles.shell)}>
           <header {...styleProps(styles.topbar)}>
             <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
-            <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Working locally</div>
+            <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Processing</div>
           </header>
           <section {...styleProps(styles.loading)} aria-live="polite" aria-busy="true">
             <div {...styleProps(styles.loadingCard)}>
               <div {...styleProps(styles.loadingMark)} aria-hidden="true">◐</div>
               <h1 {...styleProps(styles.loadingTitle)}>Comparing your PDFs</h1>
-              <p {...styleProps(styles.loadingCopy)}>Rendering pages and finding meaningful visual changes. Nothing is being uploaded.</p>
+              <p {...styleProps(styles.loadingCopy)}>Rendering pages and finding changes.</p>
               <div {...styleProps(styles.progressTrack)}><div {...styleProps(styles.progressFill)} style={{ width: `${progress}%` }} /></div>
-              <p {...styleProps(styles.fileMeta)}>{progress ? `${progress}% complete` : "Preparing pages…"}</p>
+              <p {...styleProps(styles.progressLabel)}>{progress ? `${progress}% complete` : "Preparing pages…"}</p>
             </div>
           </section>
         </div>
@@ -658,7 +583,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
             </div>
             <div {...styleProps(styles.stage)}>
               <div {...styleProps(styles.stageCenter)}>
-                <PagePreview page={currentPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} selectedRegion={selectedRegion} onRegionClick={selectRegion} />
+              <PagePreview page={currentPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={selectRegion} />
               </div>
             </div>
             <div {...styleProps(styles.statusFooter)}>
@@ -668,7 +593,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
           </section>
           <aside {...styleProps(styles.inspector)} aria-label="Change inspector">
             <h2 {...styleProps(styles.inspectorHeading)}>Change inspector</h2>
-            <p {...styleProps(styles.inspectorSubheading)}>Review this page, then jump to the next changed page.</p>
+            <p {...styleProps(styles.inspectorSubheading)}>Select a change to locate it on the page.</p>
             <div {...styleProps(styles.changeSummary)}>
               <div {...styleProps(styles.statCard)}><span {...styleProps(styles.statLabel)}>Changed pages</span><strong {...styleProps(styles.statValue, pageChangedCount > 0 && styles.statValueWarm)}>{pageChangedCount}</strong></div>
               <div {...styleProps(styles.statCard)}><span {...styleProps(styles.statLabel)}>Changed area</span><strong {...styleProps(styles.statValue, changedPercent > 0 && styles.statValueWarm)}>{changedPercent ? `${changedPercent.toFixed(2)}%` : "—"}</strong></div>
@@ -676,9 +601,16 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
             <Button className={styles.compareButton} onClick={goToNextChange}>Next changed page <span aria-hidden="true">→</span></Button>
             <div {...styleProps(styles.inspectorSection)}>
               <div {...styleProps(styles.sectionLabel)}><span>Regions</span><span>{currentRegions.length}</span></div>
+              <label {...styleProps(styles.switchRow)}>
+                <span {...styleProps(styles.switchLabel)}>Show bounding boxes</span>
+                <span {...styleProps(styles.switch, showBoundingBoxes && styles.switchOn)}>
+                  <input type="checkbox" role="switch" aria-checked={showBoundingBoxes} checked={showBoundingBoxes} onChange={(event) => setShowBoundingBoxes(event.target.checked)} {...styleProps(styles.switchInput)} />
+                  <span {...styleProps(styles.switchThumb, showBoundingBoxes && styles.switchThumbOn)} aria-hidden="true" />
+                </span>
+              </label>
               {currentRegions.length ? (
                 <div {...styleProps(styles.changeList)}>{currentRegions.map((region, index) => <button key={region.id} {...styleProps(styles.changeButton, selectedRegion === region.id && styles.changeButtonCurrent)} type="button" onClick={() => selectRegion(region)}><span {...styleProps(styles.changeDot, region.kind === "added" && styles.changeDotAdded, region.kind === "removed" && styles.changeDotRemoved)} aria-hidden="true" /><span {...styleProps(styles.changeText)}>{region.label ?? `${region.kind ?? "Changed"} region ${index + 1}`}</span><span {...styleProps(styles.changeCount)}>#{index + 1}</span></button>)}</div>
-              ) : <div {...styleProps(styles.emptyChanges)}>{status === "same" ? "This page is identical at the current sensitivity." : "No grouped regions were returned for this page."}</div>}
+              ) : <div {...styleProps(styles.emptyChanges)}>{status === "same" ? "No regions on this page." : "No regions to inspect."}</div>}
             </div>
             {currentTextChanges.length ? <div {...styleProps(styles.inspectorSection)}><div {...styleProps(styles.sectionLabel)}><span>Text changes</span><span>{currentTextChanges.length}</span></div><div {...styleProps(styles.changeList)}>{currentTextChanges.slice(0, 6).map((change) => <button key={change.id} {...styleProps(styles.changeButton)} type="button" onClick={() => setSelectedRegion(change.id)}><span {...styleProps(styles.changeDot, change.kind === "added" && styles.changeDotAdded, change.kind === "removed" && styles.changeDotRemoved)} aria-hidden="true" /><span {...styleProps(styles.changeText)}>{change.text}</span></button>)}</div></div> : null}
             <div {...styleProps(styles.inspectorSection)}>

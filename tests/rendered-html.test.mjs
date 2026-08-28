@@ -21,8 +21,8 @@ test("server-renders the private PDF comparison experience", async () => {
   const html = await response.text();
   assert.match(html, /<title>PDF Diff — compare documents privately<\/title>/i);
   assert.match(html, /Compare PDF revisions/);
-  assert.match(html, /Earlier version/);
-  assert.match(html, /Newer version/);
-  assert.match(html, /Files never leave this browser/i);
+  assert.match(html, /Earlier/i);
+  assert.match(html, /Newer/i);
+  assert.match(html, /Files stay on your device/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });

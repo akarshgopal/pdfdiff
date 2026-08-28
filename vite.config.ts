@@ -45,12 +45,18 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    // Vinext's RSC dev bootstrap can inject a browser-only React Refresh
+    // preamble into the development entry. Keep that preamble out of the
+    // server/client bootstrap while this Vinext version is in use.
+    server: {
+      hmr: false,
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
+    },
     plugins: [
       tailwindcss(),
-      vinext(),
+      vinext({ react: false }),
       sites(),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
