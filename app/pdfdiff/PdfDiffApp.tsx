@@ -16,6 +16,7 @@ import { Button } from "../../components/ui/button";
 import { FileDropzone } from "../../components/ui/file-dropzone";
 import { ThemeToggle } from "../../components/ui/theme-toggle";
 import { styles, styleProps, type TailwindClass } from "./styles";
+import type { SemanticTextDiff } from "../../lib/pdfdiff/semantic";
 
 /**
  * The UI deliberately depends on this small boundary instead of knowing how
@@ -24,6 +25,7 @@ import { styles, styleProps, type TailwindClass } from "./styles";
  */
 export type DiffViewMode =
   | "diff"
+  | "semantic-text"
   | "side-by-side"
   | "swipe"
   | "blink"
@@ -48,6 +50,8 @@ export type DiffTextChange = {
   id: string;
   text: string;
   kind: "added" | "removed" | "changed";
+  beforeText?: string;
+  afterText?: string;
   pageX?: number;
   pageY?: number;
 };
@@ -64,6 +68,7 @@ export type DiffPage = {
   changedPercent?: number;
   regions?: DiffRegion[];
   textChanges?: DiffTextChange[];
+  semantic?: SemanticTextDiff;
   error?: string;
 };
 
@@ -111,11 +116,12 @@ const lazyBrowserEngine: PdfDiffEngine = {
 const MAX_FILE_SIZE = 150 * 1024 * 1024;
 const viewModes: Array<{ id: DiffViewMode; label: string; shortcut: string }> = [
   { id: "diff", label: "Diff", shortcut: "1" },
-  { id: "side-by-side", label: "Side by side", shortcut: "2" },
-  { id: "swipe", label: "Swipe", shortcut: "3" },
-  { id: "blink", label: "Blink", shortcut: "4" },
-  { id: "earlier", label: "Earlier", shortcut: "5" },
-  { id: "newer", label: "Newer", shortcut: "6" },
+  { id: "semantic-text", label: "Semantic text", shortcut: "2" },
+  { id: "side-by-side", label: "Side by side", shortcut: "3" },
+  { id: "swipe", label: "Swipe", shortcut: "4" },
+  { id: "blink", label: "Blink", shortcut: "5" },
+  { id: "earlier", label: "Earlier", shortcut: "6" },
+  { id: "newer", label: "Newer", shortcut: "7" },
 ];
 
 const zoomLevels = [50, 75, 100, 125, 150, 200] as const;
@@ -204,6 +210,75 @@ function PaperFallback({ label }: { label: string }) {
   );
 }
 
+function needsSemanticSpace(previous: string, next: string): boolean {
+  if (!previous || !next) return false;
+  if (/^[\],.!?:;%)}"'’]/.test(next)) return false;
+  if (/[([{"'$/]$/.test(previous)) return false;
+  return true;
+}
+
+function SemanticTextPreview({
+  page,
+  zoom,
+  selectedRegion,
+}: {
+  page: DiffPage;
+  zoom: number;
+  selectedRegion: string | null;
+}) {
+  const semantic = page.semantic;
+  if (!semantic) return <div {...styleProps(styles.paper, zoomStyle(zoom))}><PaperFallback label="Text comparison is unavailable for this page" /></div>;
+
+  const renderRuns = (side: "before" | "after") => {
+    const runs = semantic[side];
+    return runs.length ? runs.map((run, index) => {
+      const previous = runs[index - 1]?.text ?? "";
+      const changeId = run.id.replace(/-(before|after)$/, "");
+      return (
+        <span
+          key={run.id}
+          {...styleProps(
+            styles.semanticRun,
+            run.kind === "same" && styles.semanticRunSame,
+            run.kind === "added" && styles.semanticRunAdded,
+            run.kind === "removed" && styles.semanticRunRemoved,
+            run.kind === "changed" && styles.semanticRunChanged,
+            selectedRegion === changeId && styles.semanticRunCurrent,
+          )}
+        >
+          {needsSemanticSpace(previous, run.text) ? " " : ""}{run.text}
+        </span>
+      );
+    }) : <span {...styleProps(styles.semanticEmptyText)}>No selectable text</span>;
+  };
+
+  return (
+    <div {...styleProps(styles.paper, styles.semanticPaper, zoomStyle(zoom))}>
+      <div {...styleProps(styles.semanticSummary)}>
+        <span>{semantic.changes.length ? `${semantic.changes.length} text change${semantic.changes.length === 1 ? "" : "s"}` : "No text changes"}</span>
+        <span>{semantic.beforeTokenCount} → {semantic.afterTokenCount} tokens</span>
+      </div>
+      {!semantic.hasBeforeText && !semantic.hasAfterText ? (
+        <div {...styleProps(styles.semanticNoText)}>
+          <strong>No selectable text found</strong>
+          <span>Run OCR on scanned PDFs before comparing their text.</span>
+        </div>
+      ) : (
+        <div {...styleProps(styles.semanticGrid)}>
+          <article {...styleProps(styles.semanticColumn)} aria-label="Earlier text">
+            <header {...styleProps(styles.semanticHeader)}><span>Earlier</span><span>{semantic.beforeTokenCount} tokens</span></header>
+            <div {...styleProps(styles.semanticBody)}>{renderRuns("before")}</div>
+          </article>
+          <article {...styleProps(styles.semanticColumn)} aria-label="Newer text">
+            <header {...styleProps(styles.semanticHeader)}><span>Newer</span><span>{semantic.afterTokenCount} tokens</span></header>
+            <div {...styleProps(styles.semanticBody)}>{renderRuns("after")}</div>
+          </article>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PagePreview({
   page,
   mode,
@@ -231,6 +306,10 @@ function PagePreview({
   const canShowImages = Boolean(before || after || diff);
   const renderImage = (source: string | undefined, alt: string, imageStyle: TailwindClass = styles.pageImage) =>
     source ? <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} /> : <PaperFallback label="Preview is still rendering" />;
+
+  if (mode === "semantic-text") {
+    return <SemanticTextPreview page={page} zoom={zoom} selectedRegion={selectedRegion} />;
+  }
 
   const overlays = showBoundingBoxes && mode === "diff" && page.regions?.length ? (
     <>
@@ -542,7 +621,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
               <li {...styleProps(styles.helpStep)}>
                 <span {...styleProps(styles.howToStep)}>2</span>
                 <h4 {...styleProps(styles.helpStepTitle)}>Compare the pair</h4>
-                <p {...styleProps(styles.helpStepCopy)}>Select Compare PDFs. Pages are rendered, pixels are compared, and text is checked in your browser.</p>
+                <p {...styleProps(styles.helpStepCopy)}>Select Compare PDFs. Pages are rendered, pixels are compared, and extracted text is diffed in your browser.</p>
               </li>
               <li {...styleProps(styles.helpStep)}>
                 <span {...styleProps(styles.howToStep)}>3</span>
@@ -565,6 +644,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
           <section {...styleProps(styles.helpSection)} aria-labelledby="help-modes-heading">
             <h3 id="help-modes-heading" {...styleProps(styles.helpSectionTitle)}>View modes</h3>
             <div {...styleProps(styles.helpModeList)}>
+              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Semantic text</strong> — word and punctuation changes side by side.</p>
               <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Diff</strong> — visual change overlay.</p>
               <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Side by side</strong> — Earlier and Newer next to each other.</p>
               <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Swipe</strong> — drag the divider across the page.</p>
@@ -577,7 +657,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
             <h3 id="help-shortcuts-heading" {...styleProps(styles.helpSectionTitle)}>Keyboard shortcuts</h3>
             <div {...styleProps(styles.helpShortcutGrid)}>
               <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>← →</kbd><span>Move through comparison pages.</span></p>
-              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>1–6</kbd><span>Choose a view mode.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>1–7</kbd><span>Choose a view mode.</span></p>
               <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>J / N</kbd><span>Next page; K / P goes back.</span></p>
               <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>M</kbd><span>Cycle modes; Shift + M cycles backward.</span></p>
               <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>Shift + ← →</kbd><span>Move through Earlier source pages.</span></p>
@@ -587,7 +667,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
             </div>
           </section>
 
-          <p {...styleProps(styles.helpNote)}><strong>Local by design.</strong> Your PDFs stay on this device and are processed in the browser. PDF files must be under 150 MB each; PDF Diff does not edit, merge, or export files.</p>
+          <p {...styleProps(styles.helpNote)}><strong>Local by design.</strong> Your PDFs stay on this device and are processed in the browser. Semantic text comparison needs a selectable text layer; OCR scanned PDFs first. PDF files must be under 150 MB each.</p>
         </div>
         <footer {...styleProps(styles.helpFooter)}>
           <span>Settings apply when a comparison starts.</span>
@@ -925,7 +1005,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
               </div>
               <div {...styleProps(styles.featureGrid)}>
                 <div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Local by design</strong><p {...styleProps(styles.featureCopy)}>PDFs stay on this device while they are processed.</p></div>
-                <div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Six ways to compare</strong><p {...styleProps(styles.featureCopy)}>Diff, side by side, swipe, blink, Earlier, and Newer.</p></div>
+                <div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Seven ways to compare</strong><p {...styleProps(styles.featureCopy)}>Semantic text, diff, side by side, swipe, blink, Earlier, and Newer.</p></div>
                 <div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Review-ready detail</strong><p {...styleProps(styles.featureCopy)}>Page status, change regions, text changes, and full-page views.</p></div>
               </div>
             </section>
@@ -1034,7 +1114,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
             <div {...styleProps(styles.statusFooter)}>
               <span><span {...styleProps(styles.statusAccent)}>{status === "same" ? "No visual changes" : statusLabel(status)}</span> · page {pageIndex + 1}</span>
               <span>A page {earlierPageIndex + 1}/{earlierPageCount} · B page {newerPageIndex + 1}/{newerPageCount}</span>
-              <span {...styleProps(styles.shortcutHint)} title="Keyboard shortcuts">← → pages · Shift + ← → A · Ctrl/Cmd + ← → B · 1–6 modes</span>
+              <span {...styleProps(styles.shortcutHint)} title="Keyboard shortcuts">← → pages · Shift + ← → A · Ctrl/Cmd + ← → B · 1–7 modes</span>
             </div>
           </section>
           <aside {...styleProps(styles.inspector)} aria-label="Change inspector">

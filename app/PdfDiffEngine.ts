@@ -9,12 +9,14 @@ import type {
 } from "./pdfdiff/PdfDiffApp";
 import {
   diffImages,
+  diffSemanticText,
   extractPageText,
   loadPdfPair,
   renderPage,
   renderPagePair,
   type RenderedPage,
 } from "../lib/pdfdiff";
+import type { SemanticTextDiff } from "../lib/pdfdiff/semantic";
 
 const MAX_COMPARISON_PIXELS = 3_000_000;
 const PREVIEW_SCALE = 2;
@@ -123,36 +125,16 @@ function regionsForPage(
   }));
 }
 
-function textLines(text: string): string[] {
-  return text
-    .split(/\n+/)
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter((line) => line.length > 2);
-}
-
-function textChanges(earlier: string, newer: string): DiffTextChange[] {
-  if (earlier === newer) return [];
-  const oldLines = textLines(earlier);
-  const newLines = textLines(newer);
-  const oldCounts = new Map<string, number>();
-  const newCounts = new Map<string, number>();
-  for (const line of oldLines) oldCounts.set(line, (oldCounts.get(line) ?? 0) + 1);
-  for (const line of newLines) newCounts.set(line, (newCounts.get(line) ?? 0) + 1);
-  const changes: DiffTextChange[] = [];
-  let id = 1;
-  for (const line of oldLines) {
-    const remaining = newCounts.get(line) ?? 0;
-    if (remaining > 0) newCounts.set(line, remaining - 1);
-    else changes.push({ id: `text-${id++}`, text: line, kind: "removed" });
-    if (changes.length >= 30) return changes;
-  }
-  for (const line of newLines) {
-    const remaining = oldCounts.get(line) ?? 0;
-    if (remaining > 0) oldCounts.set(line, remaining - 1);
-    else changes.push({ id: `text-${id++}`, text: line, kind: "added" });
-    if (changes.length >= 30) break;
-  }
-  return changes;
+function textChangesFromSemantic(diff: SemanticTextDiff): DiffTextChange[] {
+  return diff.changes.slice(0, 80).map((change) => ({
+    id: change.id,
+    text: change.kind === "changed"
+      ? `${change.before} → ${change.after}`
+      : change.kind === "removed" ? change.before : change.after,
+    kind: change.kind,
+    beforeText: change.before || undefined,
+    afterText: change.after || undefined,
+  }));
 }
 
 function asRenderedPage(page: RenderedPage, imageData: ImageData): RenderedPage {
@@ -194,18 +176,20 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             extractPageText(pair.earlier, pageNumber, { signal }),
             extractPageText(pair.newer, pageNumber, { signal }),
           ]);
+          const semantic = diffSemanticText(oldText.text, newText.text, { signal });
           pages.push({
             index: pageNumber - 1,
             width: result.width,
             height: result.height,
-            status: result.changedPixels === 0 ? "same" : "changed",
+            status: result.changedPixels === 0 && semantic.changes.length === 0 ? "same" : "changed",
             beforeSrc: previewUrl(rendered.earlier.canvas),
             afterSrc: previewUrl(alignedNewer.canvas),
             diffSrc: previewUrl(canvasFromImageData(result.overlay), "png"),
             changedPixels: result.changedPixels,
             changedPercent: result.changedPercent,
             regions: regionsForPage(result.regions, result.width, result.height),
-            textChanges: textChanges(oldText.text, newText.text),
+            textChanges: textChangesFromSemantic(semantic),
+            semantic,
           });
         } else {
           const document = hasEarlier ? pair.earlier : pair.newer;
@@ -224,6 +208,10 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             regionOptions: { minPixels: 8, maxRegions: 40 },
             signal,
           });
+          const pageText = await extractPageText(document, pageNumber, { signal });
+          const semantic = hasEarlier
+            ? diffSemanticText(pageText.text, "", { signal })
+            : diffSemanticText("", pageText.text, { signal });
           const blankUrl = previewUrl(canvasFromImageData(blank));
           pages.push({
             index: pageNumber - 1,
@@ -236,6 +224,8 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             changedPixels: result.changedPixels,
             changedPercent: result.changedPercent,
             regions: regionsForPage(result.regions, result.width, result.height),
+            textChanges: textChangesFromSemantic(semantic),
+            semantic,
           });
         }
         onProgress?.({ completed: pageNumber, total: totalPages });

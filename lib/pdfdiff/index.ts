@@ -6,6 +6,7 @@ export * from "./render";
 export * from "./regions";
 export * from "./visual-diff";
 export * from "./text";
+export * from "./semantic";
 
 import { loadPdf } from "./pdf";
 import type { LoadedPdf, PdfLoadOptions, PdfSource } from "./types";
