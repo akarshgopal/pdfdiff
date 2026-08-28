@@ -9,14 +9,15 @@ import type {
 } from "./pdfdiff/PdfDiffApp";
 import {
   diffImages,
-  diffSemanticText,
+  diffSemanticPages,
   extractPageText,
   loadPdfPair,
   renderPage,
   renderPagePair,
   type RenderedPage,
 } from "../lib/pdfdiff";
-import type { SemanticTextDiff } from "../lib/pdfdiff/semantic";
+import type { SemanticPageDiff, SemanticTextOverlay } from "../lib/pdfdiff/semantic";
+import type { TextQuad } from "../lib/pdfdiff/types";
 
 const MAX_COMPARISON_PIXELS = 3_000_000;
 const PREVIEW_SCALE = 2;
@@ -81,7 +82,7 @@ function translationScore(earlier: ImageData, newer: ImageData, dx: number, dy: 
   return samples ? score / samples : Number.POSITIVE_INFINITY;
 }
 
-function alignByTranslation(earlier: ImageData, newer: ImageData): ImageData {
+function alignByTranslation(earlier: ImageData, newer: ImageData): { imageData: ImageData; dx: number; dy: number } {
   let bestX = 0;
   let bestY = 0;
   let bestScore = translationScore(earlier, newer, 0, 0);
@@ -106,7 +107,7 @@ function alignByTranslation(earlier: ImageData, newer: ImageData): ImageData {
       }
     }
   }
-  return shiftImage(newer, bestX, bestY);
+  return { imageData: shiftImage(newer, bestX, bestY), dx: bestX, dy: bestY };
 }
 
 function regionsForPage(
@@ -125,7 +126,7 @@ function regionsForPage(
   }));
 }
 
-function textChangesFromSemantic(diff: SemanticTextDiff): DiffTextChange[] {
+function textChangesFromSemantic(diff: SemanticPageDiff): DiffTextChange[] {
   return diff.changes.slice(0, 80).map((change) => ({
     id: change.id,
     text: change.kind === "changed"
@@ -134,6 +135,38 @@ function textChangesFromSemantic(diff: SemanticTextDiff): DiffTextChange[] {
     kind: change.kind,
     beforeText: change.before || undefined,
     afterText: change.after || undefined,
+  }));
+}
+
+function normalizedQuad(
+  quad: TextQuad,
+  page: RenderedPage,
+  width: number,
+  height: number,
+  offsetX: number,
+  offsetY: number,
+): ReadonlyArray<{ x: number; y: number }> {
+  return quad.map((point) => ({
+    x: ((point.x * page.scale + offsetX) / width) * 100,
+    y: ((point.y * page.scale + offsetY) / height) * 100,
+  }));
+}
+
+function semanticOverlaysForPage(
+  overlays: readonly SemanticTextOverlay[],
+  page: RenderedPage,
+  width: number,
+  height: number,
+  shiftX = 0,
+  shiftY = 0,
+) {
+  const offsetX = (width - page.width) / 2 + shiftX;
+  const offsetY = (height - page.height) / 2 + shiftY;
+  return overlays.slice(0, 160).map((overlay) => ({
+    id: overlay.id,
+    kind: overlay.kind,
+    text: overlay.text,
+    quads: overlay.quads.map((quad) => normalizedQuad(quad, page, width, height, offsetX, offsetY)),
   }));
 }
 
@@ -162,9 +195,10 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             includeAnnotations: true,
             signal,
           });
-          const alignedNewer = options.alignment === "translation"
-            ? asRenderedPage(rendered.newer, alignByTranslation(rendered.earlier.imageData, rendered.newer.imageData))
-            : rendered.newer;
+          const translation = options.alignment === "translation"
+            ? alignByTranslation(rendered.earlier.imageData, rendered.newer.imageData)
+            : { imageData: rendered.newer.imageData, dx: 0, dy: 0 };
+          const alignedNewer = asRenderedPage(rendered.newer, translation.imageData);
           const result = diffImages(rendered.earlier.imageData, alignedNewer.imageData, {
             threshold: Math.max(0.025, 0.18 - options.sensitivity * 0.00145),
             includeAA: false,
@@ -176,7 +210,7 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             extractPageText(pair.earlier, pageNumber, { signal }),
             extractPageText(pair.newer, pageNumber, { signal }),
           ]);
-          const semantic = diffSemanticText(oldText.text, newText.text, { signal });
+          const semantic = diffSemanticPages(oldText, newText, { signal });
           pages.push({
             index: pageNumber - 1,
             width: result.width,
@@ -190,6 +224,20 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             regions: regionsForPage(result.regions, result.width, result.height),
             textChanges: textChangesFromSemantic(semantic),
             semantic,
+            semanticBeforeOverlays: semanticOverlaysForPage(
+              semantic.beforeOverlays,
+              rendered.earlier,
+              result.width,
+              result.height,
+            ),
+            semanticAfterOverlays: semanticOverlaysForPage(
+              semantic.afterOverlays,
+              rendered.newer,
+              result.width,
+              result.height,
+              translation.dx,
+              translation.dy,
+            ),
           });
         } else {
           const document = hasEarlier ? pair.earlier : pair.newer;
@@ -209,9 +257,17 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             signal,
           });
           const pageText = await extractPageText(document, pageNumber, { signal });
+          const emptyPage = {
+            pageNumber,
+            width: rendered.widthPoints,
+            height: rendered.heightPoints,
+            items: [],
+            text: "",
+            hasText: false,
+          } as const;
           const semantic = hasEarlier
-            ? diffSemanticText(pageText.text, "", { signal })
-            : diffSemanticText("", pageText.text, { signal });
+            ? diffSemanticPages(pageText, emptyPage, { signal })
+            : diffSemanticPages(emptyPage, pageText, { signal });
           const blankUrl = previewUrl(canvasFromImageData(blank));
           pages.push({
             index: pageNumber - 1,
@@ -226,6 +282,12 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             regions: regionsForPage(result.regions, result.width, result.height),
             textChanges: textChangesFromSemantic(semantic),
             semantic,
+            semanticBeforeOverlays: hasEarlier
+              ? semanticOverlaysForPage(semantic.beforeOverlays, rendered, rendered.width, rendered.height)
+              : [],
+            semanticAfterOverlays: hasNewer
+              ? semanticOverlaysForPage(semantic.afterOverlays, rendered, rendered.width, rendered.height)
+              : [],
           });
         }
         onProgress?.({ completed: pageNumber, total: totalPages });

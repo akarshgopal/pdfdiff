@@ -134,9 +134,20 @@ export interface TextBounds {
   readonly height: number;
 }
 
+export interface TextPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** Four points describing the rendered quadrilateral for a text range. */
+export type TextQuad = readonly [TextPoint, TextPoint, TextPoint, TextPoint];
+
 export interface PositionedTextItem {
   readonly pageNumber: number;
   readonly str: string;
+  /** Character offsets into PageText.text, excluding the optional EOL. */
+  readonly textStart: number;
+  readonly textEnd: number;
   readonly dir: string;
   readonly fontName: string;
   readonly width: number;
@@ -147,10 +158,14 @@ export interface PositionedTextItem {
   readonly transform: readonly number[];
   /** Bounds in the page's unscaled, rotated viewport coordinate system. */
   readonly bounds: TextBounds;
+  /** Oriented quadrilateral in the same coordinate system as bounds. */
+  readonly quad: TextQuad;
 }
 
 export interface PageText {
   readonly pageNumber: number;
+  readonly width: number;
+  readonly height: number;
   readonly items: readonly PositionedTextItem[];
   readonly text: string;
   readonly hasText: boolean;

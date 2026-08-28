@@ -16,7 +16,7 @@ import { Button } from "../../components/ui/button";
 import { FileDropzone } from "../../components/ui/file-dropzone";
 import { ThemeToggle } from "../../components/ui/theme-toggle";
 import { styles, styleProps, type TailwindClass } from "./styles";
-import type { SemanticTextDiff } from "../../lib/pdfdiff/semantic";
+import type { SemanticPageDiff } from "../../lib/pdfdiff/semantic";
 
 /**
  * The UI deliberately depends on this small boundary instead of knowing how
@@ -56,6 +56,14 @@ export type DiffTextChange = {
   pageY?: number;
 };
 
+export type DiffSemanticOverlay = {
+  id: string;
+  kind: "added" | "removed" | "changed";
+  text: string;
+  /** Four-point polygons normalized to the rendered page (0-100%). */
+  quads: ReadonlyArray<ReadonlyArray<{ x: number; y: number }>>;
+};
+
 export type DiffPage = {
   index: number;
   width?: number;
@@ -68,7 +76,9 @@ export type DiffPage = {
   changedPercent?: number;
   regions?: DiffRegion[];
   textChanges?: DiffTextChange[];
-  semantic?: SemanticTextDiff;
+  semantic?: SemanticPageDiff;
+  semanticBeforeOverlays?: DiffSemanticOverlay[];
+  semanticAfterOverlays?: DiffSemanticOverlay[];
   error?: string;
 };
 
@@ -210,71 +220,133 @@ function PaperFallback({ label }: { label: string }) {
   );
 }
 
-function needsSemanticSpace(previous: string, next: string): boolean {
-  if (!previous || !next) return false;
-  if (/^[\],.!?:;%)}"'’]/.test(next)) return false;
-  if (/[([{"'$/]$/.test(previous)) return false;
-  return true;
+function semanticPolygonPoints(quad: ReadonlyArray<{ x: number; y: number }>): string {
+  return quad.map((point) => `${point.x},${point.y}`).join(" ");
 }
 
-function SemanticTextPreview({
+function SemanticNativePane({
+  side,
+  source,
+  overlays,
+  selectedRegion,
+  showHighlights,
+  onSelectChange,
+}: {
+  side: SourceSide;
+  source?: string;
+  overlays: readonly DiffSemanticOverlay[];
+  selectedRegion: string | null;
+  showHighlights: boolean;
+  onSelectChange: (id: string) => void;
+}) {
+  const label = side === "earlier" ? "Earlier" : "Newer";
+  return (
+    <article {...styleProps(styles.semanticColumn)} aria-label={`${label} native PDF page`}>
+      <header {...styleProps(styles.semanticHeader)}>
+        <span>{label}</span>
+        <span>{overlays.length ? `${overlays.length} changes` : "Native page"}</span>
+      </header>
+      <div {...styleProps(styles.semanticViewport)}>
+        {source ? <img {...styleProps(styles.semanticPageImage)} src={source} alt={`${label} version of this page`} draggable={false} /> : <PaperFallback label={`No ${label.toLowerCase()} page`} />}
+        {source && showHighlights && overlays.length ? (
+          <svg
+            {...styleProps(styles.semanticOverlay)}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-label={`${label} semantic text changes`}
+          >
+            {overlays.flatMap((overlay) => overlay.quads.map((quad, index) => (
+              <polygon
+                key={`${overlay.id}-${index}`}
+                {...styleProps(
+                  styles.semanticOverlayPolygon,
+                  overlay.kind === "added" && styles.semanticOverlayAdded,
+                  overlay.kind === "removed" && styles.semanticOverlayRemoved,
+                  overlay.kind === "changed" && styles.semanticOverlayChanged,
+                  selectedRegion === overlay.id && styles.semanticOverlayCurrent,
+                )}
+                points={semanticPolygonPoints(quad)}
+                data-semantic-change-id={overlay.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`${overlay.kind} text: ${overlay.text}`}
+                onClick={() => onSelectChange(overlay.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelectChange(overlay.id);
+                  }
+                }}
+              >
+                <title>{overlay.text}</title>
+              </polygon>
+            )))}
+          </svg>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function SemanticPdfPreview({
   page,
   zoom,
   selectedRegion,
+  showHighlights,
+  onSelectChange,
 }: {
   page: DiffPage;
   zoom: number;
   selectedRegion: string | null;
+  showHighlights: boolean;
+  onSelectChange: (id: string) => void;
 }) {
   const semantic = page.semantic;
-  if (!semantic) return <div {...styleProps(styles.paper, zoomStyle(zoom))}><PaperFallback label="Text comparison is unavailable for this page" /></div>;
+  const previewRef = useRef<HTMLDivElement>(null);
 
-  const renderRuns = (side: "before" | "after") => {
-    const runs = semantic[side];
-    return runs.length ? runs.map((run, index) => {
-      const previous = runs[index - 1]?.text ?? "";
-      const changeId = run.id.replace(/-(before|after)$/, "");
-      return (
-        <span
-          key={run.id}
-          {...styleProps(
-            styles.semanticRun,
-            run.kind === "same" && styles.semanticRunSame,
-            run.kind === "added" && styles.semanticRunAdded,
-            run.kind === "removed" && styles.semanticRunRemoved,
-            run.kind === "changed" && styles.semanticRunChanged,
-            selectedRegion === changeId && styles.semanticRunCurrent,
-          )}
-        >
-          {needsSemanticSpace(previous, run.text) ? " " : ""}{run.text}
-        </span>
-      );
-    }) : <span {...styleProps(styles.semanticEmptyText)}>No selectable text</span>;
-  };
+  useEffect(() => {
+    if (!selectedRegion || !showHighlights) return;
+    const escapedId = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(selectedRegion) : selectedRegion.replace(/"/g, '\\"');
+    const target = previewRef.current?.querySelector<SVGPolygonElement>(`[data-semantic-change-id="${escapedId}"]`);
+    target?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }, [selectedRegion, showHighlights]);
 
   return (
-    <div {...styleProps(styles.paper, styles.semanticPaper, zoomStyle(zoom))}>
+    <div ref={previewRef} {...styleProps(styles.paper, styles.semanticPaper, zoomStyle(zoom))}>
       <div {...styleProps(styles.semanticSummary)}>
-        <span>{semantic.changes.length ? `${semantic.changes.length} text change${semantic.changes.length === 1 ? "" : "s"}` : "No text changes"}</span>
-        <span>{semantic.beforeTokenCount} → {semantic.afterTokenCount} tokens</span>
+        <span>{semantic?.changes.length ? `${semantic.changes.length} text change${semantic.changes.length === 1 ? "" : "s"}` : "No semantic text changes"}</span>
+        <span>{semantic ? `${semantic.beforeTokenCount} → ${semantic.afterTokenCount} tokens` : "Native PDF rendering"}</span>
       </div>
-      {!semantic.hasBeforeText && !semantic.hasAfterText ? (
+      <div {...styleProps(styles.semanticLegend)}>
+        <span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />Removed</span>
+        <span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />Added</span>
+        <span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />Changed</span>
+        <span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span>
+      </div>
+      <div {...styleProps(styles.semanticGrid)}>
+        <SemanticNativePane
+          side="earlier"
+          source={page.beforeSrc}
+          overlays={page.semanticBeforeOverlays ?? []}
+          selectedRegion={selectedRegion}
+          showHighlights={showHighlights}
+          onSelectChange={onSelectChange}
+        />
+        <SemanticNativePane
+          side="newer"
+          source={page.afterSrc}
+          overlays={page.semanticAfterOverlays ?? []}
+          selectedRegion={selectedRegion}
+          showHighlights={showHighlights}
+          onSelectChange={onSelectChange}
+        />
+      </div>
+      {semantic && !semantic.hasBeforeText && !semantic.hasAfterText ? (
         <div {...styleProps(styles.semanticNoText)}>
           <strong>No selectable text found</strong>
-          <span>Run OCR on scanned PDFs before comparing their text.</span>
+          <span>The native pages remain available; run OCR to calculate semantic text changes.</span>
         </div>
-      ) : (
-        <div {...styleProps(styles.semanticGrid)}>
-          <article {...styleProps(styles.semanticColumn)} aria-label="Earlier text">
-            <header {...styleProps(styles.semanticHeader)}><span>Earlier</span><span>{semantic.beforeTokenCount} tokens</span></header>
-            <div {...styleProps(styles.semanticBody)}>{renderRuns("before")}</div>
-          </article>
-          <article {...styleProps(styles.semanticColumn)} aria-label="Newer text">
-            <header {...styleProps(styles.semanticHeader)}><span>Newer</span><span>{semantic.afterTokenCount} tokens</span></header>
-            <div {...styleProps(styles.semanticBody)}>{renderRuns("after")}</div>
-          </article>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -286,8 +358,10 @@ function PagePreview({
   swipe,
   blinkOn,
   showBoundingBoxes,
+  showSemanticHighlights,
   selectedRegion,
   onRegionClick,
+  onSelectChange,
   onSwipeChange,
 }: {
   page: DiffPage;
@@ -296,8 +370,10 @@ function PagePreview({
   swipe: number;
   blinkOn: boolean;
   showBoundingBoxes: boolean;
+  showSemanticHighlights: boolean;
   selectedRegion: string | null;
   onRegionClick: (region: DiffRegion) => void;
+  onSelectChange: (id: string) => void;
   onSwipeChange: (value: number) => void;
 }) {
   const before = page.beforeSrc;
@@ -308,7 +384,7 @@ function PagePreview({
     source ? <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} /> : <PaperFallback label="Preview is still rendering" />;
 
   if (mode === "semantic-text") {
-    return <SemanticTextPreview page={page} zoom={zoom} selectedRegion={selectedRegion} />;
+    return <SemanticPdfPreview page={page} zoom={zoom} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
   }
 
   const overlays = showBoundingBoxes && mode === "diff" && page.regions?.length ? (
@@ -644,7 +720,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
           <section {...styleProps(styles.helpSection)} aria-labelledby="help-modes-heading">
             <h3 id="help-modes-heading" {...styleProps(styles.helpSectionTitle)}>View modes</h3>
             <div {...styleProps(styles.helpModeList)}>
-              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Semantic text</strong> — word and punctuation changes side by side.</p>
+              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Semantic text</strong> — native PDF pages with word-level highlights anchored to their source geometry.</p>
               <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Diff</strong> — visual change overlay.</p>
               <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Side by side</strong> — Earlier and Newer next to each other.</p>
               <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Swipe</strong> — drag the divider across the page.</p>
@@ -701,6 +777,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   const [alignment, setAlignment] = useState<AlignmentMode>("none");
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
+  const [showSemanticHighlights, setShowSemanticHighlights] = useState(true);
   const [blinkOn, setBlinkOn] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -1047,7 +1124,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   const status = pageStatus(currentPage);
   const pageCount = pages.length;
   const pageChangedCount = changedPages.length;
-  const previewPage = mode === "diff"
+  const previewPage = mode === "diff" || mode === "semantic-text"
     ? currentPage
     : {
         ...currentPage,
@@ -1108,7 +1185,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
             </div>
             <div {...styleProps(styles.stage)}>
               <div {...styleProps(styles.stageCenter)}>
-              <PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={selectRegion} onSwipeChange={setSwipe} />
+              <PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} showSemanticHighlights={showSemanticHighlights} selectedRegion={selectedRegion} onRegionClick={selectRegion} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} />
               </div>
             </div>
             <div {...styleProps(styles.statusFooter)}>
@@ -1145,6 +1222,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
                 <div {...styleProps(styles.controlRow)}><label {...styleProps(styles.controlName)} htmlFor="sensitivity">Sensitivity</label><span {...styleProps(styles.controlValue)}>{sensitivity}</span></div>
                 <input id="sensitivity" {...styleProps(styles.range)} type="range" min="0" max="100" value={sensitivity} onChange={(event) => setSensitivity(Number(event.target.value))} />
                 <div {...styleProps(styles.controlRow)}><label {...styleProps(styles.controlName)} htmlFor="alignment">Alignment</label><select id="alignment" {...styleProps(styles.select)} value={alignment} onChange={(event) => setAlignment(event.target.value as AlignmentMode)}><option value="none">None</option><option value="translation">Translation only</option></select></div>
+                {mode === "semantic-text" ? <label {...styleProps(styles.switchRow)}><span {...styleProps(styles.switchLabel)}>Show text highlights</span><span {...styleProps(styles.switch, showSemanticHighlights && styles.switchOn)}><input type="checkbox" role="switch" aria-checked={showSemanticHighlights} checked={showSemanticHighlights} onChange={(event) => setShowSemanticHighlights(event.target.checked)} {...styleProps(styles.switchInput)} /><span {...styleProps(styles.switchThumb, showSemanticHighlights && styles.switchThumbOn)} aria-hidden="true" /></span></label> : null}
                 {mode === "swipe" ? <><div {...styleProps(styles.controlRow)}><label {...styleProps(styles.controlName)} htmlFor="swipe">Swipe position</label><span {...styleProps(styles.controlValue)}>{swipe}%</span></div><input id="swipe" {...styleProps(styles.range)} type="range" min="0" max="100" value={swipe} onChange={(event) => setSwipe(Number(event.target.value))} /></> : null}
               </div> : null}
             </div>

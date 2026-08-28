@@ -6,6 +6,7 @@ import type {
   LoadedPdf,
   PageText,
   PositionedTextItem,
+  TextQuad,
   TextBounds,
 } from "./types";
 
@@ -34,7 +35,7 @@ function pageNumberError(pageNumber: number, pageCount: number): RangeError {
   return new RangeError(`Page ${pageNumber} is outside the document's 1-${pageCount} range.`);
 }
 
-function boundsForTextItem(item: PdfTextItem, pageTransform: number[]): TextBounds {
+function geometryForTextItem(item: PdfTextItem, pageTransform: number[]): { bounds: TextBounds; quad: TextQuad } {
   const sourceTransform = item.transform.map((value) => Number(value));
   const transform = Util.transform(pageTransform, sourceTransform);
   const angle = Math.atan2(transform[1], transform[0]);
@@ -55,18 +56,27 @@ function boundsForTextItem(item: PdfTextItem, pageTransform: number[]): TextBoun
   const topRightY = topLeftY + sine * width;
   const bottomRightX = bottomLeftX + cosine * width;
   const bottomRightY = bottomLeftY + sine * width;
-  const xs = [topLeftX, topRightX, bottomLeftX, bottomRightX];
-  const ys = [topLeftY, topRightY, bottomLeftY, bottomRightY];
+  const quad: TextQuad = [
+    { x: topLeftX, y: topLeftY },
+    { x: topRightX, y: topRightY },
+    { x: bottomRightX, y: bottomRightY },
+    { x: bottomLeftX, y: bottomLeftY },
+  ];
+  const xs = quad.map((point) => point.x);
+  const ys = quad.map((point) => point.y);
   const minX = Math.min(...xs);
   const minY = Math.min(...ys);
   const maxX = Math.max(...xs);
   const maxY = Math.max(...ys);
 
   return {
-    x: minX,
-    y: minY,
-    width: Math.max(0, maxX - minX),
-    height: Math.max(0, maxY - minY),
+    bounds: {
+      x: minX,
+      y: minY,
+      width: Math.max(0, maxX - minX),
+      height: Math.max(0, maxY - minY),
+    },
+    quad,
   };
 }
 
@@ -95,9 +105,14 @@ export async function extractPageText(
     if (!isTextItem(item)) continue;
     throwIfAborted(options.signal);
     const str = item.str;
+    const textStart = text.length;
+    const textEnd = textStart + str.length;
+    const geometry = geometryForTextItem(item, viewport.transform);
     items.push({
       pageNumber,
       str,
+      textStart,
+      textEnd,
       dir: item.dir,
       fontName: item.fontName,
       width: item.width,
@@ -105,7 +120,8 @@ export async function extractPageText(
       fontSize: Math.max(0.01, Math.hypot(Number(item.transform[2]), Number(item.transform[3]))),
       hasEOL: item.hasEOL,
       transform: item.transform.map((value) => Number(value)),
-      bounds: boundsForTextItem(item, viewport.transform),
+      bounds: geometry.bounds,
+      quad: geometry.quad,
     });
     text += str;
     if (item.hasEOL) text += "\n";
@@ -113,6 +129,8 @@ export async function extractPageText(
 
   return {
     pageNumber,
+    width: viewport.width,
+    height: viewport.height,
     items,
     text,
     hasText: items.some((item) => item.str.length > 0),

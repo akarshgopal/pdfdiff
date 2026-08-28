@@ -1,4 +1,5 @@
 import { throwIfAborted } from "./errors.ts";
+import type { PageText, TextQuad } from "./types.ts";
 
 export type SemanticRunKind = "same" | "added" | "removed" | "changed";
 export type SemanticChangeKind = Exclude<SemanticRunKind, "same">;
@@ -26,16 +27,33 @@ export interface SemanticTextDiff {
   readonly hasAfterText: boolean;
 }
 
-type Token = { value: string };
+export interface SemanticTextOverlay {
+  readonly id: string;
+  readonly kind: SemanticChangeKind;
+  readonly text: string;
+  readonly quads: readonly TextQuad[];
+}
+
+export interface SemanticPageDiff extends SemanticTextDiff {
+  /** Native PDF geometry for changed text on each source page. */
+  readonly beforeOverlays: readonly SemanticTextOverlay[];
+  readonly afterOverlays: readonly SemanticTextOverlay[];
+}
+
+type Token = { value: string; start: number; end: number };
 type PrimitiveEdit =
   | { kind: "same"; token: Token }
   | { kind: "added"; token: Token }
   | { kind: "removed"; token: Token };
 
-const WORD_OR_PUNCTUATION = /[A-Za-z0-9_]+|[^\sA-Za-z0-9_]/g;
+const WORD_OR_PUNCTUATION = /[\p{L}\p{N}_]+|[^\s\p{L}\p{N}_]/gu;
 
 function tokenize(text: string): Token[] {
-  return (text.match(WORD_OR_PUNCTUATION) ?? []).map((value) => ({ value }));
+  return Array.from(text.matchAll(WORD_OR_PUNCTUATION), (match) => {
+    const value = match[0] ?? "";
+    const start = match.index ?? 0;
+    return { value, start, end: start + value.length };
+  });
 }
 
 function isOpeningPunctuation(value: string): boolean {
@@ -172,6 +190,22 @@ interface Segment {
   after: Token[];
 }
 
+interface SemanticChangeRange {
+  id: string;
+  kind: SemanticChangeKind;
+  before: string;
+  after: string;
+  beforeStart: number;
+  beforeEnd: number;
+  afterStart: number;
+  afterEnd: number;
+}
+
+interface SemanticDiffBuild {
+  diff: SemanticTextDiff;
+  ranges: readonly SemanticChangeRange[];
+}
+
 function segmentsFromEdits(edits: readonly PrimitiveEdit[]): Segment[] {
   const segments: Segment[] = [];
   const append = (segment: Segment): void => {
@@ -214,11 +248,11 @@ function segmentsFromEdits(edits: readonly PrimitiveEdit[]): Segment[] {
  * token, so line wrapping, font reflow, and PDF text-item spacing do not turn
  * an otherwise identical paragraph into a large false positive.
  */
-export function diffSemanticText(
+function buildSemanticDiff(
   beforeText: string,
   afterText: string,
   options: { signal?: AbortSignal } = {},
-): SemanticTextDiff {
+): SemanticDiffBuild {
   const beforeTokens = tokenize(beforeText);
   const afterTokens = tokenize(afterText);
   const edits = primitiveDiff(beforeTokens, afterTokens, options.signal);
@@ -226,18 +260,30 @@ export function diffSemanticText(
   const before: SemanticTextRun[] = [];
   const after: SemanticTextRun[] = [];
   const changes: SemanticTextChange[] = [];
+  const ranges: SemanticChangeRange[] = [];
   let id = 1;
 
   for (const segment of segments) {
     const beforeValue = joinTokens(segment.before);
     const afterValue = joinTokens(segment.after);
     const runId = `semantic-${id}`;
+    const beforeStart = segment.before[0]?.start ?? beforeText.length;
+    const beforeEnd = segment.before.at(-1)?.end ?? beforeStart;
+    const afterStart = segment.after[0]?.start ?? afterText.length;
+    const afterEnd = segment.after.at(-1)?.end ?? afterStart;
     if (segment.kind === "same") {
       before.push({ id: `${runId}-before`, text: beforeValue, kind: "same" });
       after.push({ id: `${runId}-after`, text: afterValue, kind: "same" });
     } else {
       const change = { id: runId, kind: segment.kind, before: beforeValue, after: afterValue };
       changes.push(change);
+      ranges.push({
+        ...change,
+        beforeStart,
+        beforeEnd,
+        afterStart,
+        afterEnd,
+      });
       if (beforeValue) before.push({ id: `${runId}-before`, text: beforeValue, kind: segment.kind });
       if (afterValue) after.push({ id: `${runId}-after`, text: afterValue, kind: segment.kind });
     }
@@ -245,12 +291,82 @@ export function diffSemanticText(
   }
 
   return {
-    before,
-    after,
-    changes,
-    beforeTokenCount: beforeTokens.length,
-    afterTokenCount: afterTokens.length,
-    hasBeforeText: beforeTokens.length > 0,
-    hasAfterText: afterTokens.length > 0,
+    diff: {
+      before,
+      after,
+      changes,
+      beforeTokenCount: beforeTokens.length,
+      afterTokenCount: afterTokens.length,
+      hasBeforeText: beforeTokens.length > 0,
+      hasAfterText: afterTokens.length > 0,
+    },
+    ranges,
+  };
+}
+
+export function diffSemanticText(
+  beforeText: string,
+  afterText: string,
+  options: { signal?: AbortSignal } = {},
+): SemanticTextDiff {
+  return buildSemanticDiff(beforeText, afterText, options).diff;
+}
+
+function interpolate(start: { x: number; y: number }, end: { x: number; y: number }, amount: number) {
+  return {
+    x: start.x + (end.x - start.x) * amount,
+    y: start.y + (end.y - start.y) * amount,
+  };
+}
+
+function subQuad(quad: TextQuad, startRatio: number, endRatio: number): TextQuad {
+  const topStart = interpolate(quad[0], quad[1], startRatio);
+  const topEnd = interpolate(quad[0], quad[1], endRatio);
+  const bottomEnd = interpolate(quad[3], quad[2], endRatio);
+  const bottomStart = interpolate(quad[3], quad[2], startRatio);
+  return [topStart, topEnd, bottomEnd, bottomStart];
+}
+
+function quadsForTextRange(page: PageText, start: number, end: number): TextQuad[] {
+  if (start >= end) return [];
+  const quads: TextQuad[] = [];
+  for (const item of page.items) {
+    if (!item.str || item.textEnd <= start || item.textStart >= end) continue;
+    const overlapStart = Math.max(start, item.textStart);
+    const overlapEnd = Math.min(end, item.textEnd);
+    if (overlapStart >= overlapEnd) continue;
+    const length = Math.max(1, item.textEnd - item.textStart);
+    const startRatio = (overlapStart - item.textStart) / length;
+    const endRatio = (overlapEnd - item.textStart) / length;
+    quads.push(subQuad(item.quad, startRatio, endRatio));
+  }
+  return quads;
+}
+
+/** Compare page text while retaining the native PDF locations of each change. */
+export function diffSemanticPages(
+  beforePage: PageText,
+  afterPage: PageText,
+  options: { signal?: AbortSignal } = {},
+): SemanticPageDiff {
+  const built = buildSemanticDiff(beforePage.text, afterPage.text, options);
+  return {
+    ...built.diff,
+    beforeOverlays: built.ranges
+      .filter((change) => change.before)
+      .map((change) => ({
+        id: change.id,
+        kind: change.kind,
+        text: change.before,
+        quads: quadsForTextRange(beforePage, change.beforeStart, change.beforeEnd),
+      })),
+    afterOverlays: built.ranges
+      .filter((change) => change.after)
+      .map((change) => ({
+        id: change.id,
+        kind: change.kind,
+        text: change.after,
+        quads: quadsForTextRange(afterPage, change.afterStart, change.afterEnd),
+      })),
   };
 }
