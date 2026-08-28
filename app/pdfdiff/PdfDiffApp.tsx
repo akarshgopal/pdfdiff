@@ -4,6 +4,8 @@ import {
   type ChangeEvent,
   type CSSProperties,
   type DragEvent,
+  type KeyboardEvent,
+  type PointerEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -12,6 +14,7 @@ import {
 } from "react";
 import { Button } from "../../components/ui/button";
 import { FileDropzone } from "../../components/ui/file-dropzone";
+import { ThemeToggle } from "../../components/ui/theme-toggle";
 import { styles, styleProps, type TailwindClass } from "./styles";
 
 /**
@@ -26,6 +29,8 @@ export type DiffViewMode =
   | "blink"
   | "earlier"
   | "newer";
+
+type SourceSide = "earlier" | "newer";
 
 export type AlignmentMode = "none" | "translation";
 
@@ -146,12 +151,24 @@ function statusLabel(status: NonNullable<DiffPage["status"]>): string {
   return "Changes found";
 }
 
+function sourceForSide(page: DiffPage | null | undefined, side: SourceSide): string | undefined {
+  return side === "earlier" ? page?.beforeSrc : page?.afterSrc;
+}
+
+function sourcePageCount(pages: ReadonlyArray<DiffPage>, side: SourceSide): number {
+  return pages.reduce((lastPage, page, index) => sourceForSide(page, side) ? index + 1 : lastPage, 0);
+}
+
+function clampPageIndex(index: number, pageCount: number): number {
+  return Math.min(Math.max(0, index), Math.max(0, pageCount - 1));
+}
+
 function zoomStyle(zoom: number) {
   return styles[`paperZoom${zoom}` as keyof typeof styles] as TailwindClass;
 }
 
 function swipeStyle(value: number) {
-  const rounded = Math.min(100, Math.max(10, Math.round(value / 10) * 10));
+  const rounded = Math.min(100, Math.max(0, Math.round(value / 10) * 10));
   return styles[`swipe${rounded}` as keyof typeof styles] as TailwindClass;
 }
 
@@ -196,6 +213,7 @@ function PagePreview({
   showBoundingBoxes,
   selectedRegion,
   onRegionClick,
+  onSwipeChange,
 }: {
   page: DiffPage;
   mode: DiffViewMode;
@@ -205,6 +223,7 @@ function PagePreview({
   showBoundingBoxes: boolean;
   selectedRegion: string | null;
   onRegionClick: (region: DiffRegion) => void;
+  onSwipeChange: (value: number) => void;
 }) {
   const before = page.beforeSrc;
   const after = page.afterSrc;
@@ -234,6 +253,51 @@ function PagePreview({
     </>
   ) : null;
 
+  const setSwipeFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const paper = event.currentTarget.parentElement;
+    if (!paper) return;
+    const bounds = paper.getBoundingClientRect();
+    const value = ((event.clientX - bounds.left) / bounds.width) * 100;
+    onSwipeChange(Math.round(Math.max(0, Math.min(100, value))));
+  };
+
+  const handleSwipePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setSwipeFromPointer(event);
+  };
+
+  const handleSwipePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.preventDefault();
+      setSwipeFromPointer(event);
+    }
+  };
+
+  const handleSwipePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handleSwipeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? 10 : 1;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      onSwipeChange(Math.max(0, swipe - step));
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      onSwipeChange(Math.min(100, swipe + step));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      onSwipeChange(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      onSwipeChange(100);
+    }
+  };
+
   if (!canShowImages) {
     return <div {...styleProps(styles.paper, zoomStyle(zoom))}><PaperFallback label={statusLabel(pageStatus(page))} /></div>;
   }
@@ -254,7 +318,24 @@ function PagePreview({
       <div {...styleProps(styles.paper, styles.swipeWrap, zoomStyle(zoom))}>
         {renderImage(before, "Earlier version of this page")}
         {after ? <img {...styleProps(styles.swipeNewer, swipeStyle(swipe))} src={after} alt="Newer version of this page" draggable={false} /> : null}
-        <span {...styleProps(styles.swipeDivider)} style={{ left: `${swipe}%` }} aria-hidden="true" />
+        <div
+          {...styleProps(styles.swipeHandle)}
+          style={{ left: `${swipe}%` }}
+          role="slider"
+          aria-label="Swipe position"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={swipe}
+          aria-valuetext={`${swipe}%`}
+          tabIndex={0}
+          onKeyDown={handleSwipeKeyDown}
+          onPointerDown={handleSwipePointerDown}
+          onPointerMove={handleSwipePointerMove}
+          onPointerUp={handleSwipePointerEnd}
+          onPointerCancel={handleSwipePointerEnd}
+        >
+          <span {...styleProps(styles.swipeDivider)} aria-hidden="true" />
+        </div>
       </div>
     );
   }
@@ -287,6 +368,236 @@ function PagePreview({
   );
 }
 
+function FullPageViewer({
+  page,
+  pageNumber,
+  pageCount,
+  earlierName,
+  newerName,
+  side,
+  onSideChange,
+  onPageChange,
+  onClose,
+}: {
+  page: DiffPage;
+  pageNumber: number;
+  pageCount: number;
+  earlierName: string;
+  newerName: string;
+  side: SourceSide;
+  onSideChange: (side: SourceSide) => void;
+  onPageChange: (side: SourceSide, index: number) => void;
+  onClose: () => void;
+}) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const source = sourceForSide(page, side);
+  const earlierSource = sourceForSide(page, "earlier");
+  const newerSource = sourceForSide(page, "newer");
+  const fileName = side === "earlier" ? earlierName : newerName;
+  const sourceLabel = side === "earlier" ? "Earlier" : "Newer";
+  const sourceModifier = side === "earlier" ? "Shift" : "Ctrl/Cmd";
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  if (!source) return null;
+
+  return (
+    <div
+      {...styleProps(styles.fullPageBackdrop)}
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        {...styleProps(styles.fullPageDialog)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="full-page-viewer-title"
+      >
+        <header {...styleProps(styles.fullPageToolbar)}>
+          <div {...styleProps(styles.fullPageHeading)}>
+            <h2 id="full-page-viewer-title" {...styleProps(styles.fullPageTitle)}>{sourceLabel} page {pageNumber}</h2>
+            <p {...styleProps(styles.fullPageFileName)} title={fileName}>{fileName}</p>
+          </div>
+          <div {...styleProps(styles.fullPageActions)}>
+            <div {...styleProps(styles.sourceGroup)} role="group" aria-label="Source page">
+              <button
+                {...styleProps(styles.sourceButton, side === "earlier" && styles.sourceButtonCurrent)}
+                type="button"
+                aria-pressed={side === "earlier"}
+                disabled={!earlierSource}
+                onClick={() => onSideChange("earlier")}
+              >Earlier</button>
+              <button
+                {...styleProps(styles.sourceButton, side === "newer" && styles.sourceButtonCurrent)}
+                type="button"
+                aria-pressed={side === "newer"}
+                disabled={!newerSource}
+                onClick={() => onSideChange("newer")}
+              >Newer</button>
+            </div>
+            <div {...styleProps(styles.fullPagePageNav)} aria-label={`${sourceLabel} page navigation`}>
+              <button
+                {...styleProps(styles.iconButton)}
+                type="button"
+                aria-label={`Previous ${sourceLabel.toLowerCase()} page`}
+                title={`Previous ${sourceLabel.toLowerCase()} page (${sourceModifier} + ←)`}
+                disabled={pageNumber <= 1}
+                onClick={() => onPageChange(side, pageNumber - 2)}
+              >←</button>
+              <span {...styleProps(styles.fullPagePagePosition)}>Page {pageNumber} / {pageCount}</span>
+              <button
+                {...styleProps(styles.iconButton)}
+                type="button"
+                aria-label={`Next ${sourceLabel.toLowerCase()} page`}
+                title={`Next ${sourceLabel.toLowerCase()} page (${sourceModifier} + →)`}
+                disabled={pageNumber >= pageCount}
+                onClick={() => onPageChange(side, pageNumber)}
+              >→</button>
+            </div>
+            <button
+              ref={closeButtonRef}
+              {...styleProps(styles.iconButton, styles.fullPageClose)}
+              type="button"
+              aria-label="Close full-page view"
+              title="Close full-page view (Escape)"
+              onClick={onClose}
+            >×</button>
+          </div>
+        </header>
+        <div {...styleProps(styles.fullPageStage)}>
+          <img
+            {...styleProps(styles.fullPageImage)}
+            src={source}
+            alt={`${sourceLabel} version of page ${pageNumber}`}
+            draggable={false}
+          />
+        </div>
+        <footer {...styleProps(styles.fullPageFooter)}>
+          <span>Full-page view</span>
+          <span>Shift + ← → Earlier · Ctrl/Cmd + ← → Newer · Esc to close</span>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function HelpDialog({ onClose }: { onClose: () => void }) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      {...styleProps(styles.fullPageBackdrop)}
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        {...styleProps(styles.helpDialog)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="help-dialog-title"
+        aria-describedby="help-dialog-lead"
+      >
+        <header {...styleProps(styles.helpHeader)}>
+          <div>
+            <p {...styleProps(styles.helpEyebrow)}>PDF Diff guide</p>
+            <h2 id="help-dialog-title" {...styleProps(styles.helpTitle)}>How to compare PDFs</h2>
+            <p id="help-dialog-lead" {...styleProps(styles.helpLead)}>A quick guide to the workflow, review tools, and keyboard shortcuts.</p>
+          </div>
+          <button
+            ref={closeButtonRef}
+            {...styleProps(styles.iconButton, styles.helpClose)}
+            type="button"
+            aria-label="Close help"
+            title="Close help (Escape)"
+            onClick={onClose}
+          >×</button>
+        </header>
+        <div {...styleProps(styles.helpBody)}>
+          <section {...styleProps(styles.helpSection)} aria-labelledby="help-start-heading">
+            <h3 id="help-start-heading" {...styleProps(styles.helpSectionTitle)}>Start here</h3>
+            <ol {...styleProps(styles.helpSteps)}>
+              <li {...styleProps(styles.helpStep)}>
+                <span {...styleProps(styles.howToStep)}>1</span>
+                <h4 {...styleProps(styles.helpStepTitle)}>Add both versions</h4>
+                <p {...styleProps(styles.helpStepCopy)}>Put the original in Earlier and the revision in Newer. Drop files or browse; both can be selected from either picker.</p>
+              </li>
+              <li {...styleProps(styles.helpStep)}>
+                <span {...styleProps(styles.howToStep)}>2</span>
+                <h4 {...styleProps(styles.helpStepTitle)}>Compare the pair</h4>
+                <p {...styleProps(styles.helpStepCopy)}>Select Compare PDFs. Pages are rendered, pixels are compared, and text is checked in your browser.</p>
+              </li>
+              <li {...styleProps(styles.helpStep)}>
+                <span {...styleProps(styles.howToStep)}>3</span>
+                <h4 {...styleProps(styles.helpStepTitle)}>Review what moved</h4>
+                <p {...styleProps(styles.helpStepCopy)}>Use the page rail, diff views, bounding boxes, text changes, and Next changed page to inspect the result.</p>
+              </li>
+            </ol>
+          </section>
+
+          <section {...styleProps(styles.helpSection)} aria-labelledby="help-review-heading">
+            <h3 id="help-review-heading" {...styleProps(styles.helpSectionTitle)}>Review tools</h3>
+            <div {...styleProps(styles.helpFeatureGrid)}>
+              <div {...styleProps(styles.helpFeature)}><strong {...styleProps(styles.helpFeatureTitle)}>Page status</strong><p {...styleProps(styles.helpFeatureCopy)}>✓ means no changes; a dot means changes found; + and − identify added and removed pages.</p></div>
+              <div {...styleProps(styles.helpFeature)}><strong {...styleProps(styles.helpFeatureTitle)}>Change inspector</strong><p {...styleProps(styles.helpFeatureCopy)}>See changed pages, changed area, detected regions, and extracted text changes for the current page.</p></div>
+              <div {...styleProps(styles.helpFeature)}><strong {...styleProps(styles.helpFeatureTitle)}>Full-page view</strong><p {...styleProps(styles.helpFeatureCopy)}>Open the Earlier or Newer source page larger, then move through that source with the page controls.</p></div>
+              <div {...styleProps(styles.helpFeature)}><strong {...styleProps(styles.helpFeatureTitle)}>Zoom and alignment</strong><p {...styleProps(styles.helpFeatureCopy)}>Zoom from 50% to 200%. Translation-only alignment helps account for small page shifts.</p></div>
+            </div>
+          </section>
+
+          <section {...styleProps(styles.helpSection)} aria-labelledby="help-modes-heading">
+            <h3 id="help-modes-heading" {...styleProps(styles.helpSectionTitle)}>View modes</h3>
+            <div {...styleProps(styles.helpModeList)}>
+              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Diff</strong> — visual change overlay.</p>
+              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Side by side</strong> — Earlier and Newer next to each other.</p>
+              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Swipe</strong> — drag the divider across the page.</p>
+              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Blink</strong> — alternate between versions automatically.</p>
+              <p {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>Earlier / Newer</strong> — inspect one source on its own.</p>
+            </div>
+          </section>
+
+          <section {...styleProps(styles.helpSection)} aria-labelledby="help-shortcuts-heading">
+            <h3 id="help-shortcuts-heading" {...styleProps(styles.helpSectionTitle)}>Keyboard shortcuts</h3>
+            <div {...styleProps(styles.helpShortcutGrid)}>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>← →</kbd><span>Move through comparison pages.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>1–6</kbd><span>Choose a view mode.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>J / N</kbd><span>Next page; K / P goes back.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>M</kbd><span>Cycle modes; Shift + M cycles backward.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>Shift + ← →</kbd><span>Move through Earlier source pages.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>Ctrl/Cmd + ← →</kbd><span>Move through Newer source pages.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>Home / End</kbd><span>Jump to the first or last page.</span></p>
+              <p {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>Esc</kbd><span>Close full-page view or clear a selection.</span></p>
+            </div>
+          </section>
+
+          <p {...styleProps(styles.helpNote)}><strong>Local by design.</strong> Your PDFs stay on this device and are processed in the browser. PDF files must be under 150 MB each; PDF Diff does not edit, merge, or export files.</p>
+        </div>
+        <footer {...styleProps(styles.helpFooter)}>
+          <span>Settings apply when a comparison starts.</span>
+          <Button variant="outline" size="sm" onClick={onClose}>Back to app</Button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 function normalizeFile(file: File | undefined): File | null {
   if (!file) return null;
   if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) return file;
@@ -312,9 +623,14 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
   const [blinkOn, setBlinkOn] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [fullPageSide, setFullPageSide] = useState<SourceSide | null>(null);
+  const [earlierPageIndex, setEarlierPageIndex] = useState(0);
+  const [newerPageIndex, setNewerPageIndex] = useState(0);
   const inputEarlier = useRef<HTMLInputElement>(null);
   const inputNewer = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const closeHelp = useCallback(() => setShowHelp(false), []);
 
   const pages = useMemo(() => comparison?.pages ?? [], [comparison]);
   const currentPage = pages[pageIndex] ?? null;
@@ -322,6 +638,53 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   const currentRegions = currentPage?.regions ?? [];
   const currentTextChanges = currentPage?.textChanges ?? [];
   const changedPercent = currentPage?.changedPercent ?? 0;
+  const earlierPageCount = useMemo(() => sourcePageCount(pages, "earlier"), [pages]);
+  const newerPageCount = useMemo(() => sourcePageCount(pages, "newer"), [pages]);
+  const earlierPage = pages[earlierPageIndex] ?? null;
+  const newerPage = pages[newerPageIndex] ?? null;
+  const fullPageIndex = fullPageSide === "earlier" ? earlierPageIndex : newerPageIndex;
+  const fullPage = fullPageSide === "earlier" ? earlierPage : newerPage;
+  const fullPageCount = fullPageSide === "earlier" ? earlierPageCount : newerPageCount;
+
+  const selectPage = useCallback((index: number) => {
+    const nextIndex = clampPageIndex(index, pages.length);
+    setPageIndex(nextIndex);
+    setEarlierPageIndex(clampPageIndex(nextIndex, earlierPageCount));
+    setNewerPageIndex(clampPageIndex(nextIndex, newerPageCount));
+    setSelectedRegion(null);
+    setFullPageSide((side) => {
+      if (!side) return null;
+      const nextPage = pages[nextIndex];
+      if (!nextPage || sourceForSide(nextPage, side)) return side;
+      const alternateSide = side === "earlier" ? "newer" : "earlier";
+      return sourceForSide(nextPage, alternateSide) ? alternateSide : null;
+    });
+  }, [earlierPageCount, newerPageCount, pages]);
+
+  const goToSourcePage = useCallback((side: SourceSide, index: number) => {
+    const pageCount = side === "earlier" ? earlierPageCount : newerPageCount;
+    const nextIndex = clampPageIndex(index, pageCount);
+    if (side === "earlier") setEarlierPageIndex(nextIndex);
+    else setNewerPageIndex(nextIndex);
+    if (fullPageSide) setFullPageSide(side);
+  }, [earlierPageCount, fullPageSide, newerPageCount]);
+
+  const stepSourcePage = useCallback((side: SourceSide, direction: 1 | -1) => {
+    if (side === "earlier") setEarlierPageIndex((index) => clampPageIndex(index + direction, earlierPageCount));
+    else setNewerPageIndex((index) => clampPageIndex(index + direction, newerPageCount));
+    if (fullPageSide) setFullPageSide(side);
+  }, [earlierPageCount, fullPageSide, newerPageCount]);
+
+  const changeMode = useCallback((nextMode: DiffViewMode) => {
+    setMode(nextMode);
+    onAnalytics?.({ name: "view_mode_used", mode: nextMode });
+  }, [onAnalytics]);
+
+  const cycleMode = useCallback((direction: 1 | -1) => {
+    const currentModeIndex = viewModes.findIndex((item) => item.id === mode);
+    const nextModeIndex = (currentModeIndex + direction + viewModes.length) % viewModes.length;
+    changeMode(viewModes[nextModeIndex]!.id);
+  }, [changeMode, mode]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -332,25 +695,65 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   }, [mode]);
 
   useEffect(() => {
+    if (!fullPageSide) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [fullPageSide]);
+
+  useEffect(() => {
     if (phase !== "workspace") return;
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.tagName === "INPUT" || target?.tagName === "SELECT" || target?.isContentEditable) return;
+      if (event.key === "Escape" && fullPageSide) {
+        event.preventDefault();
+        setFullPageSide(null);
+        return;
+      }
+      if (target?.getAttribute("role") === "slider") return;
+      const isNextPageKey = event.key === "ArrowRight" || event.key === "PageDown" || event.key.toLowerCase() === "j" || event.key.toLowerCase() === "n";
+      const isPreviousPageKey = event.key === "ArrowLeft" || event.key === "PageUp" || event.key.toLowerCase() === "k" || event.key.toLowerCase() === "p";
+      const pageDirection = isNextPageKey ? 1 : isPreviousPageKey ? -1 : 0;
+      if (pageDirection) {
+        event.preventDefault();
+        const sourceSide = event.shiftKey ? "earlier" : event.ctrlKey || event.metaKey ? "newer" : fullPageSide;
+        if (sourceSide) stepSourcePage(sourceSide, pageDirection);
+        else selectPage(pageIndex + pageDirection);
+        return;
+      }
       const numberMode = viewModes.find((item) => item.shortcut === event.key);
       if (numberMode) {
-        setMode(numberMode.id);
-        onAnalytics?.({ name: "view_mode_used", mode: numberMode.id });
-      } else if (event.key === "ArrowRight" || event.key === "j") {
-        setPageIndex((index) => Math.min(index + 1, Math.max(0, pages.length - 1)));
-      } else if (event.key === "ArrowLeft" || event.key === "k") {
-        setPageIndex((index) => Math.max(0, index - 1));
+        event.preventDefault();
+        changeMode(numberMode.id);
+      } else if (event.key === "[" || event.key === "{") {
+        event.preventDefault();
+        cycleMode(-1);
+      } else if (event.key === "]" || event.key === "}") {
+        event.preventDefault();
+        cycleMode(1);
+      } else if (event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        cycleMode(event.shiftKey ? -1 : 1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        const sourceSide = event.shiftKey ? "earlier" : event.ctrlKey || event.metaKey ? "newer" : fullPageSide;
+        if (sourceSide) goToSourcePage(sourceSide, 0);
+        else selectPage(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        const sourceSide = event.shiftKey ? "earlier" : event.ctrlKey || event.metaKey ? "newer" : fullPageSide;
+        if (sourceSide) goToSourcePage(sourceSide, sourceSide === "earlier" ? earlierPageCount - 1 : newerPageCount - 1);
+        else selectPage(pages.length - 1);
       } else if (event.key === "Escape") {
         setSelectedRegion(null);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mode, onAnalytics, pages.length, phase]);
+  }, [changeMode, cycleMode, earlierPageCount, fullPageSide, goToSourcePage, newerPageCount, pageIndex, pages.length, phase, selectPage, stepSourcePage]);
 
   const setFile = useCallback((side: "earlier" | "newer", file: File | null) => {
     if (side === "earlier") setEarlierFile(file);
@@ -359,6 +762,9 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
     setComparison(null);
     setPhase("upload");
     setPageIndex(0);
+    setFullPageSide(null);
+    setEarlierPageIndex(0);
+    setNewerPageIndex(0);
   }, []);
 
   const chooseFile = (side: "earlier" | "newer") => {
@@ -438,6 +844,9 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
       setComparison(result);
       setPageIndex(0);
       setSelectedRegion(null);
+      setFullPageSide(null);
+      setEarlierPageIndex(0);
+      setNewerPageIndex(0);
       setPhase("workspace");
       setProgress(100);
       onAnalytics?.({ name: "comparison_completed", pageCount: result.pages.length, changedPageCount: result.pages.filter((page) => pageStatus(page) !== "same").length });
@@ -460,16 +869,13 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
     setProgress(0);
     setPageIndex(0);
     setSelectedRegion(null);
+    setFullPageSide(null);
+    setEarlierPageIndex(0);
+    setNewerPageIndex(0);
   };
 
-  const changeMode = (nextMode: DiffViewMode) => {
-    setMode(nextMode);
-    onAnalytics?.({ name: "view_mode_used", mode: nextMode });
-  };
-
-  const selectPage = (index: number) => {
-    setPageIndex(index);
-    setSelectedRegion(null);
+  const openFullPage = (side: SourceSide) => {
+    if (sourceForSide(side === "earlier" ? earlierPage : newerPage, side)) setFullPageSide(side);
   };
 
   const selectRegion = (region: DiffRegion) => setSelectedRegion(region.id);
@@ -478,8 +884,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
     if (!pages.length) return;
     const next = pages.findIndex((page, index) => index > pageIndex && pageStatus(page) !== "same");
     const fallback = pages.findIndex((page) => pageStatus(page) !== "same");
-    setPageIndex(next >= 0 ? next : fallback >= 0 ? fallback : pageIndex);
-    setSelectedRegion(null);
+    selectPage(next >= 0 ? next : fallback >= 0 ? fallback : pageIndex);
   };
 
   if (phase === "upload") {
@@ -488,7 +893,11 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
         <div {...styleProps(styles.shell)}>
           <header {...styleProps(styles.topbar)}>
             <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
-            <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Files stay on your device</div>
+            <div {...styleProps(styles.topbarActions)}>
+              <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Files stay on your device</div>
+              <button {...styleProps(styles.helpButton)} type="button" aria-haspopup="dialog" onClick={() => setShowHelp(true)}><span {...styleProps(styles.helpButtonMark)} aria-hidden="true">?</span> How it works</button>
+              <ThemeToggle />
+            </div>
           </header>
           <section {...styleProps(styles.intro)} aria-labelledby="upload-heading">
             <p {...styleProps(styles.eyebrow)}>PDF comparison</p>
@@ -503,7 +912,25 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
             <input ref={inputNewer} {...styleProps(styles.srOnly)} type="file" multiple accept="application/pdf,.pdf" aria-label="Choose one or two PDFs for newer and earlier" onChange={(event) => handleInput("newer", event)} />
             <Button size="lg" className={styles.compareButton} disabled={!earlierFile || !newerFile} onClick={() => void runComparison()}>Compare PDFs <span aria-hidden="true">→</span></Button>
             {error ? <div {...styleProps(styles.errorBox)} role="alert">{error}</div> : null}
+            <section {...styleProps(styles.howTo)} aria-labelledby="how-to-heading">
+              <div {...styleProps(styles.howToHeader)}>
+                <p {...styleProps(styles.eyebrow)}>How it works</p>
+                <h2 id="how-to-heading" {...styleProps(styles.howToTitle)}>A clear path from revision to review.</h2>
+                <p {...styleProps(styles.howToCopy)}>PDF Diff turns two versions into a focused review workspace. Everything happens locally, so you can move from upload to evidence without sending the documents anywhere.</p>
+              </div>
+              <div {...styleProps(styles.howToGrid)}>
+                <article {...styleProps(styles.howToCard)}><span {...styleProps(styles.howToStep)}>1</span><h3 {...styleProps(styles.howToCardTitle)}>Load both versions</h3><p {...styleProps(styles.howToCardCopy)}>Add the original to Earlier and the revision to Newer. Drop files or browse, then swap them if needed.</p></article>
+                <article {...styleProps(styles.howToCard)}><span {...styleProps(styles.howToStep)}>2</span><h3 {...styleProps(styles.howToCardTitle)}>Compare page by page</h3><p {...styleProps(styles.howToCardCopy)}>The browser renders each page, finds visual differences, and checks the extracted text.</p></article>
+                <article {...styleProps(styles.howToCard)}><span {...styleProps(styles.howToStep)}>3</span><h3 {...styleProps(styles.howToCardTitle)}>Inspect the evidence</h3><p {...styleProps(styles.howToCardCopy)}>Switch views, zoom in, select regions, and use Next changed page to work through the review.</p></article>
+              </div>
+              <div {...styleProps(styles.featureGrid)}>
+                <div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Local by design</strong><p {...styleProps(styles.featureCopy)}>PDFs stay on this device while they are processed.</p></div>
+                <div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Six ways to compare</strong><p {...styleProps(styles.featureCopy)}>Diff, side by side, swipe, blink, Earlier, and Newer.</p></div>
+                <div {...styleProps(styles.featureCard)}><strong {...styleProps(styles.featureTitle)}>Review-ready detail</strong><p {...styleProps(styles.featureCopy)}>Page status, change regions, text changes, and full-page views.</p></div>
+              </div>
+            </section>
           </section>
+          {showHelp ? <HelpDialog onClose={closeHelp} /> : null}
         </div>
       </main>
     );
@@ -515,7 +942,11 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
         <div {...styleProps(styles.shell)}>
           <header {...styleProps(styles.topbar)}>
             <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
-            <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Processing</div>
+            <div {...styleProps(styles.topbarActions)}>
+              <div {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Processing</div>
+              <button {...styleProps(styles.helpButton)} type="button" aria-haspopup="dialog" onClick={() => setShowHelp(true)}><span {...styleProps(styles.helpButtonMark)} aria-hidden="true">?</span> How it works</button>
+              <ThemeToggle />
+            </div>
           </header>
           <section {...styleProps(styles.loading)} aria-live="polite" aria-busy="true">
             <div {...styleProps(styles.loadingCard)}>
@@ -526,6 +957,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
               <p {...styleProps(styles.progressLabel)}>{progress ? `${progress}% complete` : "Preparing pages…"}</p>
             </div>
           </section>
+          {showHelp ? <HelpDialog onClose={closeHelp} /> : null}
         </div>
       </main>
     );
@@ -535,6 +967,13 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
   const status = pageStatus(currentPage);
   const pageCount = pages.length;
   const pageChangedCount = changedPages.length;
+  const previewPage = mode === "diff"
+    ? currentPage
+    : {
+        ...currentPage,
+        beforeSrc: earlierPage?.beforeSrc,
+        afterSrc: newerPage?.afterSrc,
+      };
 
   return (
     <main {...styleProps(styles.root)}>
@@ -548,7 +987,9 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
           </div>
           <div {...styleProps(styles.workspaceActions)}>
             <span {...styleProps(styles.privacyPill)}><span {...styleProps(styles.privacyDot)} aria-hidden="true" /> Local only</span>
+            <button {...styleProps(styles.helpButton)} type="button" aria-haspopup="dialog" onClick={() => setShowHelp(true)}><span {...styleProps(styles.helpButtonMark)} aria-hidden="true">?</span><span {...styleProps(styles.desktopOnly)}>Help</span></button>
             <Button variant="outline" size="sm" className={styles.quietButton} onClick={reset}>New comparison</Button>
+            <ThemeToggle />
           </div>
         </header>
         <div {...styleProps(styles.busyBar)} aria-hidden="true"><div {...styleProps(styles.busyBarFill)} style={{ width: `${progress}%` }} /></div>
@@ -568,12 +1009,16 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
           <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
             <div {...styleProps(styles.toolbar)}>
               <div {...styleProps(styles.toolbarGroup)}>
-                <button {...styleProps(styles.iconButton)} type="button" aria-label="Previous page" disabled={pageIndex === 0} onClick={() => selectPage(Math.max(0, pageIndex - 1))}>←</button>
+                <button {...styleProps(styles.iconButton)} type="button" aria-label="Previous page" aria-keyshortcuts="ArrowLeft PageUp K P" title="Previous page (←, K, or Page Up)" disabled={pageIndex === 0} onClick={() => selectPage(Math.max(0, pageIndex - 1))}>←</button>
                 <span {...styleProps(styles.zoomLabel)}>{pageIndex + 1} / {pageCount}</span>
-                <button {...styleProps(styles.iconButton)} type="button" aria-label="Next page" disabled={pageIndex >= pageCount - 1} onClick={() => selectPage(Math.min(pageCount - 1, pageIndex + 1))}>→</button>
+                <button {...styleProps(styles.iconButton)} type="button" aria-label="Next page" aria-keyshortcuts="ArrowRight PageDown J N" title="Next page (→, J, or Page Down)" disabled={pageIndex >= pageCount - 1} onClick={() => selectPage(Math.min(pageCount - 1, pageIndex + 1))}>→</button>
               </div>
               <div {...styleProps(styles.modeGroup)} role="toolbar" aria-label="View mode">
-                {viewModes.map((item) => <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" aria-pressed={mode === item.id} title={`${item.label} (${item.shortcut})`} onClick={() => changeMode(item.id)}><span {...styleProps(styles.desktopOnly)}>{item.label}</span><span {...styleProps(styles.mobileOnly)}>{item.shortcut}</span></button>)}
+                {viewModes.map((item) => <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={`${item.label} (${item.shortcut})`} onClick={() => changeMode(item.id)}><span {...styleProps(styles.desktopOnly)}>{item.label}</span><span {...styleProps(styles.mobileOnly)}>{item.shortcut}</span></button>)}
+              </div>
+              <div {...styleProps(styles.sourceGroup)} role="group" aria-label="Open source page full screen">
+                <button {...styleProps(styles.sourceButton)} type="button" aria-label={`Open earlier version of page ${earlierPageIndex + 1} full screen`} title="Open earlier page full screen" disabled={!sourceForSide(earlierPage, "earlier")} onClick={() => openFullPage("earlier")}><span aria-hidden="true">↗</span><span {...styleProps(styles.desktopOnly)}>Earlier</span><span {...styleProps(styles.mobileOnly)}>A</span></button>
+                <button {...styleProps(styles.sourceButton)} type="button" aria-label={`Open newer version of page ${newerPageIndex + 1} full screen`} title="Open newer page full screen" disabled={!sourceForSide(newerPage, "newer")} onClick={() => openFullPage("newer")}><span aria-hidden="true">↗</span><span {...styleProps(styles.desktopOnly)}>Newer</span><span {...styleProps(styles.mobileOnly)}>B</span></button>
               </div>
               <div {...styleProps(styles.toolbarGroup)}>
                 <button {...styleProps(styles.iconButton)} type="button" aria-label="Zoom out" disabled={zoom === zoomLevels[0]} onClick={() => setZoom((value) => zoomLevels[Math.max(0, zoomLevels.indexOf(value as (typeof zoomLevels)[number]) - 1)] ?? 50)}>−</button>
@@ -583,12 +1028,13 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
             </div>
             <div {...styleProps(styles.stage)}>
               <div {...styleProps(styles.stageCenter)}>
-              <PagePreview page={currentPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={selectRegion} />
+              <PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={selectRegion} onSwipeChange={setSwipe} />
               </div>
             </div>
             <div {...styleProps(styles.statusFooter)}>
               <span><span {...styleProps(styles.statusAccent)}>{status === "same" ? "No visual changes" : statusLabel(status)}</span> · page {pageIndex + 1}</span>
-              <span>{alignment === "none" ? "Unaligned" : "Translation aligned"} · sensitivity {sensitivity}</span>
+              <span>A page {earlierPageIndex + 1}/{earlierPageCount} · B page {newerPageIndex + 1}/{newerPageCount}</span>
+              <span {...styleProps(styles.shortcutHint)} title="Keyboard shortcuts">← → pages · Shift + ← → A · Ctrl/Cmd + ← → B · 1–6 modes</span>
             </div>
           </section>
           <aside {...styleProps(styles.inspector)} aria-label="Change inspector">
@@ -624,6 +1070,20 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
             </div>
           </aside>
         </div>
+        {fullPageSide && fullPage && sourceForSide(fullPage, fullPageSide) ? (
+          <FullPageViewer
+            page={fullPage}
+            pageNumber={fullPageIndex + 1}
+            pageCount={fullPageCount}
+            earlierName={comparison.earlierName}
+            newerName={comparison.newerName}
+            side={fullPageSide}
+            onSideChange={setFullPageSide}
+            onPageChange={goToSourcePage}
+            onClose={() => setFullPageSide(null)}
+          />
+        ) : null}
+        {showHelp ? <HelpDialog onClose={closeHelp} /> : null}
       </div>
     </main>
   );
