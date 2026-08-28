@@ -493,7 +493,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
           <section {...styleProps(styles.intro)} aria-labelledby="upload-heading">
             <p {...styleProps(styles.eyebrow)}>PDF comparison</p>
             <h1 id="upload-heading" {...styleProps(styles.headline)}>Compare PDFs.<br /><em {...styleProps(styles.headlineAccent)}>Spot the difference.</em></h1>
-            <p {...styleProps(styles.introCopy)}>Drop two versions to review what changed, page by page.</p>
+            <p {...styleProps(styles.introCopy)}>Drop two versions to review what changed, page by page. Or select both PDFs from either picker; the first fills the card you opened.</p>
             <div {...styleProps(styles.uploadGrid)}>
               <FileDropzone label="Earlier" description="Original PDF" file={earlierFile} active={activeDrop === "earlier"} onChoose={() => chooseFile("earlier")} onRemove={() => setFile("earlier", null)} onActive={(active) => setActiveDrop(active ? "earlier" : null)} onDrop={(event) => handleDrop("earlier", event)} />
               <button {...styleProps(styles.swapUpload)} type="button" aria-label="Swap earlier and newer files" onClick={swapFiles}>↔</button>
