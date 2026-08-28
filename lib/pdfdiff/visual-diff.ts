@@ -21,6 +21,28 @@ function luminance(data: Uint8ClampedArray, offset: number): number {
   return data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114;
 }
 
+function colorDistance(
+  earlier: Uint8ClampedArray,
+  newer: Uint8ClampedArray,
+  offset: number,
+): number {
+  const red = earlier[offset] - newer[offset];
+  const green = earlier[offset + 1] - newer[offset + 1];
+  const blue = earlier[offset + 2] - newer[offset + 2];
+  return Math.sqrt(0.299 * red ** 2 + 0.587 * green ** 2 + 0.114 * blue ** 2) / 255;
+}
+
+function tintColor(color: RgbColor, distance: number): RgbColor {
+  // A changed antialiased edge can differ by only a few channel values. Keep
+  // those pixels as a light tint instead of turning the whole edge opaque.
+  const strength = clamp(distance * 2.2, 0.24, 1);
+  return [
+    Math.round(255 - (255 - color[0]) * strength),
+    Math.round(255 - (255 - color[1]) * strength),
+    Math.round(255 - (255 - color[2]) * strength),
+  ];
+}
+
 function validColor(value: RgbColor | undefined, fallback: RgbColor): RgbColor {
   if (!value || value.length !== 3 || value.some((channel) => !Number.isFinite(channel))) {
     return fallback;
@@ -106,9 +128,10 @@ export function diffImages(
     const direction = newLuma < oldLuma ? 1 : newLuma > oldLuma ? 2 : 3;
     directionMask[index] = direction;
     const color = direction === 1 ? addedColor : direction === 2 ? removedColor : [184, 126, 220] as const;
-    overlayData[offset] = color[0];
-    overlayData[offset + 1] = color[1];
-    overlayData[offset + 2] = color[2];
+    const tintedColor = tintColor(color, colorDistance(earlier.data, newer.data, offset));
+    overlayData[offset] = tintedColor[0];
+    overlayData[offset + 1] = tintedColor[1];
+    overlayData[offset + 2] = tintedColor[2];
     overlayData[offset + 3] = 255;
     if (direction === 1) addedPixels += 1;
     else if (direction === 2) removedPixels += 1;

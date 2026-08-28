@@ -68,7 +68,7 @@ export const styles = {
   paperZoom150: "scale-150",
   paperZoom200: "scale-[2]",
   pageImage: "block h-auto min-h-[520px] w-full select-none object-contain",
-  diffImage: "block size-full min-h-[520px] select-none object-contain",
+  diffImage: "block h-auto min-h-[520px] w-full select-none object-contain",
   sideBySide: "grid min-h-[520px] grid-cols-2 gap-px bg-stage",
   sidePanel: "min-w-0 overflow-hidden bg-background",
   paperEmpty: "grid min-h-[520px] place-items-center p-[30px] text-center text-[13px] text-muted-foreground",

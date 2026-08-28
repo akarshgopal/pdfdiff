@@ -17,6 +17,7 @@ import {
 } from "../lib/pdfdiff";
 
 const MAX_COMPARISON_PIXELS = 3_000_000;
+const PREVIEW_SCALE = 2;
 
 function canvasFromImageData(imageData: ImageData): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
@@ -28,8 +29,10 @@ function canvasFromImageData(imageData: ImageData): HTMLCanvasElement {
   return canvas;
 }
 
-function previewUrl(canvas: HTMLCanvasElement): string {
-  return canvas.toDataURL("image/webp", 0.9);
+function previewUrl(canvas: HTMLCanvasElement, format: "webp" | "png" = "webp"): string {
+  return format === "png"
+    ? canvas.toDataURL("image/png")
+    : canvas.toDataURL("image/webp", 0.9);
 }
 
 function blankImage(width: number, height: number): ImageData {
@@ -171,6 +174,7 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
 
         if (hasEarlier && hasNewer) {
           const rendered = await renderPagePair(pair.earlier, pair.newer, pageNumber, pageNumber, {
+            scale: PREVIEW_SCALE,
             maxPixels: MAX_COMPARISON_PIXELS,
             maxDimension: 2800,
             includeAnnotations: true,
@@ -197,7 +201,7 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             status: result.changedPixels === 0 ? "same" : "changed",
             beforeSrc: previewUrl(rendered.earlier.canvas),
             afterSrc: previewUrl(alignedNewer.canvas),
-            diffSrc: previewUrl(canvasFromImageData(result.overlay)),
+            diffSrc: previewUrl(canvasFromImageData(result.overlay), "png"),
             changedPixels: result.changedPixels,
             changedPercent: result.changedPercent,
             regions: regionsForPage(result.regions, result.width, result.height),
@@ -206,6 +210,7 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
         } else {
           const document = hasEarlier ? pair.earlier : pair.newer;
           const rendered = await renderPage(document, pageNumber, {
+            scale: PREVIEW_SCALE,
             maxPixels: MAX_COMPARISON_PIXELS,
             maxDimension: 2800,
             signal,
@@ -227,7 +232,7 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
             status: hasEarlier ? "removed" : "added",
             beforeSrc: hasEarlier ? previewUrl(rendered.canvas) : blankUrl,
             afterSrc: hasNewer ? previewUrl(rendered.canvas) : blankUrl,
-            diffSrc: previewUrl(canvasFromImageData(result.overlay)),
+            diffSrc: previewUrl(canvasFromImageData(result.overlay), "png"),
             changedPixels: result.changedPixels,
             changedPercent: result.changedPercent,
             regions: regionsForPage(result.regions, result.width, result.height),
