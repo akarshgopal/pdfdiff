@@ -38,6 +38,12 @@ The current cleanup adds event-loop yields between pages and CPU-heavy passes as
 a safe intermediate improvement. A worker boundary for comparison orchestration
 and transferable raster buffers remains the next measured performance project.
 
+The first measurement layer is now in place: callers can provide an opt-in
+metric sink to the core or browser adapter and receive source, render, text,
+alignment, visual, semantic, page, and total-comparison timings. Chromium heap
+samples are included when the browser exposes them. The sink is absent by
+default, so ordinary comparisons do not pay for timing or metric allocation.
+
 ### 4. Avoid retaining unnecessary raster and base64 data
 
 The comparison engine still holds full raster results while a comparison is

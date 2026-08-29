@@ -44,8 +44,11 @@ Use the view mode buttons above the canvas to switch between:
 - **Blink** — alternates between the two versions automatically.
 - **Earlier** and **Newer** — inspect one source version on its own.
 
-You can zoom from 50% to 200% with the − and + controls. The **Earlier** and
-**Newer** buttons open the selected source page in a larger full-page view.
+You can zoom from 50% to 200% with the − and + controls. The Pages rail shows
+paired Earlier/Newer previews and has independent A and B page controls that
+work in every view mode. The open-page buttons launch the selected source page
+in a larger full-page view. Diff and Semantic text calculate their results for
+the currently selected A/B page pair, even when the page numbers differ.
 
 ## Comparison settings
 

@@ -1,5 +1,6 @@
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import type {
+  DiffMetricSink,
   PageText,
   ProgressEvent,
   RenderedPage as CoreRenderedPage,
@@ -10,6 +11,7 @@ export type PdfSource = File | ArrayBuffer | Uint8Array;
 export interface PdfLoadOptions {
   signal?: AbortSignal;
   onProgress?: (loaded: number, total?: number) => void;
+  metrics?: DiffMetricSink;
   password?: string;
   workerSrc?: string;
 }
@@ -43,6 +45,7 @@ export interface RenderOptions {
   includeAnnotations?: boolean;
   background?: string;
   signal?: AbortSignal;
+  metrics?: DiffMetricSink;
 }
 
 export interface DocumentTextOptions {
@@ -50,6 +53,7 @@ export interface DocumentTextOptions {
   onProgress?: (event: ProgressEvent) => void;
   includeMarkedContent?: boolean;
   disableNormalization?: boolean;
+  metrics?: DiffMetricSink;
 }
 
 export type PdfPage = PDFPageProxy;

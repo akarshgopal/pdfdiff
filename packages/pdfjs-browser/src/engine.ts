@@ -2,10 +2,13 @@ import {
   alignByTranslation,
   diffImages,
   diffSemanticPages,
+  measureAsync,
   throwIfAborted,
   type ComparisonPage,
   type ComparisonResult,
   type DiffEngine,
+  type DiffMetric,
+  type DiffMetricSink,
   type DiffOptions,
   type DiffPolicy,
   type PageText,
@@ -33,6 +36,12 @@ function comparisonPolicy(options: DiffOptions): ComparisonPolicy {
 
 function comparisonThreshold(sensitivity: number): number {
   return Math.max(0.025, 0.18 - sensitivity * 0.00145);
+}
+
+function sourceByteLength(source: PdfSource): number {
+  if (typeof File !== "undefined" && source instanceof File) return source.size;
+  if (source instanceof ArrayBuffer) return source.byteLength;
+  return (source as Uint8Array).byteLength;
 }
 
 function yieldToBrowser(signal: AbortSignal): Promise<void> {
@@ -66,17 +75,25 @@ function geometryForPage(page: RenderedPage, width: number, height: number, shif
   return { widthPoints: page.widthPoints, heightPoints: page.heightPoints, scale: page.scale, offsetX: (width - page.width) / 2 + shiftX, offsetY: (height - page.height) / 2 + shiftY };
 }
 
-async function compareExistingPage(earlier: LoadedPdf, newer: LoadedPdf, pageNumber: number, options: DiffOptions, policy: ComparisonPolicy, signal: AbortSignal): Promise<ComparisonPage> {
-  const rendered = await renderPagePair(earlier, newer, pageNumber, pageNumber, { scale: PREVIEW_SCALE, maxPixels: policy.maxPixels, maxDimension: policy.maxDimension, includeAnnotations: true, signal });
+function pageMetricSink(sink: DiffMetricSink | undefined, pageNumber: number): DiffMetricSink | undefined {
+  if (!sink) return undefined;
+  return (metric: DiffMetric) => sink({
+    ...metric,
+    attributes: { pageNumber, ...metric.attributes },
+  });
+}
+
+async function compareExistingPage(earlier: LoadedPdf, newer: LoadedPdf, earlierPageNumber: number, newerPageNumber: number, options: DiffOptions, policy: ComparisonPolicy, signal: AbortSignal, metrics?: DiffMetricSink): Promise<ComparisonPage> {
+  const rendered = await renderPagePair(earlier, newer, earlierPageNumber, newerPageNumber, { scale: PREVIEW_SCALE, maxPixels: policy.maxPixels, maxDimension: policy.maxDimension, includeAnnotations: true, signal, metrics });
   await yieldToBrowser(signal);
-  const translation = options.alignment === "translation" ? alignByTranslation(rendered.earlier, rendered.newer, signal) : { image: rendered.newer, dx: 0, dy: 0 };
+  const translation = options.alignment === "translation" ? alignByTranslation(rendered.earlier, rendered.newer, signal, metrics) : { image: rendered.newer, dx: 0, dy: 0 };
   const alignedNewer = translation.image === rendered.newer ? rendered.newer : asRenderedPage(rendered.newer, imageDataFromRaster(translation.image));
   await yieldToBrowser(signal);
-  const result = diffImages(rendered.earlier, alignedNewer, { threshold: comparisonThreshold(options.sensitivity), includeAA: false, unchangedOpacity: 0.24, regionOptions: { minPixels: policy.regionMinPixels, maxRegions: policy.maxRegions, connectivity: 8 }, signal });
-  const [oldText, newText] = await Promise.all([extractPageText(earlier, pageNumber, { signal }), extractPageText(newer, pageNumber, { signal })]);
-  const semantic = diffSemanticPages(oldText, newText, { signal });
+  const result = diffImages(rendered.earlier, alignedNewer, { threshold: comparisonThreshold(options.sensitivity), includeAA: false, unchangedOpacity: 0.24, regionOptions: { minPixels: policy.regionMinPixels, maxRegions: policy.maxRegions, connectivity: 8 }, signal, metrics });
+  const [oldText, newText] = await Promise.all([extractPageText(earlier, earlierPageNumber, { signal, metrics }), extractPageText(newer, newerPageNumber, { signal, metrics })]);
+  const semantic = diffSemanticPages(oldText, newText, { signal, metrics });
   return {
-    index: pageNumber - 1,
+    index: earlierPageNumber - 1,
     width: result.width,
     height: result.height,
     status: result.changedPixels === 0 && semantic.changes.length === 0 ? "same" : "changed",
@@ -91,22 +108,22 @@ async function compareExistingPage(earlier: LoadedPdf, newer: LoadedPdf, pageNum
   };
 }
 
-async function compareMissingPage(document: LoadedPdf, pageNumber: number, hasEarlier: boolean, policy: ComparisonPolicy, signal: AbortSignal): Promise<ComparisonPage> {
-  const rendered = await renderPage(document, pageNumber, { scale: PREVIEW_SCALE, maxPixels: policy.maxPixels, maxDimension: policy.maxDimension, signal });
+async function compareMissingPage(document: LoadedPdf, pageNumber: number, hasEarlier: boolean, policy: ComparisonPolicy, signal: AbortSignal, metrics?: DiffMetricSink): Promise<ComparisonPage> {
+  const rendered = await renderPage(document, pageNumber, { scale: PREVIEW_SCALE, maxPixels: policy.maxPixels, maxDimension: policy.maxDimension, signal, metrics });
   await yieldToBrowser(signal);
   const blank = blankImage(rendered.width, rendered.height);
   const oldImage: RasterImage = hasEarlier ? rendered : { width: rendered.width, height: rendered.height, data: blank.data };
   const newImage: RasterImage = hasEarlier ? { width: rendered.width, height: rendered.height, data: blank.data } : rendered;
-  const result = diffImages(oldImage, newImage, { threshold: ADDED_PAGE_THRESHOLD, includeAA: true, regionOptions: { minPixels: policy.regionMinPixels, maxRegions: Math.min(policy.maxRegions, 40) }, signal });
-  const pageText = await extractPageText(document, pageNumber, { signal });
-  const semantic = hasEarlier ? diffSemanticPages(pageText, emptyPageText(pageNumber, rendered), { signal }) : diffSemanticPages(emptyPageText(pageNumber, rendered), pageText, { signal });
+  const result = diffImages(oldImage, newImage, { threshold: ADDED_PAGE_THRESHOLD, includeAA: true, regionOptions: { minPixels: policy.regionMinPixels, maxRegions: Math.min(policy.maxRegions, 40) }, signal, metrics });
+  const pageText = await extractPageText(document, pageNumber, { signal, metrics });
+  const semantic = hasEarlier ? diffSemanticPages(pageText, emptyPageText(pageNumber, rendered), { signal, metrics }) : diffSemanticPages(emptyPageText(pageNumber, rendered), pageText, { signal, metrics });
   return {
     index: pageNumber - 1,
     width: result.width,
     height: result.height,
     status: hasEarlier ? "removed" : "added",
-    earlier: oldImage,
-    newer: newImage,
+    earlier: hasEarlier ? rendered : undefined,
+    newer: hasEarlier ? undefined : rendered,
     diff: result.overlay,
     changedPixels: result.changedPixels,
     changedPercent: result.changedPercent,
@@ -116,29 +133,51 @@ async function compareMissingPage(document: LoadedPdf, pageNumber: number, hasEa
   };
 }
 
-async function comparePdfPair(earlier: PdfSource, newer: PdfSource, options: DiffOptions, signal: AbortSignal, workerSrc: string, onProgress?: (progress: { completed: number; total: number }) => void): Promise<ComparisonResult> {
-  const startedAt = performance.now();
-  const pair = await loadPdfPair(earlier, newer, { signal, workerSrc });
-  const totalPages = Math.max(pair.earlier.pageCount, pair.newer.pageCount);
-  const policy = comparisonPolicy(options);
-  const pages: ComparisonPage[] = [];
+async function comparePdfPair(earlier: PdfSource, newer: PdfSource, options: DiffOptions, signal: AbortSignal, workerSrc: string, onProgress?: (progress: { completed: number; total: number }) => void, onMetric?: DiffMetricSink): Promise<ComparisonResult> {
+  const sourceAttributes = { earlierBytes: sourceByteLength(earlier), newerBytes: sourceByteLength(newer) };
+  return measureAsync(onMetric, "comparison.total", async () => {
+    const startedAt = performance.now();
+    const pair = await measureAsync(onMetric, "pdf.load.pair", () => loadPdfPair(earlier, newer, { signal, workerSrc, metrics: onMetric }), sourceAttributes);
+    const totalPages = Math.max(pair.earlier.pageCount, pair.newer.pageCount);
+    const policy = comparisonPolicy(options);
+    const pages: ComparisonPage[] = [];
 
-  try {
-    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
-      throwIfAborted(signal);
-      const hasEarlier = pageNumber <= pair.earlier.pageCount;
-      const hasNewer = pageNumber <= pair.newer.pageCount;
-      const page = hasEarlier && hasNewer
-        ? await compareExistingPage(pair.earlier, pair.newer, pageNumber, options, policy, signal)
-        : await compareMissingPage(hasEarlier ? pair.earlier : pair.newer, pageNumber, hasEarlier, policy, signal);
-      pages.push(page);
-      onProgress?.({ completed: pageNumber, total: totalPages });
+    try {
+      for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+        throwIfAborted(signal);
+        const hasEarlier = pageNumber <= pair.earlier.pageCount;
+        const hasNewer = pageNumber <= pair.newer.pageCount;
+        const kind = hasEarlier && hasNewer ? "existing" : hasEarlier ? "removed" : "added";
+        const metrics = pageMetricSink(onMetric, pageNumber);
+        const page = await measureAsync(onMetric, "comparison.page", () => hasEarlier && hasNewer
+          ? compareExistingPage(pair.earlier, pair.newer, pageNumber, pageNumber, options, policy, signal, metrics)
+          : compareMissingPage(hasEarlier ? pair.earlier : pair.newer, pageNumber, hasEarlier, policy, signal, metrics), {
+          pageNumber,
+          pageIndex: pageNumber - 1,
+          kind,
+        });
+        pages.push(page);
+        onProgress?.({ completed: pageNumber, total: totalPages });
+      }
+
+      return { earlierName: "name" in earlier ? earlier.name : undefined, newerName: "name" in newer ? newer.name : undefined, pages, elapsedMs: Math.round(performance.now() - startedAt) };
+    } finally {
+      await Promise.allSettled([pair.earlier.destroy(), pair.newer.destroy()]);
     }
+  }, sourceAttributes);
+}
 
-    return { earlierName: "name" in earlier ? earlier.name : undefined, newerName: "name" in newer ? newer.name : undefined, pages, elapsedMs: Math.round(performance.now() - startedAt) };
-  } finally {
-    await Promise.allSettled([pair.earlier.destroy(), pair.newer.destroy()]);
-  }
+async function comparePdfPagePair(earlier: PdfSource, newer: PdfSource, earlierPageNumber: number, newerPageNumber: number, options: DiffOptions, signal: AbortSignal, workerSrc: string, onMetric?: DiffMetricSink): Promise<ComparisonPage> {
+  const sourceAttributes = { earlierBytes: sourceByteLength(earlier), newerBytes: sourceByteLength(newer), earlierPageNumber, newerPageNumber };
+  return measureAsync(onMetric, "comparison.page_pair", async () => {
+    const pair = await measureAsync(onMetric, "pdf.load.pair", () => loadPdfPair(earlier, newer, { signal, workerSrc, metrics: onMetric }), sourceAttributes);
+    try {
+      throwIfAborted(signal);
+      return await compareExistingPage(pair.earlier, pair.newer, earlierPageNumber, newerPageNumber, options, comparisonPolicy(options), signal, onMetric);
+    } finally {
+      await Promise.allSettled([pair.earlier.destroy(), pair.newer.destroy()]);
+    }
+  }, sourceAttributes);
 }
 
 export interface PdfJsEngineOptions {
@@ -146,6 +185,21 @@ export interface PdfJsEngineOptions {
   workerSrc: string;
 }
 
-export function createPdfJsEngine({ workerSrc }: PdfJsEngineOptions): DiffEngine<PdfSource, AbortSignal> {
-  return { compare: ({ earlier, newer, options, signal, onProgress }) => comparePdfPair(earlier, newer, options, signal, workerSrc, onProgress) };
+export interface PdfJsEngine extends DiffEngine<PdfSource, AbortSignal> {
+  comparePagePair(request: {
+    earlier: PdfSource;
+    newer: PdfSource;
+    earlierPageIndex: number;
+    newerPageIndex: number;
+    options: DiffOptions;
+    signal: AbortSignal;
+    onMetric?: DiffMetricSink;
+  }): Promise<ComparisonPage>;
+}
+
+export function createPdfJsEngine({ workerSrc }: PdfJsEngineOptions): PdfJsEngine {
+  return {
+    compare: ({ earlier, newer, options, signal, onProgress, onMetric }) => comparePdfPair(earlier, newer, options, signal, workerSrc, onProgress, onMetric),
+    comparePagePair: ({ earlier, newer, earlierPageIndex, newerPageIndex, options, signal, onMetric }) => comparePdfPagePair(earlier, newer, earlierPageIndex + 1, newerPageIndex + 1, options, signal, workerSrc, onMetric),
+  };
 }

@@ -1,0 +1,897 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "core",
+  "generatedAt": "2026-08-28T21:43:46.097Z",
+  "runtime": {
+    "node": "v22.13.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "runs": 5,
+  "warmups": 1,
+  "scenarios": [
+    {
+      "id": "visual-identical",
+      "description": "A same-size raster pair with no changes.",
+      "qualityPassed": true,
+      "runs": [
+        {
+          "index": 1,
+          "durationMs": 8.796499999999995,
+          "quality": {
+            "changedPixels": 0,
+            "regions": 0
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 0.7668749999999989,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.7254170000000073,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 5.032708000000014,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 1.2537499999999966,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "durationMs": 8.664874999999995,
+          "quality": {
+            "changedPixels": 0,
+            "regions": 0
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 0.7486669999999975,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.6900830000000013,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 4.937458000000007,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 1.270707999999999,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "durationMs": 9.746832999999995,
+          "quality": {
+            "changedPixels": 0,
+            "regions": 0
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 0.803750000000008,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.698666000000003,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 5.489542,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 1.7179160000000024,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "durationMs": 8.577833999999996,
+          "quality": {
+            "changedPixels": 0,
+            "regions": 0
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 0.790458000000001,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.4769159999999886,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 4.824583000000004,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 1.470832999999999,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "durationMs": 8.887165999999993,
+          "quality": {
+            "changedPixels": 0,
+            "regions": 0
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 0.9763329999999968,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.4833750000000094,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 4.925040999999993,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 1.4838330000000042,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 0
+              }
+            }
+          ]
+        }
+      ],
+      "metricSummary": [
+        {
+          "name": "core.visual.changed-mask",
+          "count": 5,
+          "medianMs": 1.6900830000000013,
+          "p95Ms": 1.7254170000000073,
+          "maxMs": 1.7254170000000073
+        },
+        {
+          "name": "core.visual.overlay",
+          "count": 5,
+          "medianMs": 4.937458000000007,
+          "p95Ms": 5.489542,
+          "maxMs": 5.489542
+        },
+        {
+          "name": "core.visual.pixelmatch",
+          "count": 5,
+          "medianMs": 0.790458000000001,
+          "p95Ms": 0.9763329999999968,
+          "maxMs": 0.9763329999999968
+        },
+        {
+          "name": "core.visual.regions",
+          "count": 5,
+          "medianMs": 1.470832999999999,
+          "p95Ms": 1.7179160000000024,
+          "maxMs": 1.7179160000000024
+        }
+      ]
+    },
+    {
+      "id": "visual-changes",
+      "description": "A same-size pair with several changed regions.",
+      "qualityPassed": true,
+      "runs": [
+        {
+          "index": 1,
+          "durationMs": 17.220042000000007,
+          "quality": {
+            "changedPixels": 17000,
+            "changedPercent": 2.161661783854167,
+            "regions": 2
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 5.043666999999999,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.6003339999999753,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 5.296208000000007,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 5.253332999999998,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "durationMs": 13.478291000000013,
+          "quality": {
+            "changedPixels": 17000,
+            "changedPercent": 2.161661783854167,
+            "regions": 2
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 2.7633749999999964,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.380583999999999,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 4.634833000000015,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 4.576415999999995,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "durationMs": 15.200040999999999,
+          "quality": {
+            "changedPixels": 17000,
+            "changedPercent": 2.161661783854167,
+            "regions": 2
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 2.654708999999997,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.3874169999999992,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 4.592458999999991,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 6.526541999999978,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "durationMs": 12.995250000000027,
+          "quality": {
+            "changedPixels": 17000,
+            "changedPercent": 2.161661783854167,
+            "regions": 2
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 4.117874999999998,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.3967079999999896,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 4.816541999999998,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 2.629125000000016,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "durationMs": 11.571249999999992,
+          "quality": {
+            "changedPixels": 17000,
+            "changedPercent": 2.161661783854167,
+            "regions": 2
+          },
+          "metrics": [
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 2.7756669999999986,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 1.393665999999996,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 4.700625000000002,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 2.6727499999999793,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432,
+                "changedPixels": 17000
+              }
+            }
+          ]
+        }
+      ],
+      "metricSummary": [
+        {
+          "name": "core.visual.changed-mask",
+          "count": 5,
+          "medianMs": 1.393665999999996,
+          "p95Ms": 1.6003339999999753,
+          "maxMs": 1.6003339999999753
+        },
+        {
+          "name": "core.visual.overlay",
+          "count": 5,
+          "medianMs": 4.700625000000002,
+          "p95Ms": 5.296208000000007,
+          "maxMs": 5.296208000000007
+        },
+        {
+          "name": "core.visual.pixelmatch",
+          "count": 5,
+          "medianMs": 2.7756669999999986,
+          "p95Ms": 5.043666999999999,
+          "maxMs": 5.043666999999999
+        },
+        {
+          "name": "core.visual.regions",
+          "count": 5,
+          "medianMs": 4.576415999999995,
+          "p95Ms": 6.526541999999978,
+          "maxMs": 6.526541999999978
+        }
+      ]
+    },
+    {
+      "id": "translation-alignment",
+      "description": "A pair with a known four-by-four pixel content translation.",
+      "qualityPassed": true,
+      "runs": [
+        {
+          "index": 1,
+          "durationMs": 9.462041,
+          "quality": {
+            "dx": -4,
+            "dy": -4
+          },
+          "metrics": [
+            {
+              "name": "core.alignment.translation",
+              "durationMs": 9.455833000000013,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "durationMs": 9.529459000000003,
+          "quality": {
+            "dx": -4,
+            "dy": -4
+          },
+          "metrics": [
+            {
+              "name": "core.alignment.translation",
+              "durationMs": 9.525583000000012,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "durationMs": 9.98391700000002,
+          "quality": {
+            "dx": -4,
+            "dy": -4
+          },
+          "metrics": [
+            {
+              "name": "core.alignment.translation",
+              "durationMs": 9.976208000000014,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "durationMs": 9.704707999999982,
+          "quality": {
+            "dx": -4,
+            "dy": -4
+          },
+          "metrics": [
+            {
+              "name": "core.alignment.translation",
+              "durationMs": 9.697457999999983,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "durationMs": 9.713333000000034,
+          "quality": {
+            "dx": -4,
+            "dy": -4
+          },
+          "metrics": [
+            {
+              "name": "core.alignment.translation",
+              "durationMs": 9.705458000000021,
+              "status": "ok",
+              "attributes": {
+                "width": 1024,
+                "height": 768,
+                "pixels": 786432
+              }
+            }
+          ]
+        }
+      ],
+      "metricSummary": [
+        {
+          "name": "core.alignment.translation",
+          "count": 5,
+          "medianMs": 9.697457999999983,
+          "p95Ms": 9.976208000000014,
+          "maxMs": 9.976208000000014
+        }
+      ]
+    },
+    {
+      "id": "semantic-change",
+      "description": "A long token stream with repeated and localized text changes.",
+      "qualityPassed": true,
+      "runs": [
+        {
+          "index": 1,
+          "durationMs": 740.3793330000001,
+          "quality": {
+            "beforeTokens": 8100,
+            "afterTokens": 9901,
+            "changes": 1
+          },
+          "metrics": [
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 708.857667,
+              "status": "ok",
+              "attributes": {
+                "beforeTokens": 8100,
+                "afterTokens": 9901
+              }
+            },
+            {
+              "name": "core.semantic.text",
+              "durationMs": 740.3576660000001,
+              "status": "ok",
+              "attributes": {
+                "beforeCharacters": 42189,
+                "afterCharacters": 45797
+              }
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "durationMs": 841.8409999999999,
+          "quality": {
+            "beforeTokens": 8100,
+            "afterTokens": 9901,
+            "changes": 1
+          },
+          "metrics": [
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 803.8270830000001,
+              "status": "ok",
+              "attributes": {
+                "beforeTokens": 8100,
+                "afterTokens": 9901
+              }
+            },
+            {
+              "name": "core.semantic.text",
+              "durationMs": 841.8206249999998,
+              "status": "ok",
+              "attributes": {
+                "beforeCharacters": 42189,
+                "afterCharacters": 45797
+              }
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "durationMs": 883.3937499999997,
+          "quality": {
+            "beforeTokens": 8100,
+            "afterTokens": 9901,
+            "changes": 1
+          },
+          "metrics": [
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 833.34175,
+              "status": "ok",
+              "attributes": {
+                "beforeTokens": 8100,
+                "afterTokens": 9901
+              }
+            },
+            {
+              "name": "core.semantic.text",
+              "durationMs": 883.3839169999997,
+              "status": "ok",
+              "attributes": {
+                "beforeCharacters": 42189,
+                "afterCharacters": 45797
+              }
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "durationMs": 1025.3260419999997,
+          "quality": {
+            "beforeTokens": 8100,
+            "afterTokens": 9901,
+            "changes": 1
+          },
+          "metrics": [
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 993.9629580000005,
+              "status": "ok",
+              "attributes": {
+                "beforeTokens": 8100,
+                "afterTokens": 9901
+              }
+            },
+            {
+              "name": "core.semantic.text",
+              "durationMs": 1025.3154170000003,
+              "status": "ok",
+              "attributes": {
+                "beforeCharacters": 42189,
+                "afterCharacters": 45797
+              }
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "durationMs": 774.4921669999994,
+          "quality": {
+            "beforeTokens": 8100,
+            "afterTokens": 9901,
+            "changes": 1
+          },
+          "metrics": [
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 737.3695000000007,
+              "status": "ok",
+              "attributes": {
+                "beforeTokens": 8100,
+                "afterTokens": 9901
+              }
+            },
+            {
+              "name": "core.semantic.text",
+              "durationMs": 774.4807499999997,
+              "status": "ok",
+              "attributes": {
+                "beforeCharacters": 42189,
+                "afterCharacters": 45797
+              }
+            }
+          ]
+        }
+      ],
+      "metricSummary": [
+        {
+          "name": "core.semantic.text",
+          "count": 5,
+          "medianMs": 841.8206249999998,
+          "p95Ms": 1025.3154170000003,
+          "maxMs": 1025.3154170000003
+        },
+        {
+          "name": "core.semantic.token-diff",
+          "count": 5,
+          "medianMs": 803.8270830000001,
+          "p95Ms": 993.9629580000005,
+          "maxMs": 993.9629580000005
+        }
+      ]
+    }
+  ]
+}

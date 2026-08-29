@@ -103,19 +103,46 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
   };
 }
 
-async function toViewerComparison(result: ComparisonResult): Promise<DiffComparison> {
+type RawPagePairResolver = (request: { earlierPageIndex: number; newerPageIndex: number; signal: AbortSignal }) => Promise<ComparisonPage>;
+
+async function toViewerComparison(result: ComparisonResult, resolveRawPagePair?: RawPagePairResolver): Promise<DiffComparison> {
   const pages = await Promise.all(result.pages.map(toViewerPage));
-  const urls = pages.flatMap((page) => [page.beforeSrc, page.afterSrc, page.diffSrc]).filter((url): url is string => Boolean(url));
+  const urls = new Set<string>();
+  const pairCache = new Map<string, DiffPage>();
   let disposed = false;
+  const trackPageUrls = (page: DiffPage): void => {
+    for (const url of [page.beforeSrc, page.afterSrc, page.diffSrc]) {
+      if (!url) continue;
+      if (disposed) URL.revokeObjectURL(url);
+      else urls.add(url);
+    }
+  };
+  pages.forEach(trackPageUrls);
   return {
     earlierName: result.earlierName ?? "Earlier PDF",
     newerName: result.newerName ?? "Newer PDF",
     pages,
     elapsedMs: result.elapsedMs,
+    comparePagePair: resolveRawPagePair ? async (request) => {
+      if (request.signal.aborted) throw new DOMException("The page comparison was aborted.", "AbortError");
+      const key = `${request.earlierPageIndex}:${request.newerPageIndex}`;
+      const cached = pairCache.get(key);
+      if (cached) return cached;
+      const page = await toViewerPage(await resolveRawPagePair(request));
+      if (request.signal.aborted) {
+        for (const url of [page.beforeSrc, page.afterSrc, page.diffSrc]) if (url) URL.revokeObjectURL(url);
+        throw new DOMException("The page comparison was aborted.", "AbortError");
+      }
+      trackPageUrls(page);
+      pairCache.set(key, page);
+      return page;
+    } : undefined,
     dispose: () => {
       if (disposed) return;
       disposed = true;
       urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+      pairCache.clear();
     },
   };
 }
@@ -124,6 +151,15 @@ const engine = createPdfJsEngine({ workerSrc: workerUrl });
 
 export const browserPdfDiffEngine: PdfDiffEngine = {
   async compare(request) {
-    return toViewerComparison(await engine.compare(request));
+    const result = await engine.compare(request);
+    return toViewerComparison(result, ({ earlierPageIndex, newerPageIndex, signal }) => engine.comparePagePair({
+      earlier: request.earlier,
+      newer: request.newer,
+      earlierPageIndex,
+      newerPageIndex,
+      options: request.options,
+      signal,
+      onMetric: request.onMetric,
+    }));
   },
 };

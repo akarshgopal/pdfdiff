@@ -39,6 +39,18 @@ test("semantic diff handles empty pages", () => {
   assert.equal(added.changes[0]?.after, "New page");
 });
 
+test("semantic diff keeps unrelated long pages as removed and added", () => {
+  const before = Array.from({ length: 600 }, (_, index) => `old${index}`).join(" ");
+  const after = Array.from({ length: 600 }, (_, index) => `new${index}`).join(" ");
+  const result = diffSemanticText(before, after);
+
+  assert.deepEqual(result.changes.map((change) => change.kind), ["removed", "added"]);
+  assert.equal(result.changes[0]?.before, before);
+  assert.equal(result.changes[0]?.after, "");
+  assert.equal(result.changes[1]?.before, "");
+  assert.equal(result.changes[1]?.after, after);
+});
+
 test("page semantic diff maps changes back to native text quads", () => {
   const item = (text: string, start: number, end: number): PageText["items"][number] => ({
     pageNumber: 1,

@@ -11,7 +11,7 @@ import { styles, styleProps, type TailwindClass } from "./styles.js";
 import type { DiffPage, DiffRegion, DiffSemanticOverlay, DiffViewMode, PdfDiffViewerProps, SourceSide } from "./types.js";
 import { ChangeInspector, PageRail, StatusFooter, ViewerToolbar, WorkspaceHeader } from "./ViewerChrome.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
-import { pageStatus, sourceForSide } from "./viewer-utils.js";
+import { modeNeedsComparedPair, pageStatus, sourceForSide } from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
 
 function zoomStyle(zoom: number): TailwindClass {
@@ -162,6 +162,8 @@ function PagePreview({
   onRegionClick,
   onSelectChange,
   onSwipeChange,
+  pairComparisonPending,
+  pairError,
 }: {
   page: DiffPage;
   mode: DiffViewMode;
@@ -174,12 +176,16 @@ function PagePreview({
   onRegionClick: (region: DiffRegion) => void;
   onSelectChange: (id: string) => void;
   onSwipeChange: (value: number) => void;
+  pairComparisonPending: boolean;
+  pairError: string | null;
 }) {
   const before = page.beforeSrc;
   const after = page.afterSrc;
   const diff = page.diffSrc;
   const renderImage = (source: string | undefined, alt: string, imageStyle: TailwindClass = styles.pageImage) => source ? <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} /> : <PaperFallback label="Preview is still rendering" />;
 
+  if (modeNeedsComparedPair(mode) && pairComparisonPending) return <div {...styleProps(styles.paper, zoomStyle(zoom))}><PaperFallback label="Preparing the selected A and B pages…" /></div>;
+  if (modeNeedsComparedPair(mode) && pairError) return <div {...styleProps(styles.paper, zoomStyle(zoom))}><PaperFallback label={pairError} /></div>;
   if (mode === "semantic-text") return <SemanticPdfPreview page={page} zoom={zoom} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
 
   const overlays = showBoundingBoxes && mode === "diff" && page.regions?.length ? <>{page.regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</> : null;
@@ -260,7 +266,7 @@ export function PdfDiffViewer({ comparison, onNewComparison, onAnalytics, initia
     pages, pageIndex, mode, zoom, swipe, selectedRegion, showBoundingBoxes,
     showSemanticHighlights, blinkOn, showSettings, sensitivity, alignment,
     fullPageSide, earlierPageIndex, newerPageIndex, showHelp, earlierPageCount,
-    newerPageCount, currentPage, earlierPage, newerPage, changedPages,
+    newerPageCount, pairComparisonPending, pairError, currentPage, earlierPage, newerPage, changedPages,
     fullPageIndex, fullPage, fullPageCount, previewPage, selectPage,
     goToSourcePage, changeMode, setZoom, setSwipe, setSelectedRegion,
     setShowBoundingBoxes, setShowSemanticHighlights, setShowSettings,
@@ -268,19 +274,19 @@ export function PdfDiffViewer({ comparison, onNewComparison, onAnalytics, initia
   } = viewer;
   const closeHelp = () => setShowHelp(false);
   if (!currentPage || !previewPage) return null;
-  const status = pageStatus(currentPage);
+  const status = pageStatus(previewPage);
 
   return (
     <section aria-label="PDF comparison workspace">
       <WorkspaceHeader comparison={comparison} onNewComparison={onNewComparison} onHelp={() => setShowHelp(true)} />
       <div {...styleProps(styles.workspaceMain)}>
-        <PageRail pages={pages} pageIndex={pageIndex} onSelectPage={selectPage} />
+        <PageRail pages={pages} pageIndex={pageIndex} onSelectPage={selectPage} earlierPage={earlierPage} newerPage={newerPage} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSourcePageChange={goToSourcePage} onOpenSource={setFullPageSide} />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
-          <ViewerToolbar pageIndex={pageIndex} pageCount={pages.length} mode={mode} earlierPage={earlierPage} newerPage={newerPage} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} onPageChange={selectPage} onModeChange={changeMode} onOpenSource={setFullPageSide} zoom={zoom} onZoomChange={setZoom} />
-          <div {...styleProps(styles.stage)}><div {...styleProps(styles.stageCenter)}><PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} showSemanticHighlights={showSemanticHighlights} selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} /></div></div>
-          <StatusFooter pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} earlierPageCount={earlierPageCount} newerPageIndex={newerPageIndex} newerPageCount={newerPageCount} status={status} />
+          <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} />
+          <div {...styleProps(styles.stage)}><div {...styleProps(styles.stageCenter)}><PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} showSemanticHighlights={showSemanticHighlights} selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></div></div>
+          <StatusFooter earlierPageIndex={earlierPageIndex} earlierPageCount={earlierPageCount} newerPageIndex={newerPageIndex} newerPageCount={newerPageCount} status={status} />
         </section>
-        <ChangeInspector currentPage={currentPage} status={status} changedPageCount={changedPages.length} selectedRegion={selectedRegion} showBoundingBoxes={showBoundingBoxes} onShowBoundingBoxesChange={setShowBoundingBoxes} onSelectRegion={setSelectedRegion} onNextChange={goToNextChange} showSettings={showSettings} onToggleSettings={() => setShowSettings((value) => !value)} sensitivity={sensitivity} alignment={alignment} onSensitivityChange={(value) => { setSensitivity(value); onOptionsChange?.({ sensitivity: value, alignment }); }} onAlignmentChange={(value) => { setAlignment(value); onOptionsChange?.({ sensitivity, alignment: value }); }} mode={mode} swipe={swipe} onSwipeChange={setSwipe} showSemanticHighlights={showSemanticHighlights} onShowSemanticHighlightsChange={setShowSemanticHighlights} />
+        <ChangeInspector currentPage={previewPage} status={status} changedPageCount={changedPages.length} selectedRegion={selectedRegion} showBoundingBoxes={showBoundingBoxes} onShowBoundingBoxesChange={setShowBoundingBoxes} onSelectRegion={setSelectedRegion} onNextChange={goToNextChange} showSettings={showSettings} onToggleSettings={() => setShowSettings((value) => !value)} sensitivity={sensitivity} alignment={alignment} onSensitivityChange={(value) => { setSensitivity(value); onOptionsChange?.({ sensitivity: value, alignment }); }} onAlignmentChange={(value) => { setAlignment(value); onOptionsChange?.({ sensitivity, alignment: value }); }} mode={mode} swipe={swipe} onSwipeChange={setSwipe} showSemanticHighlights={showSemanticHighlights} onShowSemanticHighlightsChange={setShowSemanticHighlights} />
       </div>
       {fullPageSide && fullPage && sourceForSide(fullPage, fullPageSide) ? <FullPageViewer page={fullPage} pageNumber={fullPageIndex + 1} pageCount={fullPageCount} earlierName={comparison.earlierName} newerName={comparison.newerName} side={fullPageSide} onSideChange={setFullPageSide} onPageChange={goToSourcePage} onClose={() => setFullPageSide(null)} /> : null}
       {showHelp ? <HelpDialog onClose={closeHelp} /> : null}

@@ -1,5 +1,7 @@
 import { throwIfAborted } from "./errors.js";
+import { measure } from "./instrumentation.js";
 import type { AbortSignalLike, RasterImage } from "./types.js";
+import type { DiffMetricSink } from "./instrumentation.js";
 
 function luminance(data: Uint8ClampedArray, offset: number): number {
   return data[offset]! * 0.299 + data[offset + 1]! * 0.587 + data[offset + 2]! * 0.114;
@@ -52,7 +54,15 @@ export interface TranslationAlignment {
 }
 
 /** Find and apply a small translation so two raster pages share their content grid. */
-export function alignByTranslation(earlier: RasterImage, newer: RasterImage, signal?: AbortSignalLike): TranslationAlignment {
+export function alignByTranslation(earlier: RasterImage, newer: RasterImage, signal?: AbortSignalLike, metrics?: DiffMetricSink): TranslationAlignment {
+  return measure(metrics, "core.alignment.translation", () => alignByTranslationUnmeasured(earlier, newer, signal), {
+    width: earlier.width,
+    height: earlier.height,
+    pixels: earlier.width * earlier.height,
+  });
+}
+
+function alignByTranslationUnmeasured(earlier: RasterImage, newer: RasterImage, signal?: AbortSignalLike): TranslationAlignment {
   let bestX = 0;
   let bestY = 0;
   let bestScore = translationScore(earlier, newer, 0, 0);

@@ -54,6 +54,11 @@ export interface DiffComparison {
   readonly newerName: string;
   readonly pages: readonly DiffPage[];
   readonly elapsedMs?: number;
+  readonly comparePagePair?: (request: {
+    earlierPageIndex: number;
+    newerPageIndex: number;
+    signal: AbortSignal;
+  }) => Promise<DiffPage>;
   readonly dispose?: () => void;
 }
 

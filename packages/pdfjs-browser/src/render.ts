@@ -1,5 +1,5 @@
 import { AnnotationMode, type PDFPageProxy } from "pdfjs-dist";
-import { PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
+import { measureAsync, PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
 import type { LoadedPdf, RenderOptions, RenderedPage, RenderedPagePair } from "./types.js";
 
 const DEFAULT_SCALE = 1.5;
@@ -39,6 +39,7 @@ async function renderIntoCanvas(
   offsetX: number,
   offsetY: number,
   options: RenderOptions,
+  side?: "earlier" | "newer",
 ): Promise<RenderedPage> {
   throwIfAborted(options.signal);
   const rotation = page.rotate;
@@ -63,8 +64,16 @@ async function renderIntoCanvas(
   signal?.addEventListener("abort", onAbort, { once: true });
   if (signal?.aborted) onAbort();
   try {
-    await renderTask.promise;
-    throwIfAborted(options.signal);
+    await measureAsync(options.metrics, "pdf.render.canvas", async () => {
+      await renderTask.promise;
+      throwIfAborted(options.signal);
+    }, {
+      pageNumber: page.pageNumber,
+      width: canvas.width,
+      height: canvas.height,
+      pixels: canvas.width * canvas.height,
+      side: side ?? "single",
+    });
   } catch (error) {
     if (signal?.aborted) throw new PdfDiffAbortError();
     throw error;
@@ -140,8 +149,8 @@ export async function renderPagePair(
   const newerOffsetX = (width - newerViewport.width * scale) / 2;
   const newerOffsetY = (height - newerViewport.height * scale) / 2;
   const [earlierRendered, newerRendered] = await Promise.all([
-    renderIntoCanvas(earlierPage, earlierCanvas, earlierViewport.width, earlierViewport.height, scale, earlierOffsetX, earlierOffsetY, renderOptions),
-    renderIntoCanvas(newerPage, newerCanvas, newerViewport.width, newerViewport.height, scale, newerOffsetX, newerOffsetY, renderOptions),
+    renderIntoCanvas(earlierPage, earlierCanvas, earlierViewport.width, earlierViewport.height, scale, earlierOffsetX, earlierOffsetY, renderOptions, "earlier"),
+    renderIntoCanvas(newerPage, newerCanvas, newerViewport.width, newerViewport.height, scale, newerOffsetX, newerOffsetY, renderOptions, "newer"),
   ]);
   return { earlier: earlierRendered, newer: newerRendered, width, height, scale };
 }

@@ -1,5 +1,5 @@
 import { getDocument, type PDFDocumentLoadingTask, type PDFDocumentProxy } from "pdfjs-dist";
-import { PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
+import { measureAsync, PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
 import { configurePdfWorker, getConfiguredWorkerUrl } from "./worker.js";
 import type { LoadedPdf, PdfLoadOptions, PdfMetadata, PdfSource } from "./types.js";
 
@@ -28,7 +28,8 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
   if (options.workerSrc) configurePdfWorker(options.workerSrc);
   else if (!getConfiguredWorkerUrl()) throw new Error("Configure a PDF.js worker URL before loading a PDF.");
 
-  const data = await readSource(source, options.signal);
+  const sourceType = isFile(source) ? "file" : source instanceof ArrayBuffer ? "array-buffer" : "uint8-array";
+  const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), { sourceType });
   throwIfAborted(options.signal);
   let task: PDFDocumentLoadingTask | undefined;
   let abortReject: ((reason: PdfDiffAbortError) => void) | undefined;
@@ -45,8 +46,11 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
     signal?.addEventListener("abort", onAbort, { once: true });
     if (signal?.aborted) onAbort();
     try {
-      const pdf = await Promise.race([task.promise, abortPromise]);
-      throwIfAborted(options.signal);
+      const pdf = await measureAsync(options.metrics, "pdf.document.load", async () => {
+        const loaded = await Promise.race([task!.promise, abortPromise]);
+        throwIfAborted(options.signal);
+        return loaded;
+      }, { bytes: data.byteLength });
       return {
         pdf,
         name: isFile(source) ? source.name : undefined,

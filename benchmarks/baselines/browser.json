@@ -1,0 +1,1171 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "browser",
+  "generatedAt": "2026-08-28T22:11:58.801Z",
+  "runtime": {
+    "node": "v22.13.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "playwrightModule": "playwright",
+    "chromiumPath": "playwright-managed",
+    "browserVersion": "151.0.7922.34",
+    "browserUserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+  },
+  "url": "http://localhost:3000/",
+  "earlier": "examples/pdf-fixtures/contracts/work-order-original.pdf",
+  "newer": "examples/pdf-fixtures/contracts/work-order-amended.pdf",
+  "runs": 5,
+  "warmups": 1,
+  "scenarios": [
+    {
+      "id": "pdfjs-fixture-pair",
+      "description": "PDF.js loading, rendering, comparison, encoding, and viewer readiness for one fixture pair.",
+      "qualityPassed": true,
+      "runs": [
+        {
+          "index": 1,
+          "durationMs": 1064.667458,
+          "quality": {
+            "workspaceReady": true,
+            "pageCount": 1,
+            "metricCount": 17,
+            "metricsOk": true,
+            "longTaskCount": 2
+          },
+          "metrics": [
+            {
+              "name": "pdf.source.read",
+              "durationMs": 5.299999997019768,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 179.89999999850988,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47430
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.5,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 0.19999999552965164,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.load.pair",
+              "durationMs": 186.29999999701977,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 31.400000005960464,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "earlier"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 150.5,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "newer"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 71.80000000447035,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 8.100000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 25,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 31.299999997019768,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 16.100000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 16.600000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 58.600000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeTokens": 759,
+                "afterTokens": 930
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.page",
+              "durationMs": 59.899999998509884,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeCharacters": 3890,
+                "afterCharacters": 4667,
+                "beforeItems": 102,
+                "afterItems": 141
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.page",
+              "durationMs": 490,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "pageIndex": 0,
+                "kind": "existing"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.total",
+              "durationMs": 676.7999999970198,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            }
+          ],
+          "longTasks": [
+            {
+              "name": "self",
+              "durationMs": 252,
+              "startTimeMs": 1220
+            },
+            {
+              "name": "self",
+              "durationMs": 276,
+              "startTimeMs": 1473.0999999940395
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "durationMs": 1002.6803750000008,
+          "quality": {
+            "workspaceReady": true,
+            "pageCount": 1,
+            "metricCount": 17,
+            "metricsOk": true,
+            "longTaskCount": 2
+          },
+          "metrics": [
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.3999999985098839,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 182.39999999850988,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47430
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.3999999985098839,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 0.29999999701976776,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.load.pair",
+              "durationMs": 184,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 29,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "earlier"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 144.30000000447035,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "newer"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 69.20000000298023,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 8.100000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 25,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 30.900000005960464,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 16.399999998509884,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 16.899999998509884,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 50.100000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeTokens": 759,
+                "afterTokens": 930
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.page",
+              "durationMs": 51.19999999552965,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeCharacters": 3890,
+                "afterCharacters": 4667,
+                "beforeItems": 102,
+                "afterItems": 141
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.page",
+              "durationMs": 493.3999999985099,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "pageIndex": 0,
+                "kind": "existing"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.total",
+              "durationMs": 677.8999999985099,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            }
+          ],
+          "longTasks": [
+            {
+              "name": "self",
+              "durationMs": 246,
+              "startTimeMs": 849
+            },
+            {
+              "name": "self",
+              "durationMs": 263,
+              "startTimeMs": 1118.1999999955297
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "durationMs": 1002.301958,
+          "quality": {
+            "workspaceReady": true,
+            "pageCount": 1,
+            "metricCount": 17,
+            "metricsOk": true,
+            "longTaskCount": 2
+          },
+          "metrics": [
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.3999999985098839,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 172.10000000149012,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47430
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.3999999985098839,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 0.3999999985098839,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.load.pair",
+              "durationMs": 173.5,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 28,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "earlier"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 153.70000000298023,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "newer"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 69.39999999850988,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 8,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 25,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 31.200000002980232,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 13.900000005960464,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 14.300000004470348,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 51.80000000447035,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeTokens": 759,
+                "afterTokens": 930
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.page",
+              "durationMs": 53,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeCharacters": 3890,
+                "afterCharacters": 4667,
+                "beforeItems": 102,
+                "afterItems": 141
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.page",
+              "durationMs": 513.2000000029802,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "pageIndex": 0,
+                "kind": "existing"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.total",
+              "durationMs": 687.3000000044703,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            }
+          ],
+          "longTasks": [
+            {
+              "name": "self",
+              "durationMs": 253,
+              "startTimeMs": 873.2000000029802
+            },
+            {
+              "name": "self",
+              "durationMs": 267,
+              "startTimeMs": 1163.3000000044703
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "durationMs": 1002.478000000001,
+          "quality": {
+            "workspaceReady": true,
+            "pageCount": 1,
+            "metricCount": 17,
+            "metricsOk": true,
+            "longTaskCount": 2
+          },
+          "metrics": [
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.4000000059604645,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 174.80000000447035,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47430
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.3999999985098839,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 0.20000000298023224,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.load.pair",
+              "durationMs": 176.30000000447035,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 28.100000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "earlier"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 153.29999999701977,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "newer"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 68.80000000447035,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 8.199999995529652,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 24.600000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 30,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 14.100000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 14.600000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 52.20000000298023,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeTokens": 759,
+                "afterTokens": 930
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.page",
+              "durationMs": 53.19999999552965,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeCharacters": 3890,
+                "afterCharacters": 4667,
+                "beforeItems": 102,
+                "afterItems": 141
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.page",
+              "durationMs": 511.29999999701977,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "pageIndex": 0,
+                "kind": "existing"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.total",
+              "durationMs": 688,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            }
+          ],
+          "longTasks": [
+            {
+              "name": "self",
+              "durationMs": 252,
+              "startTimeMs": 885.7999999970198
+            },
+            {
+              "name": "self",
+              "durationMs": 265,
+              "startTimeMs": 1175
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "durationMs": 1009.4984999999997,
+          "quality": {
+            "workspaceReady": true,
+            "pageCount": 1,
+            "metricCount": 17,
+            "metricsOk": true,
+            "longTaskCount": 2
+          },
+          "metrics": [
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.5,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 179.69999999552965,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47430
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.source.read",
+              "durationMs": 0.3999999985098839,
+              "status": "ok",
+              "attributes": {
+                "sourceType": "file"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.document.load",
+              "durationMs": 0.30000000447034836,
+              "status": "ok",
+              "attributes": {
+                "bytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.load.pair",
+              "durationMs": 181.10000000149012,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 28.700000002980232,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "earlier"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.render.canvas",
+              "durationMs": 150.70000000298023,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "side": "newer"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.pixelmatch",
+              "durationMs": 69.19999999552965,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.changed-mask",
+              "durationMs": 8.100000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.overlay",
+              "durationMs": 24.600000001490116,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.visual.regions",
+              "durationMs": 30.5,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "width": 1224,
+                "height": 1584,
+                "pixels": 1938816,
+                "changedPixels": 224264
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 13.799999997019768,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "pdf.text.page",
+              "durationMs": 14.299999997019768,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.token-diff",
+              "durationMs": 52.69999999552965,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeTokens": 759,
+                "afterTokens": 930
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "core.semantic.page",
+              "durationMs": 53.70000000298023,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "beforeCharacters": 3890,
+                "afterCharacters": 4667,
+                "beforeItems": 102,
+                "afterItems": 141
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.page",
+              "durationMs": 492.5,
+              "status": "ok",
+              "attributes": {
+                "pageNumber": 1,
+                "pageIndex": 0,
+                "kind": "existing"
+              },
+              "memoryUsedBytes": 21700000
+            },
+            {
+              "name": "comparison.total",
+              "durationMs": 674.1000000014901,
+              "status": "ok",
+              "attributes": {
+                "earlierBytes": 47430,
+                "newerBytes": 47316
+              },
+              "memoryUsedBytes": 21700000
+            }
+          ],
+          "longTasks": [
+            {
+              "name": "self",
+              "durationMs": 247,
+              "startTimeMs": 895.6999999955297
+            },
+            {
+              "name": "self",
+              "durationMs": 268,
+              "startTimeMs": 1165.8999999985099
+            }
+          ]
+        }
+      ],
+      "metricSummary": [
+        {
+          "name": "comparison.page",
+          "count": 5,
+          "medianMs": 493.3999999985099,
+          "p95Ms": 513.2000000029802,
+          "maxMs": 513.2000000029802
+        },
+        {
+          "name": "comparison.total",
+          "count": 5,
+          "medianMs": 677.8999999985099,
+          "p95Ms": 688,
+          "maxMs": 688
+        },
+        {
+          "name": "core.semantic.page",
+          "count": 5,
+          "medianMs": 53.19999999552965,
+          "p95Ms": 59.899999998509884,
+          "maxMs": 59.899999998509884
+        },
+        {
+          "name": "core.semantic.token-diff",
+          "count": 5,
+          "medianMs": 52.20000000298023,
+          "p95Ms": 58.600000001490116,
+          "maxMs": 58.600000001490116
+        },
+        {
+          "name": "core.visual.changed-mask",
+          "count": 5,
+          "medianMs": 8.100000001490116,
+          "p95Ms": 8.199999995529652,
+          "maxMs": 8.199999995529652
+        },
+        {
+          "name": "core.visual.overlay",
+          "count": 5,
+          "medianMs": 25,
+          "p95Ms": 25,
+          "maxMs": 25
+        },
+        {
+          "name": "core.visual.pixelmatch",
+          "count": 5,
+          "medianMs": 69.20000000298023,
+          "p95Ms": 71.80000000447035,
+          "maxMs": 71.80000000447035
+        },
+        {
+          "name": "core.visual.regions",
+          "count": 5,
+          "medianMs": 30.900000005960464,
+          "p95Ms": 31.299999997019768,
+          "maxMs": 31.299999997019768
+        },
+        {
+          "name": "pdf.document.load",
+          "count": 10,
+          "medianMs": 0.3999999985098839,
+          "p95Ms": 182.39999999850988,
+          "maxMs": 182.39999999850988
+        },
+        {
+          "name": "pdf.load.pair",
+          "count": 5,
+          "medianMs": 181.10000000149012,
+          "p95Ms": 186.29999999701977,
+          "maxMs": 186.29999999701977
+        },
+        {
+          "name": "pdf.render.canvas",
+          "count": 10,
+          "medianMs": 31.400000005960464,
+          "p95Ms": 153.70000000298023,
+          "maxMs": 153.70000000298023
+        },
+        {
+          "name": "pdf.source.read",
+          "count": 10,
+          "medianMs": 0.3999999985098839,
+          "p95Ms": 5.299999997019768,
+          "maxMs": 5.299999997019768
+        },
+        {
+          "name": "pdf.text.page",
+          "count": 10,
+          "medianMs": 14.300000004470348,
+          "p95Ms": 16.899999998509884,
+          "maxMs": 16.899999998509884
+        }
+      ]
+    }
+  ]
+}

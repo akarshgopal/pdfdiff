@@ -13,6 +13,9 @@ selection, settings controls, keyboard shortcuts, and the help dialog.
 
 The package exports PdfDiffViewer, its comparison/viewer types, and the
 styles/styleProps helpers used by the default Tailwind-based presentation.
+To support visual and semantic comparison when A and B are stepped to different
+page numbers, provide `DiffComparison.comparePagePair`; the viewer invokes it
+on demand and keeps all view modes on the independently selected pair.
 
 ## Styling
 

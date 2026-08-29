@@ -1,4 +1,5 @@
 export * from "./errors.js";
+export * from "./instrumentation.js";
 export * from "./types.js";
 export * from "./alignment.js";
 export * from "./regions.js";

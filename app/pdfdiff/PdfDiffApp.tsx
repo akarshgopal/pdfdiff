@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
+import type { DiffMetricSink, DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
 import { PdfDiffViewer, type DiffComparison, type DiffViewMode } from "@pdfdiff/viewer-react";
 import { styles, styleProps } from "./styles";
 import { LoadingScreen } from "./LoadingScreen";
@@ -23,6 +23,7 @@ export interface PdfDiffEngine {
     options: DiffOptions;
     signal: AbortSignal;
     onProgress?: (progress: { completed: number; total: number }) => void;
+    onMetric?: DiffMetricSink;
   }): Promise<DiffComparison>;
 }
 
@@ -36,6 +37,7 @@ export interface PdfDiffAppProps {
   engine?: PdfDiffEngine;
   initialComparison?: DiffComparison;
   onAnalytics?: (event: PdfDiffAnalyticsEvent) => void;
+  onMetric?: DiffMetricSink;
 }
 
 const lazyBrowserEngine: PdfDiffEngine = {
@@ -59,7 +61,7 @@ function normalizeFile(file: File | undefined): File | null {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf") ? file : null;
 }
 
-export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: PdfDiffAppProps) {
+export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onMetric }: PdfDiffAppProps) {
   const activeEngine = engine ?? lazyBrowserEngine;
   const [earlierFile, setEarlierFile] = useState<File | null>(null);
   const [newerFile, setNewerFile] = useState<File | null>(null);
@@ -142,6 +144,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics }: P
         options,
         signal: abortController.signal,
         onProgress: ({ completed, total }) => setProgress(total ? Math.round((completed / total) * 100) : 0),
+        onMetric,
       });
       if (abortController.signal.aborted) return;
       setComparison(result);

@@ -41,6 +41,7 @@ export interface VisualDiffOptions {
   unchangedOpacity?: number;
   regionOptions?: RegionOptions;
   signal?: AbortSignalLike;
+  metrics?: import("./instrumentation.js").DiffMetricSink;
 }
 
 export interface VisualDiffResult {
@@ -71,6 +72,7 @@ export interface RegionOptions {
   maxRegions?: number;
   connectivity?: 4 | 8;
   signal?: AbortSignalLike;
+  metrics?: import("./instrumentation.js").DiffMetricSink;
 }
 
 export interface TextBounds {
@@ -172,5 +174,6 @@ export interface DiffEngine<Source, Signal extends AbortSignalLike = AbortSignal
     options: DiffOptions;
     signal: Signal;
     onProgress?: (progress: ProgressEvent) => void;
+    onMetric?: import("./instrumentation.js").DiffMetricSink;
   }): Promise<ComparisonResult>;
 }

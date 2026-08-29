@@ -59,6 +59,9 @@ const comparison = await engine.compare({
 - `pnpm build`: build the packages and the vinext app
 - `pnpm test`: build and run the rendered HTML, core, and semantic tests
 - `pnpm lint`: run ESLint
+- `pnpm bench:core`: run deterministic core performance and quality scenarios
+- `pnpm bench:browser`: run the app through Playwright and Chromium
+- `pnpm run bench:report -- --baseline=... --current=...`: compare benchmark JSON
 
 ## Deployment
 

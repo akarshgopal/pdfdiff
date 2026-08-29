@@ -1,4 +1,5 @@
 import { throwIfAborted } from "./errors.js";
+import { measure } from "./instrumentation.js";
 import type { ChangeRegion, RegionOptions } from "./types.js";
 
 const DEFAULT_MIN_PIXELS = 4;
@@ -56,6 +57,11 @@ function trimRegions(regions: ChangeRegion[], maxRegions: number): void {
 
 /** Find connected components in a one-byte changed-pixel mask. */
 export function findChangeRegions(mask: Uint8Array, width: number, height: number, options: RegionOptions = {}): ChangeRegion[] {
+  const attributes = { width, height, pixels: width * height };
+  return measure(options.metrics, "core.regions", () => findChangeRegionsUnmeasured(mask, width, height, options), attributes);
+}
+
+function findChangeRegionsUnmeasured(mask: Uint8Array, width: number, height: number, options: RegionOptions): ChangeRegion[] {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     throw new RangeError("Region width and height must be positive integers.");
   }

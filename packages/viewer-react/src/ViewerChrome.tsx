@@ -20,46 +20,41 @@ export function WorkspaceHeader({ comparison, onNewComparison, onHelp }: { compa
   );
 }
 
-export function PageRail({ pages, pageIndex, onSelectPage }: { pages: ReadonlyArray<DiffPage>; pageIndex: number; onSelectPage: (index: number) => void }) {
+export function SourcePageNavigation({ side, page, pageIndex, pageCount, onPageChange, onOpenSource, compact = false }: { side: SourceSide; page: DiffPage | null; pageIndex: number; pageCount: number; onPageChange: (side: SourceSide, index: number) => void; onOpenSource?: (side: SourceSide) => void; compact?: boolean }) {
+  const label = side === "earlier" ? "Earlier" : "Newer";
+  const shortLabel = side === "earlier" ? "A" : "B";
+  return <div {...styleProps(styles.sourcePageGroup, compact && styles.sourcePageGroupCompact)} role="group" aria-label={`${label} PDF page navigation`}><span {...styleProps(styles.sourcePageLabel, compact && styles.sourcePageLabelCompact)}>{compact ? shortLabel : <><span {...styleProps(styles.desktopOnly)}>{label}</span><span {...styleProps(styles.mobileOnly)}>{shortLabel}</span></>}</span><button {...styleProps(styles.sourcePageButton, compact && styles.sourcePageButtonCompact)} type="button" aria-label={`Previous ${label} PDF page`} disabled={pageIndex === 0} onClick={() => onPageChange(side, pageIndex - 1)}>←</button><span {...styleProps(styles.sourcePagePosition, compact && styles.sourcePagePositionCompact)} aria-live="polite">{pageCount ? `${pageIndex + 1} / ${pageCount}` : "—"}</span><button {...styleProps(styles.sourcePageButton, compact && styles.sourcePageButtonCompact)} type="button" aria-label={`Next ${label} PDF page`} disabled={pageIndex >= pageCount - 1} onClick={() => onPageChange(side, pageIndex + 1)}>→</button>{onOpenSource ? <button {...styleProps(styles.sourceButton, compact && styles.sourceButtonCompact)} type="button" aria-label={`Open ${label.toLowerCase()} version of page ${pageIndex + 1} full screen`} title={`View ${label.toLowerCase()} page full screen`} disabled={!sourceForSide(page, side)} onClick={() => onOpenSource(side)}><span aria-hidden="true">↗</span>{compact ? null : <span {...styleProps(styles.desktopOnly)}>View</span>}</button> : null}</div>;
+}
+
+export function PageRail({ pages, pageIndex, onSelectPage, earlierPage, newerPage, earlierPageIndex, newerPageIndex, earlierPageCount, newerPageCount, onSourcePageChange, onOpenSource }: { pages: ReadonlyArray<DiffPage>; pageIndex: number; onSelectPage: (index: number) => void; earlierPage: DiffPage | null; newerPage: DiffPage | null; earlierPageIndex: number; newerPageIndex: number; earlierPageCount: number; newerPageCount: number; onSourcePageChange: (side: SourceSide, index: number) => void; onOpenSource: (side: SourceSide) => void }) {
   return (
     <aside {...styleProps(styles.pageRail)} aria-label="Pages">
-      <h2 {...styleProps(styles.railHeading)}>Pages <span aria-hidden="true">·</span> {pages.length}</h2>
+      <div {...styleProps(styles.railHeader)}><h2 {...styleProps(styles.railHeading)}>Pages <span aria-hidden="true">·</span> {pages.length}</h2><div {...styleProps(styles.railPager)} role="group" aria-label="Comparison page navigation"><button {...styleProps(styles.railPageButton)} type="button" aria-label="Previous comparison page" disabled={pageIndex === 0} onClick={() => onSelectPage(pageIndex - 1)}>←</button><span {...styleProps(styles.railPagePosition)} aria-live="polite">{pageIndex + 1} / {pages.length}</span><button {...styleProps(styles.railPageButton)} type="button" aria-label="Next comparison page" disabled={pageIndex >= pages.length - 1} onClick={() => onSelectPage(pageIndex + 1)}>→</button></div><div {...styleProps(styles.sourceRail)} aria-label="Independent source page navigation"><span {...styleProps(styles.sourceRailHeading)}>Source pages</span><SourcePageNavigation side="earlier" page={earlierPage} pageIndex={earlierPageIndex} pageCount={earlierPageCount} onPageChange={onSourcePageChange} onOpenSource={onOpenSource} compact /><SourcePageNavigation side="newer" page={newerPage} pageIndex={newerPageIndex} pageCount={newerPageCount} onPageChange={onSourcePageChange} onOpenSource={onOpenSource} compact /></div></div>
       {pages.map((page, index) => {
         const state = pageStatus(page);
-        const thumbnail = page.beforeSrc ?? page.afterSrc;
-        return <button key={page.index} {...styleProps(styles.pageButton, index === pageIndex && styles.pageButtonCurrent)} type="button" aria-label={`Page ${index + 1}, ${statusLabel(state)}`} aria-current={index === pageIndex ? "page" : undefined} onClick={() => onSelectPage(index)}><div {...styleProps(styles.pageThumb)}>{thumbnail ? <img {...styleProps(styles.pageThumbImage)} src={thumbnail} alt="" draggable={false} /> : <ThumbPlaceholder />}</div><div {...styleProps(styles.pageNumber)}><span>{index + 1}</span><span {...styleProps(styles.pageStatus, state === "changed" && styles.pageStatusChanged, state === "added" && styles.pageStatusAdded, state === "removed" && styles.pageStatusRemoved)}>{statusSymbol(state)}</span></div></button>;
+        return <button key={page.index} {...styleProps(styles.pageButton, index === pageIndex && styles.pageButtonCurrent)} type="button" aria-label={`Page ${index + 1}, ${statusLabel(state)}`} aria-current={index === pageIndex ? "page" : undefined} onClick={() => onSelectPage(index)}><div {...styleProps(styles.pageThumbPair)}><div {...styleProps(styles.pageThumbPane)}>{page.beforeSrc ? <img {...styleProps(styles.pageThumbImage)} src={page.beforeSrc} alt="Earlier page preview" draggable={false} /> : <ThumbPlaceholder />}<span {...styleProps(styles.pageThumbSideLabel)}>A</span></div><div {...styleProps(styles.pageThumbPane)}>{page.afterSrc ? <img {...styleProps(styles.pageThumbImage)} src={page.afterSrc} alt="Newer page preview" draggable={false} /> : <ThumbPlaceholder />}<span {...styleProps(styles.pageThumbSideLabel)}>B</span></div></div><div {...styleProps(styles.pageNumber)}><span>{index + 1}</span><span {...styleProps(styles.pageStatus, state === "changed" && styles.pageStatusChanged, state === "added" && styles.pageStatusAdded, state === "removed" && styles.pageStatusRemoved)}>{statusSymbol(state)}</span></div></button>;
       })}
     </aside>
   );
 }
 
-export function ViewerToolbar({ pageIndex, pageCount, mode, earlierPage, newerPage, earlierPageIndex, newerPageIndex, onPageChange, onModeChange, onOpenSource, zoom, onZoomChange }: {
-  pageIndex: number;
-  pageCount: number;
+export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange }: {
   mode: DiffViewMode;
-  earlierPage: DiffPage | null;
-  newerPage: DiffPage | null;
-  earlierPageIndex: number;
-  newerPageIndex: number;
-  onPageChange: (index: number) => void;
   onModeChange: (mode: DiffViewMode) => void;
-  onOpenSource: (side: SourceSide) => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
 }) {
   const zoomIndex = zoomLevels.indexOf(zoom as (typeof zoomLevels)[number]);
   return (
     <div {...styleProps(styles.toolbar)}>
-      <div {...styleProps(styles.toolbarGroup)}><button {...styleProps(styles.iconButton)} type="button" aria-label="Previous page" disabled={pageIndex === 0} onClick={() => onPageChange(pageIndex - 1)}>←</button><span {...styleProps(styles.zoomLabel)}>{pageIndex + 1} / {pageCount}</span><button {...styleProps(styles.iconButton)} type="button" aria-label="Next page" disabled={pageIndex >= pageCount - 1} onClick={() => onPageChange(pageIndex + 1)}>→</button></div>
       <div {...styleProps(styles.modeGroup)} role="toolbar" aria-label="View mode">{viewModes.map((item) => <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={`${item.label} (${item.shortcut})`} onClick={() => onModeChange(item.id)}><span {...styleProps(styles.desktopOnly)}>{item.label}</span><span {...styleProps(styles.mobileOnly)}>{item.shortcut}</span></button>)}</div>
-      <div {...styleProps(styles.sourceGroup)} role="group" aria-label="Open source page full screen"><button {...styleProps(styles.sourceButton)} type="button" aria-label={`Open earlier version of page ${earlierPageIndex + 1} full screen`} disabled={!sourceForSide(earlierPage, "earlier")} onClick={() => onOpenSource("earlier")}><span aria-hidden="true">↗</span><span {...styleProps(styles.desktopOnly)}>Earlier</span><span {...styleProps(styles.mobileOnly)}>A</span></button><button {...styleProps(styles.sourceButton)} type="button" aria-label={`Open newer version of page ${newerPageIndex + 1} full screen`} disabled={!sourceForSide(newerPage, "newer")} onClick={() => onOpenSource("newer")}><span aria-hidden="true">↗</span><span {...styleProps(styles.desktopOnly)}>Newer</span><span {...styleProps(styles.mobileOnly)}>B</span></button></div>
       <div {...styleProps(styles.toolbarGroup)}><button {...styleProps(styles.iconButton)} type="button" aria-label="Zoom out" disabled={zoomIndex <= 0} onClick={() => onZoomChange(zoomLevels[Math.max(0, zoomIndex - 1)] ?? zoomLevels[0])}>−</button><span {...styleProps(styles.zoomLabel)}>{zoom}%</span><button {...styleProps(styles.iconButton)} type="button" aria-label="Zoom in" disabled={zoomIndex >= zoomLevels.length - 1} onClick={() => onZoomChange(zoomLevels[Math.min(zoomLevels.length - 1, zoomIndex + 1)] ?? zoomLevels.at(-1)!)}>+</button></div>
     </div>
   );
 }
 
-export function StatusFooter({ pageIndex, earlierPageIndex, earlierPageCount, newerPageIndex, newerPageCount, status }: { pageIndex: number; earlierPageIndex: number; earlierPageCount: number; newerPageIndex: number; newerPageCount: number; status: NonNullable<DiffPage["status"]> }) {
-  return <div {...styleProps(styles.statusFooter)}><span><span {...styleProps(styles.statusAccent)}>{status === "same" ? "No visual changes" : statusLabel(status)}</span> · page {pageIndex + 1}</span><span>A page {earlierPageIndex + 1}/{earlierPageCount} · B page {newerPageIndex + 1}/{newerPageCount}</span><span {...styleProps(styles.shortcutHint)} title="Keyboard shortcuts">← → pages · Shift + ← → A · Ctrl/Cmd + ← → B · 1–7 modes</span></div>;
+export function StatusFooter({ earlierPageIndex, earlierPageCount, newerPageIndex, newerPageCount, status }: { earlierPageIndex: number; earlierPageCount: number; newerPageIndex: number; newerPageCount: number; status: NonNullable<DiffPage["status"]> }) {
+  return <div {...styleProps(styles.statusFooter)}><span {...styleProps(styles.statusAccent)}>{status === "same" ? "No visual changes" : statusLabel(status)}</span><span>A page {earlierPageIndex + 1}/{earlierPageCount} · B page {newerPageIndex + 1}/{newerPageCount}</span><span {...styleProps(styles.shortcutHint)} title="Keyboard shortcuts">← → pages · Shift + ← → A · Ctrl/Cmd + ← → B · 1–7 modes</span></div>;
 }
 
 export function ChangeInspector({ currentPage, status, changedPageCount, selectedRegion, showBoundingBoxes, onShowBoundingBoxesChange, onSelectRegion, onNextChange, showSettings, onToggleSettings, sensitivity, alignment, onSensitivityChange, onAlignmentChange, mode, swipe, onSwipeChange, showSemanticHighlights, onShowSemanticHighlightsChange }: {

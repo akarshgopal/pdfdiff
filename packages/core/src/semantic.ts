@@ -1,4 +1,6 @@
 import { throwIfAborted } from "./errors.js";
+import { measure } from "./instrumentation.js";
+import type { DiffMetricSink } from "./instrumentation.js";
 import type { AbortSignalLike, PageText, TextQuad } from "./types.js";
 
 export type SemanticRunKind = "same" | "added" | "removed" | "changed";
@@ -44,6 +46,11 @@ type PrimitiveEdit =
   | { kind: "same"; token: Token }
   | { kind: "added"; token: Token }
   | { kind: "removed"; token: Token };
+
+interface PrimitiveDiffResult {
+  edits: PrimitiveEdit[];
+  exact: boolean;
+}
 
 const WORD_OR_PUNCTUATION = /[\p{L}\p{N}_]+|[^\s\p{L}\p{N}_]/gu;
 
@@ -148,15 +155,18 @@ function backtrackEdits(before: readonly Token[], after: readonly Token[], trace
   return edits.reverse();
 }
 
-function primitiveDiff(before: readonly Token[], after: readonly Token[], signal?: AbortSignalLike): PrimitiveEdit[] {
-  if (!before.length && !after.length) return [];
-  if (!before.length) return after.map((token) => ({ kind: "added", token }));
-  if (!after.length) return before.map((token) => ({ kind: "removed", token }));
+function primitiveDiff(before: readonly Token[], after: readonly Token[], signal?: AbortSignalLike): PrimitiveDiffResult {
+  if (!before.length && !after.length) return { edits: [], exact: true };
+  if (!before.length) return { edits: after.map((token) => ({ kind: "added", token })), exact: true };
+  if (!after.length) return { edits: before.map((token) => ({ kind: "removed", token })), exact: true };
   const trace = findDiffTrace(before, after, signal);
-  return trace ? backtrackEdits(before, after, trace, signal) : [
-    ...before.map((token) => ({ kind: "removed" as const, token })),
-    ...after.map((token) => ({ kind: "added" as const, token })),
-  ];
+  return trace ? { edits: backtrackEdits(before, after, trace, signal), exact: true } : {
+    edits: [
+      ...before.map((token) => ({ kind: "removed" as const, token })),
+      ...after.map((token) => ({ kind: "added" as const, token })),
+    ],
+    exact: false,
+  };
 }
 
 interface Segment {
@@ -181,7 +191,7 @@ interface SemanticDiffBuild {
   ranges: readonly SemanticChangeRange[];
 }
 
-function segmentsFromEdits(edits: readonly PrimitiveEdit[]): Segment[] {
+function segmentsFromEdits(edits: readonly PrimitiveEdit[], combineReplacements: boolean): Segment[] {
   const segments: Segment[] = [];
   const append = (segment: Segment): void => {
     const previous = segments[segments.length - 1];
@@ -208,15 +218,29 @@ function segmentsFromEdits(edits: readonly PrimitiveEdit[]): Segment[] {
       else after.push(current.token);
       index += 1;
     }
-    append({ kind: before.length && after.length ? "changed" : before.length ? "removed" : "added", before, after });
+    if (!combineReplacements && before.length && after.length) {
+      append({ kind: "removed", before, after: [] });
+      append({ kind: "added", before: [], after });
+    } else {
+      append({ kind: before.length && after.length ? "changed" : before.length ? "removed" : "added", before, after });
+    }
   }
   return segments;
 }
 
-function buildSemanticDiff(beforeText: string, afterText: string, options: { signal?: AbortSignalLike } = {}): SemanticDiffBuild {
+interface SemanticDiffOptions {
+  signal?: AbortSignalLike;
+  metrics?: DiffMetricSink;
+}
+
+function buildSemanticDiff(beforeText: string, afterText: string, options: SemanticDiffOptions = {}): SemanticDiffBuild {
   const beforeTokens = tokenize(beforeText);
   const afterTokens = tokenize(afterText);
-  const segments = segmentsFromEdits(primitiveDiff(beforeTokens, afterTokens, options.signal));
+  const primitive = measure(options.metrics, "core.semantic.token-diff", () => primitiveDiff(beforeTokens, afterTokens, options.signal), {
+    beforeTokens: beforeTokens.length,
+    afterTokens: afterTokens.length,
+  });
+  const segments = segmentsFromEdits(primitive.edits, primitive.exact);
   const before: SemanticTextRun[] = [];
   const after: SemanticTextRun[] = [];
   const changes: SemanticTextChange[] = [];
@@ -258,8 +282,11 @@ function buildSemanticDiff(beforeText: string, afterText: string, options: { sig
   };
 }
 
-export function diffSemanticText(beforeText: string, afterText: string, options: { signal?: AbortSignalLike } = {}): SemanticTextDiff {
-  return buildSemanticDiff(beforeText, afterText, options).diff;
+export function diffSemanticText(beforeText: string, afterText: string, options: SemanticDiffOptions = {}): SemanticTextDiff {
+  return measure(options.metrics, "core.semantic.text", () => buildSemanticDiff(beforeText, afterText, options).diff, {
+    beforeCharacters: beforeText.length,
+    afterCharacters: afterText.length,
+  });
 }
 
 function interpolate(start: { x: number; y: number }, end: { x: number; y: number }, amount: number) {
@@ -289,21 +316,28 @@ function quadsForTextRange(page: PageText, start: number, end: number): TextQuad
 }
 
 /** Compare extracted page text while retaining native PDF locations. */
-export function diffSemanticPages(beforePage: PageText, afterPage: PageText, options: { signal?: AbortSignalLike } = {}): SemanticPageDiff {
-  const built = buildSemanticDiff(beforePage.text, afterPage.text, options);
-  return {
-    ...built.diff,
-    beforeOverlays: built.ranges.filter((change) => change.before).map((change) => ({
-      id: change.id,
-      kind: change.kind,
-      text: change.before,
-      quads: quadsForTextRange(beforePage, change.beforeStart, change.beforeEnd),
-    })),
-    afterOverlays: built.ranges.filter((change) => change.after).map((change) => ({
-      id: change.id,
-      kind: change.kind,
-      text: change.after,
-      quads: quadsForTextRange(afterPage, change.afterStart, change.afterEnd),
-    })),
-  };
+export function diffSemanticPages(beforePage: PageText, afterPage: PageText, options: SemanticDiffOptions = {}): SemanticPageDiff {
+  return measure(options.metrics, "core.semantic.page", () => {
+    const built = buildSemanticDiff(beforePage.text, afterPage.text, options);
+    return {
+      ...built.diff,
+      beforeOverlays: built.ranges.filter((change) => change.before).map((change) => ({
+        id: change.id,
+        kind: change.kind,
+        text: change.before,
+        quads: quadsForTextRange(beforePage, change.beforeStart, change.beforeEnd),
+      })),
+      afterOverlays: built.ranges.filter((change) => change.after).map((change) => ({
+        id: change.id,
+        kind: change.kind,
+        text: change.after,
+        quads: quadsForTextRange(afterPage, change.afterStart, change.afterEnd),
+      })),
+    };
+  }, {
+    beforeCharacters: beforePage.text.length,
+    afterCharacters: afterPage.text.length,
+    beforeItems: beforePage.items.length,
+    afterItems: afterPage.items.length,
+  });
 }

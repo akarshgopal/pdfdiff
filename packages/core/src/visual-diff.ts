@@ -1,6 +1,7 @@
 import pixelmatch from "pixelmatch";
 
 import { throwIfAborted } from "./errors.js";
+import { measure } from "./instrumentation.js";
 import { findChangeRegions } from "./regions.js";
 import type { RasterImage, RgbColor, VisualDiffOptions, VisualDiffResult, RenderedPage } from "./types.js";
 
@@ -99,16 +100,24 @@ export function diffImages(earlier: RasterImage, newer: RasterImage, options: Vi
   if (earlier.data.length !== total * 4 || newer.data.length !== total * 4) throw new RangeError("Raster buffers do not match their dimensions.");
   throwIfAborted(options.signal);
 
-  const pixelmatchOutput = new Uint8ClampedArray(total * 4);
-  pixelmatch(earlier.data, newer.data, pixelmatchOutput, width, height, {
-    threshold: clamp(options.threshold ?? 0.1, 0, 1),
-    includeAA: options.includeAA ?? false,
-    diffMask: true,
-    alpha: 1,
-  });
-  const { mask: changedMask, count: changedPixels } = changedMaskFromPixelmatch(pixelmatchOutput, total, options.signal);
-  const overlay = overlayForMask(earlier, newer, changedMask, options);
-  const regions = findChangeRegions(changedMask, width, height, { ...options.regionOptions, signal: options.signal ?? options.regionOptions?.signal });
+  const attributes = { width, height, pixels: total };
+  const pixelmatchOutput = measure(options.metrics, "core.visual.pixelmatch", () => {
+    const output = new Uint8ClampedArray(total * 4);
+    pixelmatch(earlier.data, newer.data, output, width, height, {
+      threshold: clamp(options.threshold ?? 0.1, 0, 1),
+      includeAA: options.includeAA ?? false,
+      diffMask: true,
+      alpha: 1,
+    });
+    return output;
+  }, attributes);
+  const { mask: changedMask, count: changedPixels } = measure(options.metrics, "core.visual.changed-mask", () => changedMaskFromPixelmatch(pixelmatchOutput, total, options.signal), attributes);
+  const overlay = measure(options.metrics, "core.visual.overlay", () => overlayForMask(earlier, newer, changedMask, options), { ...attributes, changedPixels });
+  const regions = measure(options.metrics, "core.visual.regions", () => findChangeRegions(changedMask, width, height, {
+    ...options.regionOptions,
+    signal: options.signal ?? options.regionOptions?.signal,
+    metrics: options.metrics ? undefined : options.regionOptions?.metrics,
+  }), { ...attributes, changedPixels });
   return {
     width,
     height,

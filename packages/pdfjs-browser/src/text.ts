@@ -1,5 +1,5 @@
 import { Util } from "pdfjs-dist";
-import { throwIfAborted } from "@pdfdiff/core";
+import { measureAsync, throwIfAborted } from "@pdfdiff/core";
 import type { DocumentTextOptions, LoadedPdf } from "./types.js";
 import type { PageText, PositionedTextItem, TextBounds, TextQuad } from "@pdfdiff/core";
 
@@ -59,7 +59,7 @@ function geometryForTextItem(item: PdfTextItem, pageTransform: number[]): { boun
 }
 
 /** Extract native, positioned PDF text. OCR is intentionally outside this adapter. */
-export async function extractPageText(
+async function extractPageTextUnmeasured(
   pdf: LoadedPdf,
   pageNumber: number,
   options: Pick<DocumentTextOptions, "signal" | "disableNormalization" | "includeMarkedContent"> = {},
@@ -102,6 +102,14 @@ export async function extractPageText(
     if (item.hasEOL) text += "\n";
   }
   return { pageNumber, width: viewport.width, height: viewport.height, items, text, hasText: items.some((item) => item.str.length > 0) };
+}
+
+export function extractPageText(
+  pdf: LoadedPdf,
+  pageNumber: number,
+  options: Pick<DocumentTextOptions, "signal" | "disableNormalization" | "includeMarkedContent" | "metrics"> = {},
+): Promise<PageText> {
+  return measureAsync(options.metrics, "pdf.text.page", () => extractPageTextUnmeasured(pdf, pageNumber, options), { pageNumber });
 }
 
 export async function extractDocumentText(pdf: LoadedPdf, options: DocumentTextOptions = {}): Promise<readonly PageText[]> {

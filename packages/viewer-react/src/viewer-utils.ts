@@ -12,6 +12,40 @@ export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcu
 
 export const zoomLevels = [50, 75, 100, 125, 150, 200] as const;
 
+const normalizedPairModes = new Set<DiffViewMode>(["diff", "semantic-text", "swipe", "blink"]);
+
+export function modeNeedsComparedPair(mode: DiffViewMode): boolean {
+  return normalizedPairModes.has(mode);
+}
+
+export function buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage }: {
+  mode: DiffViewMode;
+  currentPage: DiffPage | null;
+  earlierPage: DiffPage | null;
+  newerPage: DiffPage | null;
+  comparisonPairPage: DiffPage | null;
+}): DiffPage | null {
+  const previewBase = comparisonPairPage ?? currentPage ?? earlierPage ?? newerPage;
+  if (!previewBase) return null;
+  const useComparisonSources = modeNeedsComparedPair(mode) && Boolean(comparisonPairPage);
+  return {
+    ...previewBase,
+    beforeSrc: useComparisonSources ? comparisonPairPage?.beforeSrc : earlierPage?.beforeSrc,
+    afterSrc: useComparisonSources ? comparisonPairPage?.afterSrc : newerPage?.afterSrc,
+    diffSrc: comparisonPairPage?.diffSrc,
+    status: comparisonPairPage?.status ?? "processing",
+    changedPixels: comparisonPairPage?.changedPixels,
+    changedPercent: comparisonPairPage?.changedPercent,
+    regions: comparisonPairPage?.regions ?? [],
+    textChanges: comparisonPairPage?.textChanges ?? [],
+    textChangeCount: comparisonPairPage?.textChangeCount ?? 0,
+    semantic: comparisonPairPage?.semantic,
+    semanticBeforeOverlays: comparisonPairPage?.semanticBeforeOverlays,
+    semanticAfterOverlays: comparisonPairPage?.semanticAfterOverlays,
+    error: comparisonPairPage?.error,
+  };
+}
+
 export function pageStatus(page: DiffPage): NonNullable<DiffPage["status"]> {
   if (page.status) return page.status;
   if (page.beforeSrc && page.afterSrc && page.diffSrc) return "changed";
