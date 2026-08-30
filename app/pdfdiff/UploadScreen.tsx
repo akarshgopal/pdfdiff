@@ -4,6 +4,9 @@ import { FileDropzone } from "../../components/ui/file-dropzone";
 import { helpSteps } from "@pdfdiff/viewer-react";
 import { styles, styleProps } from "./styles";
 import { AppHeader } from "./AppHeader";
+import { AppFooter } from "./AppFooter";
+import type { ComparisonHistorySummary } from "./comparisonHistory";
+import { formatFileSize } from "../../lib/format";
 
 type FileSide = "earlier" | "newer";
 
@@ -12,6 +15,7 @@ export interface UploadScreenProps {
   newerFile: File | null;
   activeDrop: FileSide | null;
   error: string | null;
+  history: ComparisonHistorySummary[];
   onChoose: (side: FileSide) => void;
   onRemove: (side: FileSide) => void;
   onActive: (side: FileSide, active: boolean) => void;
@@ -19,12 +23,14 @@ export interface UploadScreenProps {
   onInput: (side: FileSide, event: ChangeEvent<HTMLInputElement>) => void;
   onSwap: () => void;
   onCompare: () => void;
+  onResume: (id: string) => void;
+  onClearHistory: () => void;
   onHelp: () => void;
   inputEarlier: RefObject<HTMLInputElement | null>;
   inputNewer: RefObject<HTMLInputElement | null>;
 }
 
-export function UploadScreen({ earlierFile, newerFile, activeDrop, error, onChoose, onRemove, onActive, onDrop, onInput, onSwap, onCompare, onHelp, inputEarlier, inputNewer }: UploadScreenProps) {
+export function UploadScreen({ earlierFile, newerFile, activeDrop, error, history, onChoose, onRemove, onActive, onDrop, onInput, onSwap, onCompare, onResume, onClearHistory, onHelp, inputEarlier, inputNewer }: UploadScreenProps) {
   return (
     <main {...styleProps(styles.root)}>
       <div {...styleProps(styles.shell)}>
@@ -38,11 +44,17 @@ export function UploadScreen({ earlierFile, newerFile, activeDrop, error, onChoo
           <input ref={inputNewer} {...styleProps(styles.srOnly)} type="file" multiple accept="application/pdf,.pdf" aria-label="Choose one or two PDFs for newer and earlier" onChange={(event) => onInput("newer", event)} />
           <Button size="lg" className={styles.compareButton} disabled={!earlierFile || !newerFile} onClick={onCompare}>Compare PDFs <span aria-hidden="true">→</span></Button>
           {error ? <div {...styleProps(styles.errorBox)} role="alert">{error}</div> : null}
+          {history.length > 0 ? <ComparisonHistory history={history} onResume={onResume} onClear={onClearHistory} /> : null}
           <HowToSection />
         </section>
+        <AppFooter />
       </div>
     </main>
   );
+}
+
+function ComparisonHistory({ history, onResume, onClear }: { history: ComparisonHistorySummary[]; onResume: (id: string) => void; onClear: () => void }) {
+  return <section {...styleProps(styles.history)} aria-labelledby="history-heading"><div {...styleProps(styles.historyHeader)}><div><p {...styleProps(styles.eyebrow)}>On this device</p><h2 id="history-heading" {...styleProps(styles.historyTitle)}>Recent comparisons</h2></div><Button variant="ghost" size="sm" onClick={onClear}>Clear history</Button></div><div {...styleProps(styles.historyList)}>{history.map((item) => <article key={item.id} {...styleProps(styles.historyCard)}><div {...styleProps(styles.historyFiles)}><strong {...styleProps(styles.historyFileName)} title={item.earlierName}>{item.earlierName}</strong><span {...styleProps(styles.historyArrow)} aria-hidden="true">→</span><strong {...styleProps(styles.historyFileName)} title={item.newerName}>{item.newerName}</strong></div><div {...styleProps(styles.historyMeta)}><span>{formatFileSize(item.earlierSize + item.newerSize)} stored locally</span><span>Last opened {new Date(item.updatedAt).toLocaleDateString()}</span></div><Button variant="outline" size="sm" className={styles.historyResume} onClick={() => onResume(item.id)}>Resume <span aria-hidden="true">→</span></Button></article>)}</div><p {...styleProps(styles.historyNote)}>The PDFs are stored only in this browser. Resuming reruns the comparison with its saved settings.</p></section>;
 }
 
 function HowToSection() {

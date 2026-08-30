@@ -22,53 +22,59 @@ function getFingerprint(pdf: PDFDocumentProxy): string | null {
   return pdf.fingerprints?.[0] ?? null;
 }
 
+function configureWorker(workerSrc?: string): void {
+  if (workerSrc) configurePdfWorker(workerSrc);
+  else if (!getConfiguredWorkerUrl()) throw new Error("Configure a PDF.js worker URL before loading a PDF.");
+}
+
+function sourceType(source: PdfSource): "file" | "array-buffer" | "uint8-array" {
+  if (isFile(source)) return "file";
+  return source instanceof ArrayBuffer ? "array-buffer" : "uint8-array";
+}
+
+function watchAbort(task: PDFDocumentLoadingTask, signal?: PdfLoadOptions["signal"]): { promise: Promise<never>; detach: () => void } {
+  let rejectAbort: (reason: PdfDiffAbortError) => void = () => undefined;
+  const promise = new Promise<never>((_, reject) => { rejectAbort = reject; });
+  const onAbort = (): void => {
+    void task.destroy();
+    rejectAbort(new PdfDiffAbortError());
+  };
+  signal?.addEventListener("abort", onAbort, { once: true });
+  if (signal?.aborted) onAbort();
+  return { promise, detach: () => signal?.removeEventListener("abort", onAbort) };
+}
+
 /** Load a PDF from caller-provided bytes. No URL fetch is performed. */
 export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): Promise<LoadedPdf> {
   throwIfAborted(options.signal);
-  if (options.workerSrc) configurePdfWorker(options.workerSrc);
-  else if (!getConfiguredWorkerUrl()) throw new Error("Configure a PDF.js worker URL before loading a PDF.");
+  configureWorker(options.workerSrc);
 
-  const sourceType = isFile(source) ? "file" : source instanceof ArrayBuffer ? "array-buffer" : "uint8-array";
-  const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), { sourceType });
+  const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), { sourceType: sourceType(source) });
   throwIfAborted(options.signal);
-  let task: PDFDocumentLoadingTask | undefined;
-  let abortReject: ((reason: PdfDiffAbortError) => void) | undefined;
-  const abortPromise = new Promise<never>((_, reject) => { abortReject = reject; });
+  const task = getDocument({ data, password: options.password });
+  task.onProgress = (progress: { loaded: number; total?: number }) => options.onProgress?.(progress.loaded, progress.total);
+  const abort = watchAbort(task, options.signal);
 
   try {
-    task = getDocument({ data, password: options.password });
-    task.onProgress = (progress: { loaded: number; total?: number }) => options.onProgress?.(progress.loaded, progress.total);
-    const onAbort = (): void => {
-      void task?.destroy();
-      abortReject?.(new PdfDiffAbortError());
+    const pdf = await measureAsync(options.metrics, "pdf.document.load", async () => {
+      const loaded = await Promise.race([task.promise, abort.promise]);
+      throwIfAborted(options.signal);
+      return loaded;
+    }, { bytes: data.byteLength });
+    return {
+      pdf,
+      name: isFile(source) ? source.name : undefined,
+      byteLength: data.byteLength,
+      pageCount: pdf.numPages,
+      fingerprint: getFingerprint(pdf),
+      destroy: () => task.destroy(),
     };
-    const signal = options.signal;
-    signal?.addEventListener("abort", onAbort, { once: true });
-    if (signal?.aborted) onAbort();
-    try {
-      const pdf = await measureAsync(options.metrics, "pdf.document.load", async () => {
-        const loaded = await Promise.race([task!.promise, abortPromise]);
-        throwIfAborted(options.signal);
-        return loaded;
-      }, { bytes: data.byteLength });
-      return {
-        pdf,
-        name: isFile(source) ? source.name : undefined,
-        byteLength: data.byteLength,
-        pageCount: pdf.numPages,
-        fingerprint: getFingerprint(pdf),
-        destroy: () => task!.destroy(),
-      };
-    } catch (error) {
-      if (signal?.aborted) throw new PdfDiffAbortError();
-      throw error;
-    } finally {
-      signal?.removeEventListener("abort", onAbort);
-    }
   } catch (error) {
-    if (task) await task.destroy().catch(() => undefined);
+    await task.destroy().catch(() => undefined);
     if (options.signal?.aborted) throw new PdfDiffAbortError();
     throw error;
+  } finally {
+    abort.detach();
   }
 }
 

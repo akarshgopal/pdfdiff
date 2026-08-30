@@ -13,6 +13,13 @@ import { PdfDiffViewer, type DiffComparison, type DiffViewMode } from "@pdfdiff/
 import { styles, styleProps } from "./styles";
 import { LoadingScreen } from "./LoadingScreen";
 import { UploadScreen } from "./UploadScreen";
+import {
+  clearComparisonHistory,
+  listComparisonHistory,
+  loadComparisonHistory,
+  saveComparisonHistory,
+  type ComparisonHistorySummary,
+} from "./comparisonHistory";
 
 export type DiffOptions = CoreDiffOptions;
 
@@ -61,6 +68,30 @@ function normalizeFile(file: File | undefined): File | null {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf") ? file : null;
 }
 
+interface ComparisonInput {
+  earlierFile: File;
+  newerFile: File;
+  options: DiffOptions;
+  historyId?: string;
+}
+
+function progressPercent(completed: number, total: number): number {
+  return total > 0 ? Math.round((completed / total) * 100) : 0;
+}
+
+function comparisonErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unable to compare these PDFs.";
+}
+
+async function rememberComparison(input: ComparisonInput, refreshHistory: () => Promise<void>): Promise<void> {
+  try {
+    await saveComparisonHistory({ id: input.historyId, ...input });
+    await refreshHistory();
+  } catch {
+    // A full or unavailable browser store should never hide a completed comparison.
+  }
+}
+
 export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onMetric }: PdfDiffAppProps) {
   const activeEngine = engine ?? lazyBrowserEngine;
   const [earlierFile, setEarlierFile] = useState<File | null>(null);
@@ -71,9 +102,19 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
   const [progress, setProgress] = useState(0);
   const [activeDrop, setActiveDrop] = useState<"earlier" | "newer" | null>(null);
   const [options, setOptions] = useState<DiffOptions>({ sensitivity: 28, alignment: "none" });
+  const [history, setHistory] = useState<ComparisonHistorySummary[]>([]);
   const inputEarlier = useRef<HTMLInputElement>(null);
   const inputNewer = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const refreshHistory = useCallback(async () => {
+    try {
+      setHistory(await listComparisonHistory());
+    } catch {
+      // Private browsing and storage policies can disable IndexedDB. Comparing still works.
+      setHistory([]);
+    }
+  }, []);
 
   const setFile = useCallback((side: "earlier" | "newer", file: File | null) => {
     comparison?.dispose?.();
@@ -128,22 +169,21 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
     setNewerFile(earlierFile);
   };
 
-  const runComparison = async () => {
-    if (!earlierFile || !newerFile) return;
+  const runComparison = async (input: ComparisonInput) => {
     abortRef.current?.abort();
     const abortController = new AbortController();
     abortRef.current = abortController;
     setError(null);
     setPhase("loading");
     setProgress(0);
-    onAnalytics?.({ name: "comparison_started", earlierSizeBucket: sizeBucket(earlierFile.size), newerSizeBucket: sizeBucket(newerFile.size) });
+    onAnalytics?.({ name: "comparison_started", earlierSizeBucket: sizeBucket(input.earlierFile.size), newerSizeBucket: sizeBucket(input.newerFile.size) });
     try {
       const result = await activeEngine.compare({
-        earlier: earlierFile,
-        newer: newerFile,
-        options,
+        earlier: input.earlierFile,
+        newer: input.newerFile,
+        options: input.options,
         signal: abortController.signal,
-        onProgress: ({ completed, total }) => setProgress(total ? Math.round((completed / total) * 100) : 0),
+        onProgress: ({ completed, total }) => setProgress(progressPercent(completed, total)),
         onMetric,
       });
       if (abortController.signal.aborted) return;
@@ -151,11 +191,51 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
       setPhase("workspace");
       setProgress(100);
       onAnalytics?.({ name: "comparison_completed", pageCount: result.pages.length, changedPageCount: result.pages.filter((page) => page.status !== "same").length });
+      await rememberComparison(input, refreshHistory);
     } catch (comparisonError) {
       if (abortController.signal.aborted) return;
-      setError(comparisonError instanceof Error ? comparisonError.message : "Unable to compare these PDFs.");
+      setError(comparisonErrorMessage(comparisonError));
       setPhase("upload");
       onAnalytics?.({ name: "comparison_failed", errorCode: "compare_failed" });
+    }
+  };
+
+  const runSelectedComparison = () => {
+    if (!earlierFile || !newerFile) return;
+    void runComparison({ earlierFile, newerFile, options });
+  };
+
+  const resumeComparison = async (id: string) => {
+    setError(null);
+    try {
+      const saved = await loadComparisonHistory(id);
+      if (!saved) {
+        setError("That saved comparison is no longer available.");
+        await refreshHistory();
+        return;
+      }
+      setEarlierFile(saved.earlierFile);
+      setNewerFile(saved.newerFile);
+      setOptions(saved.options);
+      await runComparison({
+        earlierFile: saved.earlierFile,
+        newerFile: saved.newerFile,
+        options: saved.options,
+        historyId: saved.id,
+      });
+    } catch {
+      setError("Unable to resume that comparison. Your browser may have removed its local files.");
+      setPhase("upload");
+    }
+  };
+
+  const clearHistory = async () => {
+    if (!window.confirm("Clear all saved comparisons from this browser?")) return;
+    try {
+      await clearComparisonHistory();
+      setHistory([]);
+    } catch {
+      setError("Unable to clear comparison history.");
     }
   };
 
@@ -173,8 +253,23 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
     comparison?.dispose?.();
   }, [comparison]);
 
+  useEffect(() => {
+    let active = true;
+    void listComparisonHistory().then(
+      (items) => {
+        if (active) setHistory(items);
+      },
+      () => {
+        if (active) setHistory([]);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
+
   if (phase === "upload") {
-    return <UploadScreen earlierFile={earlierFile} newerFile={newerFile} activeDrop={activeDrop} error={error} onChoose={chooseFile} onRemove={(side) => setFile(side, null)} onActive={(side, active) => setActiveDrop(active ? side : null)} onDrop={handleDrop} onInput={handleInput} onSwap={swapFiles} onCompare={() => void runComparison()} onHelp={() => document.getElementById("how-to-heading")?.scrollIntoView({ behavior: "smooth" })} inputEarlier={inputEarlier} inputNewer={inputNewer} />;
+    return <UploadScreen earlierFile={earlierFile} newerFile={newerFile} activeDrop={activeDrop} error={error} history={history} onChoose={chooseFile} onRemove={(side) => setFile(side, null)} onActive={(side, active) => setActiveDrop(active ? side : null)} onDrop={handleDrop} onInput={handleInput} onSwap={swapFiles} onCompare={runSelectedComparison} onResume={(id) => void resumeComparison(id)} onClearHistory={() => void clearHistory()} onHelp={() => document.getElementById("how-to-heading")?.scrollIntoView({ behavior: "smooth" })} inputEarlier={inputEarlier} inputNewer={inputNewer} />;
   }
 
   if (phase === "loading") {

@@ -18,6 +18,9 @@ interface ViewerKeyboardOptions {
   readonly onCycleMode: (direction: 1 | -1) => void;
 }
 
+const forwardKeys = new Set(["arrowright", "pagedown", "j", "n"]);
+const backwardKeys = new Set(["arrowleft", "pageup", "k", "p"]);
+
 function sourceSideForEvent(event: KeyboardEvent, fullPageSide: SourceSide | null): SourceSide | null {
   return event.shiftKey ? "earlier" : event.ctrlKey || event.metaKey ? "newer" : fullPageSide;
 }
@@ -27,51 +30,73 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return element?.tagName === "INPUT" || element?.tagName === "SELECT" || Boolean(element?.isContentEditable) || element?.getAttribute("role") === "slider";
 }
 
-export function useViewerKeyboard({ enabled, pageIndex, pageCount, earlierPageCount, newerPageCount, fullPageSide, onSelectPage, onStepSourcePage, onGoToSourcePage, onCloseFullPage, onClearSelection, onChangeMode, onCycleMode }: ViewerKeyboardOptions): void {
+function stepDirection(key: string): 1 | -1 | null {
+  if (forwardKeys.has(key)) return 1;
+  if (backwardKeys.has(key)) return -1;
+  return null;
+}
+
+function handlePageStep(event: KeyboardEvent, options: ViewerKeyboardOptions): boolean {
+  const direction = stepDirection(event.key.toLowerCase());
+  if (!direction) return false;
+  event.preventDefault();
+  const side = sourceSideForEvent(event, options.fullPageSide);
+  if (side) options.onStepSourcePage(side, direction);
+  else options.onSelectPage(options.pageIndex + direction);
+  return true;
+}
+
+function handleModeChange(event: KeyboardEvent, options: ViewerKeyboardOptions): boolean {
+  const mode = viewModes.find((item) => item.shortcut === event.key);
+  if (mode) {
+    event.preventDefault();
+    options.onChangeMode(mode.id);
+    return true;
+  }
+  const direction = modeCycleDirection(event);
+  if (!direction) return false;
+  event.preventDefault();
+  options.onCycleMode(direction);
+  return true;
+}
+
+function modeCycleDirection(event: KeyboardEvent): 1 | -1 | null {
+  if (event.key === "[" || event.key === "{") return -1;
+  if (event.key === "]" || event.key === "}") return 1;
+  if (event.key.toLowerCase() === "m") return event.shiftKey ? -1 : 1;
+  return null;
+}
+
+function handleBoundary(event: KeyboardEvent, options: ViewerKeyboardOptions): boolean {
+  if (event.key !== "Home" && event.key !== "End") return false;
+  event.preventDefault();
+  const firstPage = event.key === "Home";
+  const side = sourceSideForEvent(event, options.fullPageSide);
+  if (!side) options.onSelectPage(firstPage ? 0 : options.pageCount - 1);
+  else if (side === "earlier") options.onGoToSourcePage(side, firstPage ? 0 : options.earlierPageCount - 1);
+  else options.onGoToSourcePage(side, firstPage ? 0 : options.newerPageCount - 1);
+  return true;
+}
+
+function handleKeyDown(event: KeyboardEvent, options: ViewerKeyboardOptions): void {
+  if (isEditableTarget(event.target)) return;
+  if (event.key === "Escape" && options.fullPageSide) {
+    event.preventDefault();
+    options.onCloseFullPage();
+    return;
+  }
+  if (handlePageStep(event, options) || handleModeChange(event, options) || handleBoundary(event, options)) return;
+  if (event.key === "Escape") options.onClearSelection();
+}
+
+export function useViewerKeyboard(options: ViewerKeyboardOptions): void {
+  const { enabled, pageIndex, pageCount, earlierPageCount, newerPageCount, fullPageSide, onSelectPage, onStepSourcePage, onGoToSourcePage, onCloseFullPage, onClearSelection, onChangeMode, onCycleMode } = options;
   useEffect(() => {
     if (!enabled) return;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (isEditableTarget(event.target)) return;
-      if (event.key === "Escape" && fullPageSide) {
-        event.preventDefault();
-        onCloseFullPage();
-        return;
-      }
+    const currentOptions = { enabled, pageIndex, pageCount, earlierPageCount, newerPageCount, fullPageSide, onSelectPage, onStepSourcePage, onGoToSourcePage, onCloseFullPage, onClearSelection, onChangeMode, onCycleMode };
+    const listener = (event: KeyboardEvent) => handleKeyDown(event, currentOptions);
 
-      const key = event.key.toLowerCase();
-      const direction = ["arrowright", "pagedown", "j", "n"].includes(key) ? 1 : ["arrowleft", "pageup", "k", "p"].includes(key) ? -1 : 0;
-      if (direction) {
-        event.preventDefault();
-        const side = sourceSideForEvent(event, fullPageSide);
-        if (side) onStepSourcePage(side, direction as 1 | -1);
-        else onSelectPage(pageIndex + direction);
-        return;
-      }
-
-      const mode = viewModes.find((item) => item.shortcut === event.key);
-      if (mode) {
-        event.preventDefault();
-        onChangeMode(mode.id);
-      } else if (event.key === "[" || event.key === "{") {
-        event.preventDefault();
-        onCycleMode(-1);
-      } else if (event.key === "]" || event.key === "}") {
-        event.preventDefault();
-        onCycleMode(1);
-      } else if (key === "m") {
-        event.preventDefault();
-        onCycleMode(event.shiftKey ? -1 : 1);
-      } else if (event.key === "Home" || event.key === "End") {
-        event.preventDefault();
-        const side = sourceSideForEvent(event, fullPageSide);
-        if (side) onGoToSourcePage(side, event.key === "Home" ? 0 : side === "earlier" ? earlierPageCount - 1 : newerPageCount - 1);
-        else onSelectPage(event.key === "Home" ? 0 : pageCount - 1);
-      } else if (event.key === "Escape") {
-        onClearSelection();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
   }, [enabled, pageIndex, pageCount, earlierPageCount, newerPageCount, fullPageSide, onSelectPage, onStepSourcePage, onGoToSourcePage, onCloseFullPage, onClearSelection, onChangeMode, onCycleMode]);
 }

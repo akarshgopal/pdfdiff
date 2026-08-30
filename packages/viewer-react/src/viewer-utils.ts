@@ -1,21 +1,64 @@
 import type { DiffPage, DiffViewMode, SourceSide } from "./types.js";
 
 export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcut: string }> = [
-  { id: "diff", label: "Diff", shortcut: "1" },
-  { id: "semantic-text", label: "Semantic text", shortcut: "2" },
-  { id: "side-by-side", label: "Side by side", shortcut: "3" },
-  { id: "swipe", label: "Swipe", shortcut: "4" },
-  { id: "blink", label: "Blink", shortcut: "5" },
-  { id: "earlier", label: "Earlier", shortcut: "6" },
-  { id: "newer", label: "Newer", shortcut: "7" },
+  { id: "diff", label: "Overlay", shortcut: "1" },
+  { id: "side-by-side", label: "Split", shortcut: "2" },
+  { id: "swipe", label: "Swipe", shortcut: "3" },
+  { id: "semantic-text", label: "Text", shortcut: "4" },
 ];
 
 export const zoomLevels = [50, 75, 100, 125, 150, 200] as const;
 
 const normalizedPairModes = new Set<DiffViewMode>(["diff", "semantic-text", "swipe", "blink"]);
 
+const statusSymbols: Record<NonNullable<DiffPage["status"]>, string> = {
+  same: "✓",
+  added: "+",
+  removed: "−",
+  changed: "•",
+  processing: "•",
+  error: "!",
+};
+
+const statusLabels: Record<NonNullable<DiffPage["status"]>, string> = {
+  same: "No changes",
+  added: "Added page",
+  removed: "Removed page",
+  changed: "Changes found",
+  processing: "Processing",
+  error: "Error",
+};
+
 export function modeNeedsComparedPair(mode: DiffViewMode): boolean {
   return normalizedPairModes.has(mode);
+}
+
+function previewSources(mode: DiffViewMode, comparisonPairPage: DiffPage | null, earlierPage: DiffPage | null, newerPage: DiffPage | null): Pick<DiffPage, "beforeSrc" | "afterSrc"> {
+  if (modeNeedsComparedPair(mode) && comparisonPairPage) {
+    return { beforeSrc: comparisonPairPage.beforeSrc, afterSrc: comparisonPairPage.afterSrc };
+  }
+  return {
+    beforeSrc: earlierPage ? earlierPage.beforeSrc : undefined,
+    afterSrc: newerPage ? newerPage.afterSrc : undefined,
+  };
+}
+
+function comparisonDetails(page: DiffPage | null): Partial<DiffPage> {
+  if (!page) return {
+    diffSrc: undefined,
+    status: "processing",
+    changedPixels: undefined,
+    changedPercent: undefined,
+    regions: [],
+    textChanges: [],
+    textChangeCount: 0,
+    semantic: undefined,
+    semanticBeforeOverlays: undefined,
+    semanticAfterOverlays: undefined,
+    error: undefined,
+  };
+  const { diffSrc, status, changedPixels, changedPercent, regions, textChanges, textChangeCount, semantic, semanticBeforeOverlays, semanticAfterOverlays, error } = page;
+  return { diffSrc, status, changedPixels, changedPercent, regions: regions ?? [], textChanges: textChanges ?? [], textChangeCount: textChangeCount ?? 0, semantic, semanticBeforeOverlays, semanticAfterOverlays, error };
 }
 
 export function buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage }: {
@@ -27,22 +70,10 @@ export function buildPreviewPage({ mode, currentPage, earlierPage, newerPage, co
 }): DiffPage | null {
   const previewBase = comparisonPairPage ?? currentPage ?? earlierPage ?? newerPage;
   if (!previewBase) return null;
-  const useComparisonSources = modeNeedsComparedPair(mode) && Boolean(comparisonPairPage);
   return {
     ...previewBase,
-    beforeSrc: useComparisonSources ? comparisonPairPage?.beforeSrc : earlierPage?.beforeSrc,
-    afterSrc: useComparisonSources ? comparisonPairPage?.afterSrc : newerPage?.afterSrc,
-    diffSrc: comparisonPairPage?.diffSrc,
-    status: comparisonPairPage?.status ?? "processing",
-    changedPixels: comparisonPairPage?.changedPixels,
-    changedPercent: comparisonPairPage?.changedPercent,
-    regions: comparisonPairPage?.regions ?? [],
-    textChanges: comparisonPairPage?.textChanges ?? [],
-    textChangeCount: comparisonPairPage?.textChangeCount ?? 0,
-    semantic: comparisonPairPage?.semantic,
-    semanticBeforeOverlays: comparisonPairPage?.semanticBeforeOverlays,
-    semanticAfterOverlays: comparisonPairPage?.semanticAfterOverlays,
-    error: comparisonPairPage?.error,
+    ...previewSources(mode, comparisonPairPage, earlierPage, newerPage),
+    ...comparisonDetails(comparisonPairPage),
   };
 }
 
@@ -53,20 +84,11 @@ export function pageStatus(page: DiffPage): NonNullable<DiffPage["status"]> {
 }
 
 export function statusSymbol(status: NonNullable<DiffPage["status"]>): string {
-  if (status === "same") return "✓";
-  if (status === "added") return "+";
-  if (status === "removed") return "−";
-  if (status === "error") return "!";
-  return "•";
+  return statusSymbols[status];
 }
 
 export function statusLabel(status: NonNullable<DiffPage["status"]>): string {
-  if (status === "same") return "No changes";
-  if (status === "added") return "Added page";
-  if (status === "removed") return "Removed page";
-  if (status === "error") return "Error";
-  if (status === "processing") return "Processing";
-  return "Changes found";
+  return statusLabels[status];
 }
 
 export function sourceForSide(page: DiffPage | null | undefined, side: SourceSide): string | undefined {
@@ -79,4 +101,13 @@ export function sourcePageCount(pages: ReadonlyArray<DiffPage>, side: SourceSide
 
 export function clampPageIndex(index: number, pageCount: number): number {
   return Math.min(Math.max(0, index), Math.max(0, pageCount - 1));
+}
+
+export function adjacentChangedPageIndex(pages: ReadonlyArray<DiffPage>, pageIndex: number, direction: 1 | -1): number {
+  if (pages.length === 0) return pageIndex;
+  for (let offset = 1; offset <= pages.length; offset += 1) {
+    const candidate = (pageIndex + direction * offset + pages.length) % pages.length;
+    if (pageStatus(pages[candidate]!) !== "same") return candidate;
+  }
+  return pageIndex;
 }

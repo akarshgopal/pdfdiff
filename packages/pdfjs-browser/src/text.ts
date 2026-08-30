@@ -21,6 +21,10 @@ function pageNumberError(pageNumber: number, pageCount: number): RangeError {
   return new RangeError(`Page ${pageNumber} is outside the document's 1-${pageCount} range.`);
 }
 
+function validatePageNumber(pageNumber: number, pageCount: number): void {
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount) throw pageNumberError(pageNumber, pageCount);
+}
+
 function geometryForTextItem(item: PdfTextItem, pageTransform: number[]): { bounds: TextBounds; quad: TextQuad } {
   const sourceTransform = item.transform.map((value) => Number(value));
   const transform = Util.transform(pageTransform, sourceTransform);
@@ -58,6 +62,58 @@ function geometryForTextItem(item: PdfTextItem, pageTransform: number[]): { boun
   };
 }
 
+function positionedTextItem(item: PdfTextItem, pageNumber: number, pageTransform: number[], textStart: number): PositionedTextItem {
+  const geometry = geometryForTextItem(item, pageTransform);
+  return {
+    pageNumber,
+    str: item.str,
+    textStart,
+    textEnd: textStart + item.str.length,
+    dir: item.dir,
+    fontName: item.fontName,
+    width: item.width,
+    height: item.height,
+    fontSize: Math.max(0.01, Math.hypot(Number(item.transform[2]), Number(item.transform[3]))),
+    hasEOL: item.hasEOL,
+    transform: item.transform.map((value) => Number(value)),
+    bounds: geometry.bounds,
+    quad: geometry.quad,
+  };
+}
+
+function hasWhitespaceBoundary(previous: PositionedTextItem, current: PositionedTextItem): boolean {
+  if (!previous.str || !current.str) return true;
+  return /\s$/u.test(previous.str) || /^\s/u.test(current.str);
+}
+
+function itemsShareLine(previous: PositionedTextItem, current: PositionedTextItem): boolean {
+  const previousBottom = previous.bounds.y + previous.bounds.height;
+  const currentBottom = current.bounds.y + current.bounds.height;
+  const overlap = Math.min(previousBottom, currentBottom) - Math.max(previous.bounds.y, current.bounds.y);
+  const minHeight = Math.max(0.01, Math.min(previous.bounds.height, current.bounds.height));
+  const previousCenter = previous.bounds.y + previous.bounds.height / 2;
+  const currentCenter = current.bounds.y + current.bounds.height / 2;
+  return overlap >= minHeight * 0.25 || Math.abs(previousCenter - currentCenter) <= Math.max(previous.fontSize, current.fontSize) * 0.55;
+}
+
+function averageCharacterWidth(previous: PositionedTextItem, current: PositionedTextItem): number {
+  const previousWidth = previous.bounds.width / Math.max(1, previous.str.length);
+  const currentWidth = current.bounds.width / Math.max(1, current.str.length);
+  return Math.max(1, (previousWidth + currentWidth) / 2);
+}
+
+function separatorBetween(previous: PositionedTextItem | undefined, current: PositionedTextItem): string {
+  if (!previous) return "";
+  if (previous.hasEOL) return "\n";
+  if (hasWhitespaceBoundary(previous, current)) return "";
+  if (!itemsShareLine(previous, current)) return "\n";
+
+  const characterWidth = averageCharacterWidth(previous, current);
+  const horizontalGap = current.bounds.x - (previous.bounds.x + previous.bounds.width);
+  if (current.bounds.x + characterWidth < previous.bounds.x) return "\n";
+  return horizontalGap > characterWidth * 0.18 ? " " : "";
+}
+
 /** Extract native, positioned PDF text. OCR is intentionally outside this adapter. */
 async function extractPageTextUnmeasured(
   pdf: LoadedPdf,
@@ -65,7 +121,7 @@ async function extractPageTextUnmeasured(
   options: Pick<DocumentTextOptions, "signal" | "disableNormalization" | "includeMarkedContent"> = {},
 ): Promise<PageText> {
   throwIfAborted(options.signal);
-  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pdf.pageCount) throw pageNumberError(pageNumber, pdf.pageCount);
+  validatePageNumber(pageNumber, pdf.pageCount);
   const page = await pdf.pdf.getPage(pageNumber);
   throwIfAborted(options.signal);
   const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
@@ -79,28 +135,13 @@ async function extractPageTextUnmeasured(
   for (const item of content.items) {
     if (!isTextItem(item)) continue;
     throwIfAborted(options.signal);
-    const str = item.str;
-    const textStart = text.length;
-    const textEnd = textStart + str.length;
-    const geometry = geometryForTextItem(item, viewport.transform);
-    items.push({
-      pageNumber,
-      str,
-      textStart,
-      textEnd,
-      dir: item.dir,
-      fontName: item.fontName,
-      width: item.width,
-      height: item.height,
-      fontSize: Math.max(0.01, Math.hypot(Number(item.transform[2]), Number(item.transform[3]))),
-      hasEOL: item.hasEOL,
-      transform: item.transform.map((value) => Number(value)),
-      bounds: geometry.bounds,
-      quad: geometry.quad,
-    });
-    text += str;
-    if (item.hasEOL) text += "\n";
+    const draft = positionedTextItem(item, pageNumber, viewport.transform, 0);
+    text += separatorBetween(items.at(-1), draft);
+    const positioned = { ...draft, textStart: text.length, textEnd: text.length + draft.str.length };
+    items.push(positioned);
+    text += item.str;
   }
+  if (items.at(-1)?.hasEOL) text += "\n";
   return { pageNumber, width: viewport.width, height: viewport.height, items, text, hasText: items.some((item) => item.str.length > 0) };
 }
 

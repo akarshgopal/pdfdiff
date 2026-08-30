@@ -3,66 +3,68 @@
 
 :root {
   color-scheme: light;
-  --background: 39 100% 97%;
-  --foreground: 24 9% 11%;
-  --card: 45 100% 99%;
-  --card-foreground: 24 9% 11%;
-  --popover: 45 100% 99%;
-  --popover-foreground: 24 9% 11%;
-  --primary: 12 86% 58%;
+  /* Surfaces stay quiet so diff colors can carry meaning. */
+  --background: 36 22% 97%;
+  --foreground: 24 12% 14%;
+  --card: 40 33% 99%;
+  --card-foreground: 24 12% 14%;
+  --popover: 40 33% 99%;
+  --popover-foreground: 24 12% 14%;
+  --primary: 12 82% 57%;
   --primary-foreground: 35 100% 98%;
-  --secondary: 38 26% 93%;
-  --secondary-foreground: 24 9% 11%;
-  --muted: 38 26% 93%;
-  --muted-foreground: 153 9% 43%;
-  --accent: 35 100% 94%;
-  --accent-foreground: 12 63% 39%;
-  --destructive: 5 51% 61%;
+  --secondary: 34 17% 94%;
+  --secondary-foreground: 24 12% 14%;
+  --muted: 34 17% 94%;
+  --muted-foreground: 25 9% 43%;
+  --accent: 16 75% 96%;
+  --accent-foreground: 12 64% 39%;
+  /* Removed, added, and changed are deliberately distinct semantic roles. */
+  --destructive: 3 63% 56%;
   --destructive-foreground: 0 0% 100%;
-  --border: 39 23% 86%;
-  --input: 39 23% 86%;
-  --ring: 12 86% 58%;
-  --success: 160 41% 45%;
+  --border: 33 15% 85%;
+  --input: 33 15% 82%;
+  --ring: 12 82% 57%;
+  --success: 160 46% 41%;
   --success-foreground: 0 0% 100%;
-  --success-ink: 162 42% 28%;
-  --sidebar: 39 25% 94%;
-  --sidebar-foreground: 153 9% 43%;
-  --sidebar-border: 39 23% 86%;
-  --stage: 38 25% 90%;
-  --stage-dot: 39 18% 81%;
+  --success-ink: 162 42% 27%;
+  --sidebar: 35 17% 94%;
+  --sidebar-foreground: 25 9% 43%;
+  --sidebar-border: 33 15% 85%;
+  --stage: 34 10% 90%;
+  --stage-dot: 34 8% 87%;
   --font-sans: var(--font-geist-sans), Inter, ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), "SFMono-Regular", Consolas, monospace;
 }
 
 .dark {
   color-scheme: dark;
-  --background: 24 10% 10%;
-  --foreground: 39 25% 95%;
-  --card: 24 9% 14%;
-  --card-foreground: 39 25% 95%;
-  --popover: 24 9% 14%;
-  --popover-foreground: 24 9% 14%;
-  --primary: 12 86% 63%;
+  --background: 24 8% 9%;
+  --foreground: 36 20% 94%;
+  --card: 24 8% 13%;
+  --card-foreground: 36 20% 94%;
+  --popover: 24 8% 13%;
+  --popover-foreground: 36 20% 94%;
+  --primary: 12 86% 62%;
   --primary-foreground: 24 10% 10%;
-  --secondary: 24 8% 19%;
-  --secondary-foreground: 39 25% 95%;
-  --muted: 24 8% 19%;
-  --muted-foreground: 34 10% 67%;
-  --accent: 20 18% 23%;
-  --accent-foreground: 16 72% 71%;
-  --destructive: 5 70% 64%;
+  --secondary: 24 8% 17%;
+  --secondary-foreground: 36 20% 94%;
+  --muted: 24 8% 17%;
+  --muted-foreground: 34 10% 68%;
+  --accent: 18 18% 22%;
+  --accent-foreground: 16 75% 72%;
+  --destructive: 3 68% 63%;
   --destructive-foreground: 24 10% 10%;
-  --border: 25 10% 27%;
-  --input: 25 10% 27%;
-  --ring: 12 86% 63%;
-  --success: 160 45% 52%;
+  --border: 25 9% 25%;
+  --input: 25 9% 29%;
+  --ring: 12 86% 62%;
+  --success: 160 47% 51%;
   --success-foreground: 24 10% 10%;
-  --success-ink: 158 55% 68%;
-  --sidebar: 24 10% 12%;
-  --sidebar-foreground: 34 10% 67%;
-  --sidebar-border: 25 10% 27%;
-  --stage: 24 9% 16%;
-  --stage-dot: 30 7% 25%;
+  --success-ink: 158 55% 69%;
+  --sidebar: 24 8% 11%;
+  --sidebar-foreground: 34 10% 68%;
+  --sidebar-border: 25 9% 25%;
+  --stage: 24 7% 15%;
+  --stage-dot: 24 7% 17%;
 }
 
 @theme inline {

@@ -2,10 +2,7 @@ import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { AbortSignalLike, RasterImage } from "./types.js";
 import type { DiffMetricSink } from "./instrumentation.js";
-
-function luminance(data: Uint8ClampedArray, offset: number): number {
-  return data[offset]! * 0.299 + data[offset + 1]! * 0.587 + data[offset + 2]! * 0.114;
-}
+import { luminance } from "./raster-utils.js";
 
 function blankImage(width: number, height: number): RasterImage {
   const data = new Uint8ClampedArray(width * height * 4);

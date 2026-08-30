@@ -1,23 +1,23 @@
 export const helpSteps = [
-  { number: "1", title: "Pick a page", copy: "Use the Pages rail for aligned pages, or its A/B controls to step either PDF independently in any view mode." },
-  { number: "2", title: "Choose a view", copy: "Use Diff, Semantic text, Side by side, Swipe, Blink, Earlier, or Newer." },
-  { number: "3", title: "Inspect changes", copy: "Select a region or text change, toggle highlights, and move to the next changed page." },
+  { number: "1", title: "Select pages", copy: "Use the stacked A and B controls for independent page navigation, or choose an overlay thumbnail to align both sources." },
+  { number: "2", title: "Choose a view", copy: "Use Overlay, Split, Swipe, or Text to compare the selected A/B pages, or switch to one source." },
+  { number: "3", title: "Review changes", copy: "Open the collapsible Changes sidebar when you need regions, semantic changes, or comparison settings." },
 ] as const;
 
 export const helpModes = [
-  ["Semantic text", "native PDF pages with anchored text highlights."],
-  ["Diff", "visual change overlay for the selected A/B page pair."],
-  ["Side by side", "compare both pages together."],
-  ["Swipe / Blink", "reveal or alternate between the independently selected pages."],
-  ["Earlier / Newer", "inspect one source page on its own."],
+  ["Overlay", "see additions and removals on the selected A/B page pair."],
+  ["Split", "view source A and source B side by side."],
+  ["Swipe", "reveal either source with a draggable divider."],
+  ["Text", "compare extracted text with anchored highlights."],
+  ["Source A / Source B", "inspect one source page independently; navigation follows the selected source."],
 ] as const;
 
 export const helpShortcuts = [
   ["← →", "Comparison pages"],
-  ["1–7", "View modes"],
+  ["1–4", "Overlay, Split, Swipe, Text"],
   ["J / N", "Next page; K / P goes back"],
-  ["M", "Cycle modes"],
-  ["Shift + ← →", "Earlier source pages"],
-  ["Ctrl/Cmd + ← →", "Newer source pages"],
+  ["M", "Cycle views"],
+  ["Shift + ← →", "Source A pages"],
+  ["Ctrl/Cmd + ← →", "Source B pages"],
   ["Esc", "Close or clear selection"],
 ] as const;

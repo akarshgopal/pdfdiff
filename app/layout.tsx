@@ -20,26 +20,38 @@ const faviconPath = "/favicon.svg";
 const touchIconPath = "/apple-touch-icon.png";
 const fallbackOrigin = "http://localhost:3000";
 
+function isHttpProtocol(protocol: string): boolean {
+  return protocol === "http:" || protocol === "https:";
+}
+
+function hasUnsafeUrlParts(url: URL): boolean {
+  if (url.username || url.password) return true;
+  if (url.pathname !== "/") return true;
+  return Boolean(url.search || url.hash);
+}
+
+function validOrigin(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (!isHttpProtocol(url.protocol) || hasUnsafeUrlParts(url)) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+function firstHeader(requestHeaders: Headers, preferred: string, fallback: string): string | null {
+  return requestHeaders.get(preferred) ?? requestHeaders.get(fallback);
+}
+
 function requestOrigin(requestHeaders: Headers): string {
   const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL;
-  if (configuredOrigin) {
-    try {
-      const origin = new URL(configuredOrigin);
-      if (origin.protocol === "http:" || origin.protocol === "https:") return origin.origin;
-    } catch {
-      return fallbackOrigin;
-    }
-  }
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
-  if (!host || (protocol !== "http" && protocol !== "https")) return fallbackOrigin;
-  try {
-    const origin = new URL(`${protocol}://${host}`);
-    if (origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash) return fallbackOrigin;
-    return origin.origin;
-  } catch {
-    return fallbackOrigin;
-  }
+  if (configuredOrigin) return validOrigin(configuredOrigin) ?? fallbackOrigin;
+  const host = firstHeader(requestHeaders, "x-forwarded-host", "host");
+  if (!host) return fallbackOrigin;
+  const defaultProtocol = host.startsWith("localhost") ? "http" : "https";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? defaultProtocol;
+  return validOrigin(`${protocol}://${host}`) ?? fallbackOrigin;
 }
 
 export const viewport: Viewport = {

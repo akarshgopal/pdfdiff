@@ -6,6 +6,12 @@ const DEFAULT_SCALE = 1.5;
 const DEFAULT_MAX_PIXELS = 8_000_000;
 const DEFAULT_MAX_DIMENSION = 4096;
 
+interface RenderBounds {
+  width: number;
+  height: number;
+  scale: number;
+}
+
 function positiveOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
 }
@@ -30,6 +36,44 @@ function createContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   return context;
 }
 
+function boundedRenderSize(widthPoints: number, heightPoints: number, options: RenderOptions): RenderBounds {
+  const requestedScale = positiveOr(options.scale, DEFAULT_SCALE);
+  const pixelScale = Math.sqrt(positiveOr(options.maxPixels, DEFAULT_MAX_PIXELS) / (widthPoints * heightPoints));
+  const dimensionScale = positiveOr(options.maxDimension, DEFAULT_MAX_DIMENSION) / Math.max(widthPoints, heightPoints);
+  const scale = Math.max(0.01, Math.min(requestedScale, pixelScale, dimensionScale));
+  return {
+    width: Math.max(1, Math.ceil(widthPoints * scale)),
+    height: Math.max(1, Math.ceil(heightPoints * scale)),
+    scale,
+  };
+}
+
+function beginPageRender(page: PDFPageProxy, canvas: HTMLCanvasElement, scale: number, offsetX: number, offsetY: number, options: RenderOptions) {
+  const viewport = page.getViewport({ scale, rotation: page.rotate });
+  const context = createContext(canvas);
+  const background = options.background ?? "rgb(255, 255, 255)";
+  context.save();
+  context.fillStyle = background;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.restore();
+  const renderTask = page.render({
+    canvas,
+    canvasContext: context,
+    viewport,
+    transform: [1, 0, 0, 1, offsetX, offsetY],
+    background,
+    annotationMode: options.includeAnnotations === false ? AnnotationMode.DISABLE : AnnotationMode.ENABLE,
+  });
+  return { context, renderTask };
+}
+
+function watchRenderAbort(renderTask: { cancel: () => void }, signal?: AbortSignal): () => void {
+  const onAbort = (): void => renderTask.cancel();
+  signal?.addEventListener("abort", onAbort, { once: true });
+  if (signal?.aborted) onAbort();
+  return () => signal?.removeEventListener("abort", onAbort);
+}
+
 async function renderIntoCanvas(
   page: PDFPageProxy,
   canvas: HTMLCanvasElement,
@@ -43,26 +87,8 @@ async function renderIntoCanvas(
 ): Promise<RenderedPage> {
   throwIfAborted(options.signal);
   const rotation = page.rotate;
-  const viewport = page.getViewport({ scale, rotation });
-  const context = createContext(canvas);
-  const background = options.background ?? "rgb(255, 255, 255)";
-  context.save();
-  context.fillStyle = background;
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.restore();
-
-  const renderTask = page.render({
-    canvas,
-    canvasContext: context,
-    viewport,
-    transform: [1, 0, 0, 1, offsetX, offsetY],
-    background,
-    annotationMode: options.includeAnnotations === false ? AnnotationMode.DISABLE : AnnotationMode.ENABLE,
-  });
-  const signal = options.signal;
-  const onAbort = (): void => renderTask.cancel();
-  signal?.addEventListener("abort", onAbort, { once: true });
-  if (signal?.aborted) onAbort();
+  const { context, renderTask } = beginPageRender(page, canvas, scale, offsetX, offsetY, options);
+  const detachAbort = watchRenderAbort(renderTask, options.signal);
   try {
     await measureAsync(options.metrics, "pdf.render.canvas", async () => {
       await renderTask.promise;
@@ -75,10 +101,10 @@ async function renderIntoCanvas(
       side: side ?? "single",
     });
   } catch (error) {
-    if (signal?.aborted) throw new PdfDiffAbortError();
+    if (options.signal?.aborted) throw new PdfDiffAbortError();
     throw error;
   } finally {
-    signal?.removeEventListener("abort", onAbort);
+    detachAbort();
   }
 
   const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -102,14 +128,7 @@ export async function renderPage(pdf: LoadedPdf, pageNumber: number, options: Re
   const page = await pageFor(pdf, pageNumber);
   throwIfAborted(options.signal);
   const baseViewport = page.getViewport({ scale: 1, rotation: page.rotate });
-  const requestedScale = positiveOr(options.scale, DEFAULT_SCALE);
-  const maxPixels = positiveOr(options.maxPixels, DEFAULT_MAX_PIXELS);
-  const maxDimension = positiveOr(options.maxDimension, DEFAULT_MAX_DIMENSION);
-  const pixelScale = Math.sqrt(maxPixels / (baseViewport.width * baseViewport.height));
-  const dimensionScale = maxDimension / Math.max(baseViewport.width, baseViewport.height);
-  const scale = Math.max(0.01, Math.min(requestedScale, pixelScale, dimensionScale));
-  const width = Math.max(1, Math.ceil(baseViewport.width * scale));
-  const height = Math.max(1, Math.ceil(baseViewport.height * scale));
+  const { width, height, scale } = boundedRenderSize(baseViewport.width, baseViewport.height, options);
   const canvas = createCanvas(width, height);
   return renderIntoCanvas(page, canvas, baseViewport.width, baseViewport.height, scale, 0, 0, options);
 }
@@ -132,14 +151,7 @@ export async function renderPagePair(
   const newerViewport = newerPage.getViewport({ scale: 1, rotation: newerPage.rotate });
   const widthPoints = Math.max(earlierViewport.width, newerViewport.width);
   const heightPoints = Math.max(earlierViewport.height, newerViewport.height);
-  const requestedScale = positiveOr(options.scale, DEFAULT_SCALE);
-  const maxPixels = positiveOr(options.maxPixels, DEFAULT_MAX_PIXELS);
-  const maxDimension = positiveOr(options.maxDimension, DEFAULT_MAX_DIMENSION);
-  const pixelScale = Math.sqrt(maxPixels / (widthPoints * heightPoints));
-  const dimensionScale = maxDimension / Math.max(widthPoints, heightPoints);
-  const scale = Math.max(0.01, Math.min(requestedScale, pixelScale, dimensionScale));
-  const width = Math.max(1, Math.ceil(widthPoints * scale));
-  const height = Math.max(1, Math.ceil(heightPoints * scale));
+  const { width, height, scale } = boundedRenderSize(widthPoints, heightPoints, options);
   const background = options.background ?? "rgb(255, 255, 255)";
   const renderOptions = { ...options, background };
   const earlierCanvas = createCanvas(width, height);

@@ -4,17 +4,12 @@ import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import { findChangeRegions } from "./regions.js";
 import type { RasterImage, RgbColor, VisualDiffOptions, VisualDiffResult, RenderedPage } from "./types.js";
+import { clamp, luminance } from "./raster-utils.js";
 
 const DEFAULT_ADDED: RgbColor = [16, 190, 190];
 const DEFAULT_REMOVED: RgbColor = [238, 72, 86];
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function luminance(data: Uint8ClampedArray, offset: number): number {
-  return data[offset]! * 0.299 + data[offset + 1]! * 0.587 + data[offset + 2]! * 0.114;
-}
+const DEFAULT_CHANGED: RgbColor = [184, 126, 220];
+type ChangeDirection = 1 | 2 | 3;
 
 function colorDistance(earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number): number {
   const red = earlier[offset]! - newer[offset]!;
@@ -53,6 +48,32 @@ function changedMaskFromPixelmatch(output: Uint8ClampedArray, total: number, sig
   return { mask, count };
 }
 
+function writeUnchangedPixel(target: Uint8ClampedArray, source: Uint8ClampedArray, offset: number, opacity: number): void {
+  const gray = Math.round(luminance(source, offset) * opacity + 255 * (1 - opacity));
+  target[offset] = gray;
+  target[offset + 1] = gray;
+  target[offset + 2] = gray;
+  target[offset + 3] = 255;
+}
+
+function changeDirection(earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number): ChangeDirection {
+  const oldLuma = luminance(earlier, offset);
+  const newLuma = luminance(newer, offset);
+  if (newLuma < oldLuma) return 1;
+  return newLuma > oldLuma ? 2 : 3;
+}
+
+function writeChangedPixel(target: Uint8ClampedArray, earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number, addedColor: RgbColor, removedColor: RgbColor): ChangeDirection {
+  const direction = changeDirection(earlier, newer, offset);
+  const color = direction === 1 ? addedColor : direction === 2 ? removedColor : DEFAULT_CHANGED;
+  const tinted = tintColor(color, colorDistance(earlier, newer, offset));
+  target[offset] = tinted[0]!;
+  target[offset + 1] = tinted[1]!;
+  target[offset + 2] = tinted[2]!;
+  target[offset + 3] = 255;
+  return direction;
+}
+
 function overlayForMask(earlier: RasterImage, newer: RasterImage, changedMask: Uint8Array, options: VisualDiffOptions): { overlay: RasterImage; directionMask: Uint8Array; addedPixels: number; removedPixels: number } {
   const total = earlier.width * earlier.height;
   const addedColor = validColor(options.addedColor, DEFAULT_ADDED);
@@ -67,24 +88,12 @@ function overlayForMask(earlier: RasterImage, newer: RasterImage, changedMask: U
     if ((index & 0x3fff) === 0) throwIfAborted(options.signal);
     const offset = index * 4;
     if (changedMask[index] === 0) {
-      const gray = Math.round(luminance(earlier.data, offset) * unchangedOpacity + 255 * (1 - unchangedOpacity));
-      overlayData[offset] = gray;
-      overlayData[offset + 1] = gray;
-      overlayData[offset + 2] = gray;
-      overlayData[offset + 3] = 255;
+      writeUnchangedPixel(overlayData, earlier.data, offset, unchangedOpacity);
       continue;
     }
 
-    const oldLuma = luminance(earlier.data, offset);
-    const newLuma = luminance(newer.data, offset);
-    const direction = newLuma < oldLuma ? 1 : newLuma > oldLuma ? 2 : 3;
+    const direction = writeChangedPixel(overlayData, earlier.data, newer.data, offset, addedColor, removedColor);
     directionMask[index] = direction;
-    const color: RgbColor = direction === 1 ? addedColor : direction === 2 ? removedColor : [184, 126, 220];
-    const tintedColor = tintColor(color, colorDistance(earlier.data, newer.data, offset));
-    overlayData[offset] = tintedColor[0]!;
-    overlayData[offset + 1] = tintedColor[1]!;
-    overlayData[offset + 2] = tintedColor[2]!;
-    overlayData[offset + 3] = 255;
     if (direction === 1) addedPixels += 1;
     else if (direction === 2) removedPixels += 1;
   }

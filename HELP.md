@@ -25,10 +25,8 @@ removed with the × button before starting the comparison.
   removed pages.
 - The center canvas shows the selected page. In **Diff** mode, changed areas
   are highlighted and can be selected directly.
-- The **Change inspector** shows the number of changed pages, the changed area
-  percentage for the current page, detected regions, and available text
-  changes.
-- Choose **Next changed page** to move through pages with changes.
+- The **Change inspector** shows the changed area percentage for the current
+  page, detected regions, and available text changes.
 - Turn **Show bounding boxes** off when you want an unobstructed view of the
   diff.
 

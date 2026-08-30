@@ -2,8 +2,8 @@
 
 Reusable React viewer for completed PDF Diff comparisons. The viewer is
 headless with respect to file loading: pass it a DiffComparison and it handles
-page navigation, visual and semantic modes, source-page inspection, change
-selection, settings controls, keyboard shortcuts, and the help dialog.
+page navigation, comparison views, source A/B inspection, change selection,
+settings controls, keyboard shortcuts, and the help dialog.
 
     import { PdfDiffViewer } from "@pdfdiff/viewer-react";
 
@@ -13,9 +13,27 @@ selection, settings controls, keyboard shortcuts, and the help dialog.
 
 The package exports PdfDiffViewer, its comparison/viewer types, and the
 styles/styleProps helpers used by the default Tailwind-based presentation.
-To support visual and semantic comparison when A and B are stepped to different
-page numbers, provide `DiffComparison.comparePagePair`; the viewer invokes it
-on demand and keeps all view modes on the independently selected pair.
+
+## Workspace model
+
+The workspace has one comparison page rail with vertically stacked A/B page
+controls. Step either source independently, or select a single overlay thumbnail
+to realign both sources to that page. The primary comparison views are:
+
+- **Overlay** — show visual additions and removals on the selected A/B pair.
+- **Split** — show source A and source B side by side.
+- **Swipe** — reveal either source with a draggable divider.
+- **Text** — compare extracted text with anchored highlights.
+
+The change inspector is collapsed by default. Open it when you need visual
+regions, semantic changes, or comparison settings. Keyboard shortcuts cover
+page movement, view selection, source A/B navigation, and closing or clearing
+the current selection.
+
+To support Overlay, Swipe, or Text when A and B are stepped to different page
+numbers, provide `DiffComparison.comparePagePair`. The viewer invokes it on
+demand for the selected source pair. Source A/B views continue to show the
+independently selected original pages.
 
 ## Styling
 
