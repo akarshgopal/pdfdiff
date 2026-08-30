@@ -98,12 +98,12 @@ test("viewer guidance names the four primary views and source A/B navigation", (
   assert.deepEqual(helpShortcuts.find(([shortcut]) => shortcut === "Ctrl/Cmd + ← →"), ["Ctrl/Cmd + ← →", "Source B pages"]);
 });
 
-test("viewer renders unified A/B navigation, overlay thumbnails, and a collapsed inspector", () => {
+test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable canvas", () => {
   const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
     comparison: {
       earlierName: "earlier.pdf",
       newerName: "newer.pdf",
-      pages: [{ ...currentPage, changedPercent: 7.33 }],
+      pages: [{ ...currentPage, changedPercent: 7.33 }, { index: 1, status: "same", beforeSrc: "second-a", afterSrc: "second-b" }],
     },
   }));
 
@@ -111,9 +111,73 @@ test("viewer renders unified A/B navigation, overlay thumbnails, and a collapsed
   assert.match(html, /Previous source A page/);
   assert.match(html, /Next source B page/);
   assert.match(html, /Comparison overlay preview/);
-  assert.match(html, /aria-label="Open change inspector"/);
-  assert.doesNotMatch(html, /Change position|Changed area/);
+  assert.match(html, /Document canvas\. Scroll to zoom and drag to pan\./);
+  assert.doesNotMatch(html, /change inspector/i);
+  assert.doesNotMatch(html, /View options/);
+  assert.doesNotMatch(html, /Change position/);
   assert.doesNotMatch(html, />Changes found<\/span>/);
+});
+
+test("single-page unreadable comparisons remove duplicate chrome and retain the warning", () => {
+  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
+    comparison: {
+      earlierName: "earlier.pdf",
+      newerName: "newer.pdf",
+      pages: [{
+        ...currentPage,
+        regions: [
+          { id: "graphic-1", x: 0, y: 0, width: 1, height: 1, changeClass: "graphic" },
+          { id: "content-1", x: 2, y: 2, width: 1, height: 1, changeClass: "content" },
+        ],
+        changeClasses: { content: 1, graphic: 1, reflow: 0, formatting: 0 },
+        semantic: {
+          textUndecodable: true,
+          before: [], after: [], changes: [], beforeOverlays: [], afterOverlays: [],
+          beforeTokenCount: 0, afterTokenCount: 0, hasBeforeText: false, hasAfterText: false,
+        },
+      }],
+    },
+  }));
+
+  assert.match(html, />1 page changed<\/strong>/);
+  assert.match(html, />⚠ Text unavailable<\/span>/);
+  assert.match(html, /disabled=""[^>]+title="Text comparison unavailable:[^"]+"/);
+  assert.doesNotMatch(html, />2 visual changes<\/span>/);
+  assert.doesNotMatch(html, />Content<\/span><strong>1<\/strong>/);
+  assert.doesNotMatch(html, /Independent PDF page navigation/);
+  assert.doesNotMatch(html, /This PDF&#x27;s text could not be decoded/);
+});
+
+test("the workspace opens with a document-level summary and filters", () => {
+  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
+    comparison: {
+      earlierName: "earlier.pdf",
+      newerName: "newer.pdf",
+      pages: [
+        { ...currentPage, changeClasses: { content: 2, reflow: 9, formatting: 0, graphic: 1 }, noticeable: true, textChangeCount: 2 },
+        { index: 1, status: "same", beforeSrc: "b", afterSrc: "a" },
+      ],
+    },
+  }));
+
+  assert.match(html, /aria-label="Comparison summary"/);
+  assert.match(html, /1 changed of 2 pages/);
+  assert.doesNotMatch(html, /2 text changes/);
+  assert.doesNotMatch(html, /9 reflow\/formatting/);
+  assert.match(html, /Hide reflow noise/);
+  assert.match(html, /Only changed pages/);
+});
+
+test("a comparison whose only changes are reflow reports no substantive changes", () => {
+  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
+    comparison: {
+      earlierName: "earlier.pdf",
+      newerName: "newer.pdf",
+      pages: [{ ...currentPage, status: "changed", noticeable: false, changeClasses: { content: 0, reflow: 6, formatting: 1, graphic: 0 } }],
+    },
+  }));
+
+  assert.match(html, /No substantive changes/);
 });
 
 test("viewer renders supplied header actions in the comparison workspace", () => {

@@ -7,8 +7,6 @@ export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcu
   { id: "semantic-text", label: "Text", shortcut: "4" },
 ];
 
-export const zoomLevels = [50, 75, 100, 125, 150, 200] as const;
-
 const normalizedPairModes = new Set<DiffViewMode>(["diff", "semantic-text", "swipe", "blink"]);
 
 const statusSymbols: Record<NonNullable<DiffPage["status"]>, string> = {
@@ -75,6 +73,28 @@ export function buildPreviewPage({ mode, currentPage, earlierPage, newerPage, co
     ...previewSources(mode, comparisonPairPage, earlierPage, newerPage),
     ...comparisonDetails(comparisonPairPage),
   };
+}
+
+/** Name a rail row by the source pages it actually pairs, not by its position. */
+export function pagePairLabel(page: DiffPage, index: number): string {
+  const earlier = page.earlierPageNumber;
+  const newer = page.newerPageNumber;
+  if (earlier !== undefined && newer !== undefined) return `A ${earlier} ↔ B ${newer}`;
+  if (earlier !== undefined) return `A ${earlier} ↔ —`;
+  if (newer !== undefined) return `— ↔ B ${newer}`;
+  return `A ${index + 1} ↔ B ${index + 1}`;
+}
+
+export function pagePairDescription(page: DiffPage, index: number, status: NonNullable<DiffPage["status"]>): string {
+  const earlier = page.earlierPageNumber;
+  const newer = page.newerPageNumber;
+  if (page.alignment === "moved" && earlier !== undefined && newer !== undefined) {
+    return `Page moved from A ${earlier} to B ${newer}, ${statusLabel(status)}`;
+  }
+  if (earlier !== undefined && newer !== undefined) return `Compare A page ${earlier} with B page ${newer}, ${statusLabel(status)}`;
+  if (earlier !== undefined) return `A page ${earlier} was removed`;
+  if (newer !== undefined) return `B page ${newer} was added`;
+  return `Comparison row ${index + 1}, ${statusLabel(status)}`;
 }
 
 export function pageStatus(page: DiffPage): NonNullable<DiffPage["status"]> {

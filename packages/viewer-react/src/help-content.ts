@@ -1,7 +1,7 @@
 export const helpSteps = [
   { number: "1", title: "Select pages", copy: "Use the stacked A and B controls for independent page navigation, or choose an overlay thumbnail to align both sources." },
   { number: "2", title: "Choose a view", copy: "Use Overlay, Split, Swipe, or Text to compare the selected A/B pages, or switch to one source." },
-  { number: "3", title: "Review changes", copy: "Open the collapsible Changes sidebar when you need regions, semantic changes, or comparison settings." },
+  { number: "3", title: "Inspect the page", copy: "Scroll over the document to zoom, then click and drag the canvas to pan around the page." },
 ] as const;
 
 export const helpModes = [
@@ -19,5 +19,6 @@ export const helpShortcuts = [
   ["M", "Cycle views"],
   ["Shift + ← →", "Source A pages"],
   ["Ctrl/Cmd + ← →", "Source B pages"],
+  ["Scroll / drag", "Zoom and pan the document canvas"],
   ["Esc", "Close or clear selection"],
 ] as const;

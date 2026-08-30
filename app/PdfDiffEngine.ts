@@ -38,6 +38,7 @@ function regionsForPage(page: ComparisonPage, overlays: readonly DiffSemanticOve
     y: (region.y / height) * 100,
     width: (region.width / width) * 100,
     height: (region.height / height) * 100,
+    changeClass: region.changeClass,
   })), overlays);
 }
 
@@ -85,6 +86,10 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
   const semanticAfterOverlays = semanticOverlaysForPage(page, "newer");
   return {
     index: page.index,
+    earlierPageNumber: page.earlierPageNumber,
+    newerPageNumber: page.newerPageNumber,
+    alignment: page.alignment,
+    similarity: page.similarity,
     width: page.width,
     height: page.height,
     status: page.status,
@@ -94,6 +99,8 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
     changedPixels: page.changedPixels,
     changedPercent: page.changedPercent,
     regions: regionsForPage(page, [...semanticBeforeOverlays, ...semanticAfterOverlays]),
+    changeClasses: page.changeClasses,
+    noticeable: page.noticeable,
     textChanges: textChangesForPage(page),
     textChangeCount: page.semantic?.changes.length ?? 0,
     semantic: page.semantic,

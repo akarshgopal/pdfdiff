@@ -1,4 +1,5 @@
 import { throwIfAborted } from "./errors.js";
+import { isDecodableText } from "./text-quality.js";
 import { measure } from "./instrumentation.js";
 import type { DiffMetricSink } from "./instrumentation.js";
 import type { AbortSignalLike, PageText, TextQuad } from "./types.js";
@@ -20,6 +21,8 @@ export interface SemanticTextChange {
 }
 
 export interface SemanticTextDiff {
+  /** True when a side carried text that could not be decoded to real characters. */
+  readonly textUndecodable?: boolean;
   readonly before: readonly SemanticTextRun[];
   readonly after: readonly SemanticTextRun[];
   readonly changes: readonly SemanticTextChange[];
@@ -39,6 +42,20 @@ export interface SemanticTextOverlay {
 export interface SemanticPageDiff extends SemanticTextDiff {
   readonly beforeOverlays: readonly SemanticTextOverlay[];
   readonly afterOverlays: readonly SemanticTextOverlay[];
+  /** Lines whose text is identical on both sides, with where each side drew them. */
+  readonly unchangedLines?: readonly UnchangedTextLine[];
+}
+
+/**
+ * An unchanged line that moved still repaints every pixel it touches. Keeping
+ * both positions lets a caller tell a genuine edit from text pushed down the
+ * page by an edit somewhere above it.
+ */
+export interface UnchangedTextLine {
+  readonly text: string;
+  readonly beforeQuads: readonly TextQuad[];
+  readonly afterQuads: readonly TextQuad[];
+  readonly shifted: boolean;
 }
 
 type Token = { value: string; start: number; end: number };
@@ -670,7 +687,29 @@ function spatialOverlays(matches: readonly SpatialLineMatch[], changeIds: Readon
   });
 }
 
+/** A line counts as moved once it leaves the sub-point wobble of identical typesetting. */
+const SHIFT_TOLERANCE = 1.5;
+
+function unchangedLines(matches: readonly SpatialLineMatch[]): UnchangedTextLine[] {
+  return matches.flatMap((match) => {
+    if (match.kind !== "same" || !match.before || !match.after) return [];
+    const distance = Math.hypot(match.after.x - match.before.x, match.after.y - match.before.y);
+    return [{
+      text: match.before.text,
+      beforeQuads: match.before.quads,
+      afterQuads: match.after.quads,
+      shifted: distance > SHIFT_TOLERANCE,
+    }];
+  });
+}
+
+function pageDecodable(page: PageText): boolean {
+  return page.decodable ?? isDecodableText(page.text);
+}
+
 function spatialPageDiff(beforePage: PageText, afterPage: PageText, options: SemanticDiffOptions): SemanticPageDiff {
+  const beforeDecodable = pageDecodable(beforePage);
+  const afterDecodable = pageDecodable(afterPage);
   const matches = matchSpatialLines(beforePage, afterPage, options.signal);
   const changeMatches = matches.filter((match) => match.kind !== "same").sort(compareSpatialMatches);
   const changeIds = new Map<SpatialLineMatch, string>();
@@ -685,12 +724,14 @@ function spatialPageDiff(beforePage: PageText, afterPage: PageText, options: Sem
     before: spatialRuns(beforeLines, beforeMatch, changeIds, "before"),
     after: spatialRuns(afterLines, afterMatch, changeIds, "after"),
     changes,
-    beforeTokenCount: tokenize(beforePage.text).length,
-    afterTokenCount: tokenize(afterPage.text).length,
-    hasBeforeText: beforeLines.length > 0,
-    hasAfterText: afterLines.length > 0,
+    beforeTokenCount: beforeDecodable ? tokenize(beforePage.text).length : 0,
+    afterTokenCount: afterDecodable ? tokenize(afterPage.text).length : 0,
+    hasBeforeText: beforeDecodable && beforeLines.length > 0,
+    hasAfterText: afterDecodable && afterLines.length > 0,
+    textUndecodable: !beforeDecodable || !afterDecodable,
     beforeOverlays: spatialOverlays(changeMatches, changeIds, "before", options),
     afterOverlays: spatialOverlays(changeMatches, changeIds, "after", options),
+    unchangedLines: unchangedLines(matches),
   };
 }
 
@@ -698,9 +739,16 @@ function spatialPageDiff(beforePage: PageText, afterPage: PageText, options: Sem
 export function diffSemanticPages(beforePage: PageText, afterPage: PageText, options: SemanticDiffOptions = {}): SemanticPageDiff {
   return measure(options.metrics, "core.semantic.page", () => {
     if (beforePage.items.length || afterPage.items.length) return spatialPageDiff(beforePage, afterPage, options);
+    const undecodable = !pageDecodable(beforePage) || !pageDecodable(afterPage);
     const built = buildSemanticDiff(beforePage.text, afterPage.text, options);
     return {
       ...built.diff,
+      // Never let an unreadable page present itself as a page with no changes.
+      hasBeforeText: built.diff.hasBeforeText && !undecodable,
+      hasAfterText: built.diff.hasAfterText && !undecodable,
+      beforeTokenCount: undecodable ? 0 : built.diff.beforeTokenCount,
+      afterTokenCount: undecodable ? 0 : built.diff.afterTokenCount,
+      textUndecodable: undecodable,
       beforeOverlays: built.ranges.filter((change) => change.before).map((change) => ({
         id: change.id,
         kind: change.kind,

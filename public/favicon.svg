@@ -1,10 +1,5 @@
 <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="64" height="64" rx="16" fill="#EE6C4D"/>
-  <path d="M14 13.5C14 11.567 15.567 10 17.5 10H33L42 19V50.5C42 52.433 40.433 54 38.5 54H17.5C15.567 54 14 52.433 14 50.5V13.5Z" fill="#FFF8EE"/>
-  <path d="M33 10V18C33 19.105 33.895 20 35 20H42" fill="#F5DCC7"/>
-  <rect x="21" y="27.5" width="14" height="3" rx="1.5" fill="#748887"/>
-  <rect x="21" y="34.5" width="14" height="3" rx="1.5" fill="#748887"/>
-  <rect x="21" y="41.5" width="9" height="3" rx="1.5" fill="#748887"/>
-  <rect x="44.5" y="29" width="3" height="20" rx="1.5" fill="#FFF8EE"/>
-  <rect x="36" y="37.5" width="20" height="3" rx="1.5" fill="#FFF8EE"/>
+  <path d="M32 18.5A13.5 13.5 0 0 0 32 45.5V18.5Z" fill="#FFF8EE"/>
+  <circle cx="32" cy="32" r="13.5" stroke="#FFF8EE" stroke-width="3.5"/>
 </svg>

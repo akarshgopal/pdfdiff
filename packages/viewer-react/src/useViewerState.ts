@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { DiffComparison, DiffPage, DiffViewMode, SourceSide, ViewerOptions } from "./types.js";
+import type { DiffComparison, DiffPage, DiffViewMode, SourceSide } from "./types.js";
 import { buildPreviewPage, clampPageIndex, modeNeedsComparedPair, sourcePageCount, viewModes } from "./viewer-utils.js";
 import { useViewerKeyboard } from "./useViewerKeyboard.js";
 
@@ -35,24 +35,14 @@ function fullPageState(side: SourceSide | null, earlier: { page: DiffPage | null
   return side === "earlier" ? earlier : newer;
 }
 
-function startingOptions(options?: ViewerOptions): Required<ViewerOptions> {
-  return { sensitivity: options?.sensitivity ?? 28, alignment: options?.alignment ?? "none" };
-}
-
-export function useViewerState({ comparison, initialOptions, onAnalytics }: { comparison: DiffComparison; initialOptions?: ViewerOptions; onAnalytics?: (event: { name: "view_mode_used"; mode: DiffViewMode }) => void }) {
+export function useViewerState({ comparison, onAnalytics }: { comparison: DiffComparison; onAnalytics?: (event: { name: "view_mode_used"; mode: DiffViewMode }) => void }) {
   const pages = comparison.pages;
-  const initial = startingOptions(initialOptions);
   const [pageIndex, setPageIndex] = useState(0);
   const [mode, setMode] = useState<DiffViewMode>("diff");
   const [zoom, setZoom] = useState(100);
   const [swipe, setSwipe] = useState(50);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
-  const [showSemanticHighlights, setShowSemanticHighlights] = useState(true);
   const [blinkOn, setBlinkOn] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [sensitivity, setSensitivity] = useState(initial.sensitivity);
-  const [alignment, setAlignment] = useState<"none" | "translation">(initial.alignment);
   const [fullPageSide, setFullPageSide] = useState<SourceSide | null>(null);
   const [earlierPageIndex, setEarlierPageIndex] = useState(0);
   const [newerPageIndex, setNewerPageIndex] = useState(0);
@@ -139,12 +129,7 @@ export function useViewerState({ comparison, initialOptions, onAnalytics }: { co
     zoom,
     swipe,
     selectedRegion,
-    showBoundingBoxes,
-    showSemanticHighlights,
     blinkOn,
-    showSettings,
-    sensitivity,
-    alignment,
     fullPageSide,
     earlierPageIndex,
     newerPageIndex,
@@ -167,11 +152,6 @@ export function useViewerState({ comparison, initialOptions, onAnalytics }: { co
     setZoom,
     setSwipe,
     setSelectedRegion,
-    setShowBoundingBoxes,
-    setShowSemanticHighlights,
-    setShowSettings,
-    setSensitivity,
-    setAlignment,
     setFullPageSide,
     setShowHelp,
   };

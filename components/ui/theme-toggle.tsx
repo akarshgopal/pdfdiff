@@ -1,4 +1,5 @@
 import { Moon, Sun } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { Button } from "./button";
 
 const THEME_STORAGE_KEY = "pdfdiff-theme";
@@ -16,6 +17,17 @@ function applyTheme(theme: Theme) {
   } catch {
     // The theme still applies for this session when storage is unavailable.
   }
+}
+
+function subscribeToTheme(onChange: () => void): () => void {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+
+/** Lets components pick theme-specific assets that CSS alone cannot swap. */
+export function useThemeMode(): Theme {
+  return useSyncExternalStore(subscribeToTheme, getTheme, () => "light");
 }
 
 export function ThemeToggle() {

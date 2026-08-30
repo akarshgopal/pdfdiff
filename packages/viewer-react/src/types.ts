@@ -1,4 +1,6 @@
-import type { SemanticPageDiff } from "@pdfdiff/core";
+import type { ChangeClass, ChangeClassCounts, PageAlignmentKind, SemanticPageDiff } from "@pdfdiff/core";
+
+export type { ChangeClass, ChangeClassCounts, PageAlignmentKind };
 import type { ReactNode } from "react";
 
 export type DiffViewMode = "diff" | "semantic-text" | "side-by-side" | "swipe" | "blink" | "earlier" | "newer";
@@ -14,6 +16,7 @@ export interface DiffRegion {
   height: number;
   kind?: DiffRegionKind;
   label?: string;
+  changeClass?: ChangeClass;
 }
 
 export interface DiffTextChange {
@@ -33,6 +36,11 @@ export interface DiffSemanticOverlay {
 
 export interface DiffPage {
   readonly index: number;
+  /** Source page numbers this row pairs; absent on the side that has no page. */
+  readonly earlierPageNumber?: number;
+  readonly newerPageNumber?: number;
+  readonly alignment?: PageAlignmentKind;
+  readonly similarity?: number;
   readonly width?: number;
   readonly height?: number;
   readonly status?: "same" | "changed" | "added" | "removed" | "processing" | "error";
@@ -42,6 +50,8 @@ export interface DiffPage {
   readonly changedPixels?: number;
   readonly changedPercent?: number;
   readonly regions?: readonly DiffRegion[];
+  readonly changeClasses?: ChangeClassCounts;
+  readonly noticeable?: boolean;
   readonly textChanges?: readonly DiffTextChange[];
   readonly textChangeCount?: number;
   readonly semantic?: SemanticPageDiff;
@@ -70,17 +80,10 @@ export interface ViewerAnalyticsEvent {
   mode: DiffViewMode;
 }
 
-export interface ViewerOptions {
-  readonly sensitivity: number;
-  readonly alignment: AlignmentMode;
-}
-
 export interface PdfDiffViewerProps {
   comparison: DiffComparison;
   processingProgress?: { readonly completed: number; readonly total: number };
   headerActions?: ReactNode;
   onNewComparison?: () => void;
   onAnalytics?: (event: ViewerAnalyticsEvent) => void;
-  initialOptions?: ViewerOptions;
-  onOptionsChange?: (options: ViewerOptions) => void;
 }

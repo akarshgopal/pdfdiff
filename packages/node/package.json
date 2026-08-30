@@ -1,0 +1,25 @@
+{
+  "name": "@pdfdiff/node",
+  "version": "0.1.0",
+  "description": "Headless PDF comparison for Node, plus the pdfdiff CLI.",
+  "license": "MIT",
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": { "pdfdiff": "./dist/cli.js" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@pdfdiff/core": "workspace:*",
+    "@pdfdiff/pdfjs-browser": "workspace:*",
+    "pdfjs-dist": "^6.2.108"
+  }
+}

@@ -1,5 +1,4 @@
-import { Util } from "pdfjs-dist";
-import { measureAsync, throwIfAborted } from "@pdfdiff/core";
+import { isDecodableText, measureAsync, throwIfAborted } from "@pdfdiff/core";
 import type { DocumentTextOptions, LoadedPdf } from "./types.js";
 import type { PageText, PositionedTextItem, TextBounds, TextQuad } from "@pdfdiff/core";
 
@@ -25,9 +24,21 @@ function validatePageNumber(pageNumber: number, pageCount: number): void {
   if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount) throw pageNumberError(pageNumber, pageCount);
 }
 
+/** 2D affine multiply, inlined so this extractor carries no DOM-bound import. */
+function multiplyTransform(first: readonly number[], second: readonly number[]): number[] {
+  return [
+    first[0]! * second[0]! + first[2]! * second[1]!,
+    first[1]! * second[0]! + first[3]! * second[1]!,
+    first[0]! * second[2]! + first[2]! * second[3]!,
+    first[1]! * second[2]! + first[3]! * second[3]!,
+    first[0]! * second[4]! + first[2]! * second[5]! + first[4]!,
+    first[1]! * second[4]! + first[3]! * second[5]! + first[5]!,
+  ];
+}
+
 function geometryForTextItem(item: PdfTextItem, pageTransform: number[]): { bounds: TextBounds; quad: TextQuad } {
   const sourceTransform = item.transform.map((value) => Number(value));
-  const transform = Util.transform(pageTransform, sourceTransform);
+  const transform = multiplyTransform(pageTransform, sourceTransform);
   const angle = Math.atan2(transform[1]!, transform[0]!);
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
@@ -142,7 +153,15 @@ async function extractPageTextUnmeasured(
     text += item.str;
   }
   if (items.at(-1)?.hasEOL) text += "\n";
-  return { pageNumber, width: viewport.width, height: viewport.height, items, text, hasText: items.some((item) => item.str.length > 0) };
+  return {
+    pageNumber,
+    width: viewport.width,
+    height: viewport.height,
+    items,
+    text,
+    hasText: items.some((item) => item.str.length > 0),
+    decodable: isDecodableText(text),
+  };
 }
 
 export function extractPageText(

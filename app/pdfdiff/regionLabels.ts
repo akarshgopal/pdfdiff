@@ -1,4 +1,4 @@
-import type { DiffRegion, DiffRegionKind, DiffSemanticOverlay } from "@pdfdiff/viewer-react";
+import type { ChangeClass, DiffRegion, DiffRegionKind, DiffSemanticOverlay } from "@pdfdiff/viewer-react";
 
 const MAX_REGION_LABEL_CHARS = 60;
 /** Changed pixels sit slightly outside their glyph quad, so match with a little slack. */
@@ -74,9 +74,11 @@ function unionBox(boxes: readonly Box[]): Box {
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
+type InputRegion = Box & { id: string; changeClass?: ChangeClass };
+
 interface RegionGroup {
   readonly id: string;
-  readonly boxes: (Box & { id: string })[];
+  readonly boxes: InputRegion[];
   readonly match: OverlayBox | null;
 }
 
@@ -85,7 +87,7 @@ interface RegionGroup {
  * one of them matches the same overlay. Grouping by that overlay keeps the list
  * to one entry per change instead of repeating the same sentence.
  */
-function groupByMatch(boxes: ReadonlyArray<Box & { id: string }>, overlayBoxes: readonly OverlayBox[]): RegionGroup[] {
+function groupByMatch(boxes: readonly InputRegion[], overlayBoxes: readonly OverlayBox[]): RegionGroup[] {
   const groups: RegionGroup[] = [];
   const byOverlay = new Map<string, RegionGroup>();
   for (const box of boxes) {
@@ -103,7 +105,7 @@ function groupByMatch(boxes: ReadonlyArray<Box & { id: string }>, overlayBoxes: 
 }
 
 /** Name each changed-pixel region after the text change it covers; the rest are graphic-only. */
-export function describeRegions(boxes: ReadonlyArray<Box & { id: string }>, overlays: readonly DiffSemanticOverlay[]): DiffRegion[] {
+export function describeRegions(boxes: readonly InputRegion[], overlays: readonly DiffSemanticOverlay[]): DiffRegion[] {
   const overlayBoxes = overlays.map(overlayBox).filter((box): box is OverlayBox => box !== null);
   let graphicCount = 0;
   return groupByMatch(boxes, overlayBoxes).map((group) => {
@@ -114,6 +116,7 @@ export function describeRegions(boxes: ReadonlyArray<Box & { id: string }>, over
       ...unionBox(group.boxes),
       kind: label && group.match ? group.match.kind : "changed",
       label: label ?? `Graphic change ${graphicCount}`,
+      changeClass: group.boxes[0]!.changeClass,
     };
   });
 }

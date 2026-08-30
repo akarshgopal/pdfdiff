@@ -5,3 +5,7 @@ export * from "./alignment.js";
 export * from "./regions.js";
 export * from "./semantic.js";
 export * from "./visual-diff.js";
+export * from "./document-alignment.js";
+export * from "./classification.js";
+export * from "./report.js";
+export * from "./text-quality.js";

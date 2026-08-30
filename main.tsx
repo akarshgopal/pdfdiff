@@ -2,6 +2,7 @@ import { StrictMode, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import type { DiffMetric } from "@pdfdiff/core";
 import { PdfDiffApp } from "./app/pdfdiff/PdfDiffApp";
+import { LegalPage } from "./app/pdfdiff/LegalPage";
 import "./app/globals.css";
 
 declare global {
@@ -11,10 +12,23 @@ declare global {
 }
 
 function App() {
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
   const recordMetric = useCallback((metric: DiffMetric): void => {
     window.__PDFDIFF_METRICS__?.push(metric);
   }, []);
+  if (path === "/privacy") return <LegalPage kind="privacy" />;
+  if (path === "/terms") return <LegalPage kind="terms" />;
   return <PdfDiffApp onMetric={window.__PDFDIFF_METRICS__ ? recordMetric : undefined} />;
+}
+
+const route = window.location.pathname.replace(/\/+$/, "") || "/";
+if (route === "/privacy" || route === "/terms") {
+  const privacy = route === "/privacy";
+  document.title = `${privacy ? "Privacy Policy" : "Terms of Service"} — pdfdiff`;
+  document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute(
+    "content",
+    privacy ? "How pdfdiff handles PDF files, browser storage, and technical data." : "The terms that govern use of the pdfdiff browser-based PDF comparison service.",
+  );
 }
 
 createRoot(document.getElementById("root")!).render(

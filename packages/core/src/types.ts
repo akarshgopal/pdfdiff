@@ -65,6 +65,8 @@ export interface ChangeRegion {
   readonly height: number;
   readonly pixelCount: number;
   readonly area: number;
+  /** Why this region changed, once the semantic layer has been consulted. */
+  readonly changeClass?: import("./classification.js").ChangeClass;
 }
 
 export interface RegionOptions {
@@ -117,6 +119,8 @@ export interface PageText {
   readonly height: number;
   readonly items: readonly PositionedTextItem[];
   readonly text: string;
+  /** False when the font carried no usable Unicode mapping, so `text` is glyph codes. */
+  readonly decodable?: boolean;
   readonly hasText: boolean;
 }
 
@@ -151,6 +155,12 @@ export interface VisualPageGeometry {
 /** Runtime-neutral result for one compared page. */
 export interface ComparisonPage {
   readonly index: number;
+  /** Source page numbers this comparison pairs, absent when a side has no page. */
+  readonly earlierPageNumber?: number;
+  readonly newerPageNumber?: number;
+  readonly alignment?: import("./document-alignment.js").PageAlignmentKind;
+  /** Content overlap that produced the pairing, 0 when one side is absent. */
+  readonly similarity?: number;
   readonly width?: number;
   readonly height?: number;
   readonly status?: PageStatus;
@@ -160,6 +170,9 @@ export interface ComparisonPage {
   readonly changedPixels?: number;
   readonly changedPercent?: number;
   readonly regions?: readonly ChangeRegion[];
+  readonly changeClasses?: import("./classification.js").ChangeClassCounts;
+  /** False when every region on the page is reflow or formatting noise. */
+  readonly noticeable?: boolean;
   readonly semantic?: import("./semantic.js").SemanticPageDiff;
   readonly visualGeometry?: {
     readonly earlier?: VisualPageGeometry;
@@ -172,6 +185,7 @@ export interface ComparisonResult {
   readonly earlierName?: string;
   readonly newerName?: string;
   readonly pages: readonly ComparisonPage[];
+  readonly alignment?: readonly import("./document-alignment.js").AlignedPagePair[];
   readonly elapsedMs?: number;
 }
 
@@ -181,6 +195,7 @@ export interface ComparisonReadyEvent {
   readonly earlierPageCount: number;
   readonly newerPageCount: number;
   readonly total: number;
+  readonly alignment?: readonly import("./document-alignment.js").AlignedPagePair[];
 }
 
 export interface DiffEngine<Source, Signal extends AbortSignalLike = AbortSignalLike> {
