@@ -65,9 +65,9 @@ const comparison = await engine.compare({
 
 ## Deployment
 
-The app runs on [vinext](https://github.com/cloudflare/vinext) and uses the
-Cloudflare Sites project configuration in `.openai/hosting.json`. PDFs are
-processed in the browser; there is no server-side upload endpoint. Set
+The app runs on [vinext](https://github.com/cloudflare/vinext) and is ready to
+deploy as a Cloudflare Worker. PDFs are processed in the browser; there is no
+server-side upload endpoint. Set
 `NEXT_PUBLIC_SITE_URL` to the canonical origin when deploying behind a proxy;
 otherwise the app uses validated request host headers for metadata URLs.
 
