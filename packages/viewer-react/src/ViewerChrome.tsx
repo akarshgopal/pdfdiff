@@ -1,5 +1,3 @@
-/* The reusable package cannot depend on Next.js's Image component. */
-/* eslint-disable @next/next/no-img-element */
 import { type ReactNode, useState } from "react";
 import { styles, styleProps } from "./styles.js";
 import type { DiffComparison, DiffPage, DiffRegion, DiffViewMode, SourceSide } from "./types.js";
@@ -11,12 +9,12 @@ function ThumbPlaceholder() {
   return <div {...styleProps(styles.thumbPlaceholder)} aria-hidden="true"><span {...styleProps(styles.thumbLine)} /><span {...styleProps(styles.thumbLine, styles.thumbLineShort)} /><span {...styleProps(styles.thumbDiagram)} /><span {...styleProps(styles.thumbLine, styles.thumbLineShort)} /></div>;
 }
 
-export function WorkspaceHeader({ comparison, onNewComparison, onHelp }: { comparison: DiffComparison; onNewComparison?: () => void; onHelp: () => void }) {
+export function WorkspaceHeader({ comparison, onNewComparison, onHelp, headerActions }: { comparison: DiffComparison; onNewComparison?: () => void; onHelp: () => void; headerActions?: ReactNode }) {
   return (
     <header {...styleProps(styles.workspaceBar)}>
       <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
       <div {...styleProps(styles.documentPair)} aria-label="Compared documents"><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>A</span><span {...styleProps(styles.documentChipName)} title={comparison.earlierName}>{comparison.earlierName}</span></div><span {...styleProps(styles.pairArrow)} aria-hidden="true">↔</span><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>B</span><span {...styleProps(styles.documentChipName)} title={comparison.newerName}>{comparison.newerName}</span></div></div>
-      <div {...styleProps(styles.workspaceActions)}><button {...styleProps(styles.helpButton)} type="button" aria-haspopup="dialog" onClick={onHelp}><span {...styleProps(styles.helpButtonMark)} aria-hidden="true">?</span><span {...styleProps(styles.desktopOnly)}>Help</span></button>{onNewComparison ? <button {...styleProps(styles.quietButton)} type="button" onClick={onNewComparison}>New comparison</button> : null}</div>
+      <div {...styleProps(styles.workspaceActions)}>{headerActions}<button {...styleProps(styles.helpButton)} type="button" aria-haspopup="dialog" onClick={onHelp}><span {...styleProps(styles.helpButtonMark)} aria-hidden="true">?</span><span {...styleProps(styles.desktopOnly)}>Help</span></button>{onNewComparison ? <button {...styleProps(styles.quietButton)} type="button" onClick={onNewComparison}>New comparison</button> : null}</div>
     </header>
   );
 }
@@ -48,23 +46,13 @@ function PageRailItem({ page, index, selected, onSelect }: { page: DiffPage; ind
 }
 
 export function PageRail({ pages, pageIndex, earlierPageIndex, newerPageIndex, earlierPageCount, newerPageCount, onSelectPage, onSourcePageChange }: { pages: ReadonlyArray<DiffPage>; pageIndex: number; earlierPageIndex: number; newerPageIndex: number; earlierPageCount: number; newerPageCount: number; onSelectPage: (index: number) => void; onSourcePageChange: (side: SourceSide, index: number) => void }) {
-  const [pageFilter, setPageFilter] = useState<"all" | "changed">("all");
-  const changedPageCount = pages.reduce((count, page) => count + (pageStatus(page) === "same" ? 0 : 1), 0);
-  const visiblePages = pageFilter === "changed" ? pages.map((page, index) => ({ page, index })).filter(({ page }) => pageStatus(page) !== "same") : pages.map((page, index) => ({ page, index }));
   return (
     <aside {...styleProps(styles.pageRail)} aria-label="Pages">
       <div {...styleProps(styles.railHeader)}>
-        <div {...styleProps(styles.railTitleRow)}>
-          <h2 {...styleProps(styles.railHeading)}>Pages</h2>
-          <span {...styleProps(styles.railPagePosition)}>{pages.length}</span>
-        </div>
+        <h2 {...styleProps(styles.railHeading)}>Pages</h2>
         <UnifiedPageNavigation earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onPageChange={onSourcePageChange} />
-        <div {...styleProps(styles.railFilterGroup)} role="group" aria-label="Page filter">
-          <button {...styleProps(styles.railFilterButton, pageFilter === "all" && styles.modeButtonCurrent)} type="button" aria-pressed={pageFilter === "all"} onClick={() => setPageFilter("all")}>All <span>{pages.length}</span></button>
-          <button {...styleProps(styles.railFilterButton, pageFilter === "changed" && styles.modeButtonCurrent)} type="button" aria-pressed={pageFilter === "changed"} onClick={() => setPageFilter("changed")}>Changed <span>{changedPageCount}</span></button>
-        </div>
       </div>
-      {visiblePages.map(({ page, index }) => <PageRailItem key={page.index} page={page} index={index} selected={index === pageIndex} onSelect={onSelectPage} />)}
+      {pages.map((page, index) => <PageRailItem key={page.index} page={page} index={index} selected={index === pageIndex} onSelect={onSelectPage} />)}
     </aside>
   );
 }
@@ -95,14 +83,13 @@ export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, earlierP
   );
 }
 
-export function StatusFooter({ earlierPageIndex, earlierPageCount, newerPageIndex, newerPageCount, status }: { earlierPageIndex: number; earlierPageCount: number; newerPageIndex: number; newerPageCount: number; status: NonNullable<DiffPage["status"]> }) {
-  return <div {...styleProps(styles.statusFooter)}><span {...styleProps(styles.statusAccent)}>{status === "same" ? "No visual changes" : statusLabel(status)}</span><span>A page {earlierPageIndex + 1}/{earlierPageCount} · B page {newerPageIndex + 1}/{newerPageCount}</span><span {...styleProps(styles.shortcutHint)} title="Keyboard shortcuts">← → pages · Shift + ← → A · Ctrl/Cmd + ← → B · 1–4 modes</span></div>;
+export function StatusFooter({ processingProgress }: { processingProgress?: { completed: number; total: number } }) {
+  if (!processingProgress) return null;
+  return <div {...styleProps(styles.statusFooter)} aria-live="polite"><span {...styleProps(styles.statusAccent)}>Comparing pages · {processingProgress.completed} of {processingProgress.total} complete</span></div>;
 }
 
 interface ChangeInspectorProps {
   currentPage: DiffPage;
-  earlierPageNumber: number;
-  newerPageNumber: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   status: NonNullable<DiffPage["status"]>;
@@ -140,9 +127,9 @@ function ComparisonSettings({ open, onToggle, sensitivity, alignment, onSensitiv
   return <div {...styleProps(styles.inspectorSection)}><button {...styleProps(styles.quietButton)} type="button" aria-expanded={open} onClick={onToggle}>{open ? "Hide comparison settings" : "Comparison settings"}</button>{open ? <div {...styleProps(styles.inspectorSection)}><div {...styleProps(styles.controlRow)}><label {...styleProps(styles.controlName)} htmlFor="sensitivity">Sensitivity</label><span {...styleProps(styles.controlValue)}>{sensitivity}</span></div><input id="sensitivity" {...styleProps(styles.range)} type="range" min="0" max="100" value={sensitivity} onChange={(event) => onSensitivityChange(Number(event.target.value))} /><div {...styleProps(styles.controlRow)}><label {...styleProps(styles.controlName)} htmlFor="alignment">Alignment</label><select id="alignment" {...styleProps(styles.select)} value={alignment} onChange={(event) => onAlignmentChange(event.target.value as "none" | "translation")}><option value="none">None</option><option value="translation">Translation only</option></select></div>{mode === "swipe" ? <><div {...styleProps(styles.controlRow)}><label {...styleProps(styles.controlName)} htmlFor="swipe">Swipe position</label><span {...styleProps(styles.controlValue)}>{swipe}%</span></div><input id="swipe" {...styleProps(styles.range)} type="range" min="0" max="100" value={swipe} onChange={(event) => onSwipeChange(Number(event.target.value))} /></> : null}</div> : null}</div>;
 }
 
-function TextChangesSection({ mode, entries, selectedId, onSelect }: { mode: DiffViewMode; entries: readonly ChangeEntry[]; selectedId: string | null; onSelect: (id: string) => void }) {
-  if (mode !== "semantic-text" || entries.length === 0) return null;
-  return <ChangeListSection title="Text changes" entries={entries} selectedId={selectedId} onSelect={onSelect} />;
+function TextChangesSection({ entries, status, selectedId, onSelect }: { entries: readonly ChangeEntry[]; status: NonNullable<DiffPage["status"]>; selectedId: string | null; onSelect: (id: string) => void }) {
+  const emptyMessage = status === "same" ? "No text changes on this page." : "No text changes found; the changes here are graphic only.";
+  return <ChangeListSection title="Text changes" entries={entries} selectedId={selectedId} emptyMessage={emptyMessage} onSelect={onSelect} />;
 }
 
 function SemanticHighlightsToggle({ mode, checked, onChange }: { mode: DiffViewMode; checked: boolean; onChange: (value: boolean) => void }) {
@@ -150,12 +137,12 @@ function SemanticHighlightsToggle({ mode, checked, onChange }: { mode: DiffViewM
   return <Toggle label="Semantic highlights" checked={checked} onChange={onChange} />;
 }
 
-function ExpandedChangeInspector({ currentPage, earlierPageNumber, newerPageNumber, onOpenChange, status, selectedRegion, showBoundingBoxes, onShowBoundingBoxesChange, onSelectRegion, showSettings, onToggleSettings, sensitivity, alignment, onSensitivityChange, onAlignmentChange, mode, swipe, onSwipeChange, showSemanticHighlights, onShowSemanticHighlightsChange }: ChangeInspectorProps) {
+function ExpandedChangeInspector({ currentPage, onOpenChange, status, selectedRegion, showBoundingBoxes, onShowBoundingBoxesChange, onSelectRegion, showSettings, onToggleSettings, sensitivity, alignment, onSensitivityChange, onAlignmentChange, mode, swipe, onSwipeChange, showSemanticHighlights, onShowSemanticHighlightsChange }: ChangeInspectorProps) {
   const regions = currentPage.regions ?? [];
   const textChanges = currentPage.textChanges ?? [];
   const regionEntries = regions.map((region, index) => ({ id: region.id, label: describeRegion(region, index), count: `#${index + 1}`, kind: region.kind }));
   const textEntries = textChanges.map((change, index) => ({ id: change.id, label: describeTextChange(change.text, change.kind, index), kind: change.kind }));
-  return <><div {...styleProps(styles.inspectorHeader)}><h2 {...styleProps(styles.inspectorHeading)}>Changes</h2><button {...styleProps(styles.iconButton)} type="button" aria-label="Collapse change inspector" aria-expanded="true" onClick={() => onOpenChange(false)}>→</button></div><p {...styleProps(styles.inspectorSubheading)}>A page {earlierPageNumber} compared with B page {newerPageNumber} · {status === "same" ? "No visual changes" : statusLabel(status)}.</p><ChangeListSection title="Visual regions" entries={regionEntries} selectedId={selectedRegion} emptyMessage={status === "same" ? "No regions on this page." : "No regions to inspect."} onSelect={onSelectRegion}>{mode === "diff" ? <Toggle label="Show bounding boxes" checked={showBoundingBoxes} onChange={onShowBoundingBoxesChange} /> : null}</ChangeListSection><TextChangesSection mode={mode} entries={textEntries} selectedId={selectedRegion} onSelect={onSelectRegion} /><ComparisonSettings open={showSettings} onToggle={onToggleSettings} sensitivity={sensitivity} alignment={alignment} onSensitivityChange={onSensitivityChange} onAlignmentChange={onAlignmentChange} mode={mode} swipe={swipe} onSwipeChange={onSwipeChange} /><SemanticHighlightsToggle mode={mode} checked={showSemanticHighlights} onChange={onShowSemanticHighlightsChange} /></>;
+  return <><div {...styleProps(styles.inspectorHeader)}><h2 {...styleProps(styles.inspectorHeading)}>Changes</h2><button {...styleProps(styles.iconButton)} type="button" aria-label="Collapse change inspector" aria-expanded="true" onClick={() => onOpenChange(false)}>→</button></div><TextChangesSection entries={textEntries} status={status} selectedId={selectedRegion} onSelect={onSelectRegion} /><ChangeListSection title="Visual regions" entries={regionEntries} selectedId={selectedRegion} emptyMessage={status === "same" ? "No regions on this page." : "No regions to inspect."} onSelect={onSelectRegion}>{mode === "diff" ? <Toggle label="Show bounding boxes" checked={showBoundingBoxes} onChange={onShowBoundingBoxesChange} /> : null}</ChangeListSection><ComparisonSettings open={showSettings} onToggle={onToggleSettings} sensitivity={sensitivity} alignment={alignment} onSensitivityChange={onSensitivityChange} onAlignmentChange={onAlignmentChange} mode={mode} swipe={swipe} onSwipeChange={onSwipeChange} /><SemanticHighlightsToggle mode={mode} checked={showSemanticHighlights} onChange={onShowSemanticHighlightsChange} /></>;
 }
 
 export function ChangeInspector(props: ChangeInspectorProps) {
@@ -165,7 +152,7 @@ export function ChangeInspector(props: ChangeInspectorProps) {
 
 function describeRegion(region: DiffRegion, index: number): string {
   const label = region.label?.trim();
-  if (label && !/^change\s+\d+$/i.test(label)) return label;
+  if (label) return label;
   const kind = region.kind === "added" ? "Added" : region.kind === "removed" ? "Removed" : "Changed";
   return `${kind} area ${index + 1}`;
 }

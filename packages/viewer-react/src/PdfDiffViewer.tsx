@@ -1,5 +1,3 @@
-/* The reusable package cannot depend on Next.js's Image component. */
-/* eslint-disable @next/next/no-img-element */
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -58,7 +56,7 @@ function SemanticNativePane({
   const label = side === "earlier" ? "Earlier" : "Newer";
   return (
     <article {...styleProps(styles.semanticColumn)} aria-label={`${label} native PDF page`}>
-      <header {...styleProps(styles.semanticHeader)}><span>{label}</span><span>{overlays.length ? `${overlays.length} changes` : "Native page"}</span></header>
+      <header {...styleProps(styles.semanticHeader)}><span>{label}</span></header>
       <div {...styleProps(styles.semanticViewport)}>
         {source ? <img {...styleProps(styles.semanticPageImage)} src={source} alt={`${label} version of this page`} draggable={false} /> : <PaperFallback label={`No ${label.toLowerCase()} page`} />}
         {source && showHighlights && overlays.length ? (
@@ -263,9 +261,9 @@ function FullPageViewer({
   return (
     <div {...styleProps(styles.fullPageBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section {...styleProps(styles.fullPageDialog)} role="dialog" aria-modal="true" aria-labelledby="full-page-viewer-title">
-        <header {...styleProps(styles.fullPageToolbar)}><div {...styleProps(styles.fullPageHeading)}><h2 id="full-page-viewer-title" {...styleProps(styles.fullPageTitle)}>{sourceLabel} page {pageNumber}</h2><p {...styleProps(styles.fullPageFileName)} title={fileName}>{fileName}</p></div><div {...styleProps(styles.fullPageActions)}><div {...styleProps(styles.sourceGroup)} role="group" aria-label="Source page"><button {...styleProps(styles.sourceButton, side === "earlier" && styles.modeButtonCurrent)} type="button" aria-pressed={side === "earlier"} disabled={!sourceForSide(page, "earlier")} onClick={() => onSideChange("earlier")}>Earlier</button><button {...styleProps(styles.sourceButton, side === "newer" && styles.modeButtonCurrent)} type="button" aria-pressed={side === "newer"} disabled={!sourceForSide(page, "newer")} onClick={() => onSideChange("newer")}>Newer</button></div><div {...styleProps(styles.fullPagePageNav)} aria-label={`${sourceLabel} page navigation`}><button {...styleProps(styles.iconButton)} type="button" aria-label="Previous source page" disabled={pageNumber <= 1} onClick={() => onPageChange(side, pageNumber - 2)}>←</button><span {...styleProps(styles.fullPagePagePosition)}>Page {pageNumber} / {pageCount}</span><button {...styleProps(styles.iconButton)} type="button" aria-label="Next source page" disabled={pageNumber >= pageCount} onClick={() => onPageChange(side, pageNumber)}>→</button></div><button ref={closeButtonRef} {...styleProps(styles.iconButton, styles.fullPageClose)} type="button" aria-label="Close full-page view" title="Close full-page view (Escape)" onClick={onClose}>×</button></div></header>
+        <header {...styleProps(styles.fullPageToolbar)}><div {...styleProps(styles.fullPageHeading)}><h2 id="full-page-viewer-title" {...styleProps(styles.fullPageTitle)} title={fileName}>{fileName}</h2></div><div {...styleProps(styles.fullPageActions)}><div {...styleProps(styles.sourceGroup)} role="group" aria-label="Source page"><button {...styleProps(styles.sourceButton, side === "earlier" && styles.modeButtonCurrent)} type="button" aria-pressed={side === "earlier"} disabled={!sourceForSide(page, "earlier")} onClick={() => onSideChange("earlier")}>Earlier</button><button {...styleProps(styles.sourceButton, side === "newer" && styles.modeButtonCurrent)} type="button" aria-pressed={side === "newer"} disabled={!sourceForSide(page, "newer")} onClick={() => onSideChange("newer")}>Newer</button></div><div {...styleProps(styles.fullPagePageNav)} aria-label={`${sourceLabel} page navigation`}><button {...styleProps(styles.iconButton)} type="button" aria-label="Previous source page" disabled={pageNumber <= 1} onClick={() => onPageChange(side, pageNumber - 2)}>←</button><span {...styleProps(styles.fullPagePagePosition)}>Page {pageNumber} / {pageCount}</span><button {...styleProps(styles.iconButton)} type="button" aria-label="Next source page" disabled={pageNumber >= pageCount} onClick={() => onPageChange(side, pageNumber)}>→</button></div><button ref={closeButtonRef} {...styleProps(styles.iconButton, styles.fullPageClose)} type="button" aria-label="Close full-page view" title="Close full-page view (Escape)" onClick={onClose}>×</button></div></header>
         <div {...styleProps(styles.fullPageStage)}><img {...styleProps(styles.fullPageImage)} src={source} alt={`${sourceLabel} version of page ${pageNumber}`} draggable={false} /></div>
-        <footer {...styleProps(styles.fullPageFooter)}><span>Full-page view</span><span>Shift + ← → Earlier · Ctrl/Cmd + ← → Newer · Esc to close</span></footer>
+        <footer {...styleProps(styles.fullPageFooter)}><span>Shift + ← → Earlier · Ctrl/Cmd + ← → Newer · Esc to close</span></footer>
       </section>
     </div>
   );
@@ -281,21 +279,21 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   }, [onClose]);
   return (
     <div {...styleProps(styles.fullPageBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section {...styleProps(styles.helpDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-help-title" aria-describedby="viewer-help-lead">
-        <header {...styleProps(styles.helpHeader)}><div><p {...styleProps(styles.helpEyebrow)}>PDF Diff guide</p><h2 id="viewer-help-title" {...styleProps(styles.helpTitle)}>How to compare PDFs</h2><p id="viewer-help-lead" {...styleProps(styles.helpLead)}>Review the workflow, viewing modes, and keyboard shortcuts.</p></div><button ref={closeButtonRef} {...styleProps(styles.iconButton)} type="button" aria-label="Close help" onClick={onClose}>×</button></header>
+      <section {...styleProps(styles.helpDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-help-title">
+        <header {...styleProps(styles.helpHeader)}><h2 id="viewer-help-title" {...styleProps(styles.helpTitle)}>How to compare PDFs</h2><button ref={closeButtonRef} {...styleProps(styles.iconButton)} type="button" aria-label="Close help" onClick={onClose}>×</button></header>
         <div {...styleProps(styles.helpBody)}>
           <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-start"><h3 id="viewer-help-start" {...styleProps(styles.helpSectionTitle)}>In the workspace</h3><ol {...styleProps(styles.helpSteps)}>{helpSteps.map((step) => <li key={step.number} {...styleProps(styles.helpStep)}><span {...styleProps(styles.helpKey)}>{step.number}</span><h4 {...styleProps(styles.helpStepTitle)}>{step.title}</h4><p {...styleProps(styles.helpStepCopy)}>{step.copy}</p></li>)}</ol></section>
           <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-modes"><h3 id="viewer-help-modes" {...styleProps(styles.helpSectionTitle)}>View modes</h3><div {...styleProps(styles.helpModeList)}>{helpModes.map(([name, copy]) => <p key={name} {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>{name}</strong> — {copy}</p>)}</div></section>
           <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-shortcuts"><h3 id="viewer-help-shortcuts" {...styleProps(styles.helpSectionTitle)}>Shortcuts</h3><div {...styleProps(styles.helpShortcutGrid)}>{helpShortcuts.map(([shortcut, copy]) => <p key={shortcut} {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>{shortcut}</kbd><span>{copy}</span></p>)}</div></section>
-          <p {...styleProps(styles.helpNote)}><strong>Settings apply when a comparison starts.</strong> The viewer displays the comparison it receives and does not perform file uploads itself.</p>
+          <p {...styleProps(styles.helpNote)}><strong>Settings apply when a comparison starts.</strong></p>
         </div>
-        <footer {...styleProps(styles.helpFooter)}><span>Reusable comparison viewer</span><button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>Back to app</button></footer>
+        <footer {...styleProps(styles.helpFooter)}><button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>Back to comparison</button></footer>
       </section>
     </div>
   );
 }
 
-export function PdfDiffViewer({ comparison, onNewComparison, onAnalytics, initialOptions, onOptionsChange }: PdfDiffViewerProps) {
+export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison, onAnalytics, initialOptions, onOptionsChange }: PdfDiffViewerProps) {
   const viewer = useViewerState({ comparison, initialOptions, onAnalytics });
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const {
@@ -313,16 +311,16 @@ export function PdfDiffViewer({ comparison, onNewComparison, onAnalytics, initia
   const status = pageStatus(previewPage);
 
   return (
-    <section aria-label="PDF comparison workspace">
-      <WorkspaceHeader comparison={comparison} onNewComparison={onNewComparison} onHelp={() => setShowHelp(true)} />
+    <section {...styleProps(styles.viewerRoot)} aria-label="PDF comparison workspace">
+      <WorkspaceHeader comparison={comparison} onNewComparison={onNewComparison} onHelp={() => setShowHelp(true)} headerActions={headerActions} />
       <div {...styleProps(styles.workspaceMain, inspectorOpen && styles.workspaceMainInspectorOpen)}>
         <PageRail pages={pages} pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSelectPage={selectPage} onSourcePageChange={goToSourcePage} />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
           <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} earlierPage={earlierPage} newerPage={newerPage} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} onOpenSource={setFullPageSide} />
           <div {...styleProps(styles.stage)}><div {...styleProps(styles.stageCenter)}><PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes={showBoundingBoxes} showSemanticHighlights={showSemanticHighlights} selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></div></div>
-          <StatusFooter earlierPageIndex={earlierPageIndex} earlierPageCount={earlierPageCount} newerPageIndex={newerPageIndex} newerPageCount={newerPageCount} status={status} />
+          <StatusFooter processingProgress={processingProgress} />
         </section>
-        <ChangeInspector currentPage={previewPage} earlierPageNumber={earlierPageIndex + 1} newerPageNumber={newerPageIndex + 1} open={inspectorOpen} onOpenChange={setInspectorOpen} status={status} selectedRegion={selectedRegion} showBoundingBoxes={showBoundingBoxes} onShowBoundingBoxesChange={setShowBoundingBoxes} onSelectRegion={setSelectedRegion} showSettings={showSettings} onToggleSettings={() => setShowSettings((value) => !value)} sensitivity={sensitivity} alignment={alignment} onSensitivityChange={(value) => { setSensitivity(value); onOptionsChange?.({ sensitivity: value, alignment }); }} onAlignmentChange={(value) => { setAlignment(value); onOptionsChange?.({ sensitivity, alignment: value }); }} mode={mode} swipe={swipe} onSwipeChange={setSwipe} showSemanticHighlights={showSemanticHighlights} onShowSemanticHighlightsChange={setShowSemanticHighlights} />
+        <ChangeInspector currentPage={previewPage} open={inspectorOpen} onOpenChange={setInspectorOpen} status={status} selectedRegion={selectedRegion} showBoundingBoxes={showBoundingBoxes} onShowBoundingBoxesChange={setShowBoundingBoxes} onSelectRegion={setSelectedRegion} showSettings={showSettings} onToggleSettings={() => setShowSettings((value) => !value)} sensitivity={sensitivity} alignment={alignment} onSensitivityChange={(value) => { setSensitivity(value); onOptionsChange?.({ sensitivity: value, alignment }); }} onAlignmentChange={(value) => { setAlignment(value); onOptionsChange?.({ sensitivity, alignment: value }); }} mode={mode} swipe={swipe} onSwipeChange={setSwipe} showSemanticHighlights={showSemanticHighlights} onShowSemanticHighlightsChange={setShowSemanticHighlights} />
       </div>
       {fullPageSide && fullPage && sourceForSide(fullPage, fullPageSide) ? <FullPageViewer page={fullPage} pageNumber={fullPageIndex + 1} pageCount={fullPageCount} earlierName={comparison.earlierName} newerName={comparison.newerName} side={fullPageSide} onSideChange={setFullPageSide} onPageChange={goToSourcePage} onClose={() => setFullPageSide(null)} /> : null}
       {showHelp ? <HelpDialog onClose={closeHelp} /> : null}

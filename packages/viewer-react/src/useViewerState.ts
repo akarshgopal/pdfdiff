@@ -59,8 +59,8 @@ export function useViewerState({ comparison, initialOptions, onAnalytics }: { co
   const [showHelp, setShowHelp] = useState(false);
   const [pairResolution, setPairResolution] = useState<PairResolution | null>(null);
 
-  const earlierPageCount = sourcePageCount(pages, "earlier");
-  const newerPageCount = sourcePageCount(pages, "newer");
+  const earlierPageCount = comparison.earlierPageCount ?? sourcePageCount(pages, "earlier");
+  const newerPageCount = comparison.newerPageCount ?? sourcePageCount(pages, "newer");
   const currentPage = pageAt(pages, pageIndex);
   const earlierPage = pageAt(pages, earlierPageIndex);
   const newerPage = pageAt(pages, newerPageIndex);

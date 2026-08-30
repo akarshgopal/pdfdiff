@@ -1,6 +1,7 @@
 # PDF Diff
 
-PDF Diff compares two PDF revisions locally in the browser. It renders visual
+PDF Diff is a static React application that compares two PDF revisions locally
+in the browser. It renders visual
 diffs, extracts semantic text changes, and provides a focused page-by-page
 review workspace. See HELP.md for the user guide.
 
@@ -30,6 +31,7 @@ logic can be reused independently of the browser app:
   It owns navigation, view modes, inspection controls, and keyboard shortcuts.
 - `app/` — the product shell: upload flow, privacy messaging, loading state,
   default engine wiring, analytics callbacks, and the in-app help section.
+- `main.tsx` and `index.html` — the static Vite application entry and metadata.
 
 Build the packages independently with:
 
@@ -56,7 +58,10 @@ const comparison = await engine.compare({
 ## Useful commands
 
 - `pnpm dev`: start local development
-- `pnpm build`: build the packages and the vinext app
+- `pnpm build`: build the packages and static Vite application
+- `pnpm start`: preview the production build locally
+- `pnpm deploy:dry-run`: build and validate the Cloudflare asset deployment
+- `pnpm deploy`: build and deploy the static assets to Cloudflare
 - `pnpm test`: build and run the rendered HTML, core, and semantic tests
 - `pnpm lint`: run ESLint
 - `pnpm bench:core`: run deterministic core performance and quality scenarios
@@ -65,11 +70,21 @@ const comparison = await engine.compare({
 
 ## Deployment
 
-The app runs on [vinext](https://github.com/cloudflare/vinext) and is ready to
-deploy as a Cloudflare Worker. PDFs are processed in the browser; there is no
-server-side upload endpoint. Set
-`NEXT_PUBLIC_SITE_URL` to the canonical origin when deploying behind a proxy;
-otherwise the app uses validated request host headers for metadata URLs.
+The `wrangler.jsonc` configuration deploys `dist/` through Cloudflare Workers
+Static Assets. It has no Worker script, server-side rendering, runtime bindings,
+or server-side upload endpoint. Static asset requests do not execute Worker
+compute.
+
+Set `VITE_SITE_URL` to the canonical origin at build time to add absolute
+canonical, Open Graph, and X image URLs. For example:
+
+```bash
+VITE_SITE_URL=https://pdfdiff.example pnpm build
+```
+
+PDFs are processed entirely in the browser. Recent comparison history stores
+only filenames, sizes, dates, and comparison settings; users select the source
+files again when repeating a comparison.
 
 ## Repository notes
 
@@ -79,4 +94,4 @@ otherwise the app uses validated request host headers for metadata URLs.
 
 ## Learn More
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
+- [Cloudflare Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/)

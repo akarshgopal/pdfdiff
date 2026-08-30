@@ -71,6 +71,12 @@ export interface RegionOptions {
   minPixels?: number;
   maxRegions?: number;
   connectivity?: 4 | 8;
+  /** Merge components whose bounding boxes sit within this horizontal gap, in pixels. */
+  mergeGapX?: number;
+  /** Merge components whose bounding boxes sit within this vertical gap, in pixels. */
+  mergeGapY?: number;
+  /** Order the surviving regions top-to-bottom then left-to-right instead of by size. */
+  readingOrder?: boolean;
   signal?: AbortSignalLike;
   metrics?: import("./instrumentation.js").DiffMetricSink;
 }
@@ -130,6 +136,8 @@ export interface DiffPolicy {
   readonly maxDimension?: number;
   readonly regionMinPixels?: number;
   readonly maxRegions?: number;
+  readonly regionMergeGapX?: number;
+  readonly regionMergeGapY?: number;
 }
 
 export interface VisualPageGeometry {
@@ -167,12 +175,22 @@ export interface ComparisonResult {
   readonly elapsedMs?: number;
 }
 
+export interface ComparisonReadyEvent {
+  readonly earlierName?: string;
+  readonly newerName?: string;
+  readonly earlierPageCount: number;
+  readonly newerPageCount: number;
+  readonly total: number;
+}
+
 export interface DiffEngine<Source, Signal extends AbortSignalLike = AbortSignalLike> {
   compare(request: {
     earlier: Source;
     newer: Source;
     options: DiffOptions;
     signal: Signal;
+    onReady?: (event: ComparisonReadyEvent) => void | Promise<void>;
+    onPage?: (page: ComparisonPage) => void | Promise<void>;
     onProgress?: (progress: ProgressEvent) => void;
     onMetric?: import("./instrumentation.js").DiffMetricSink;
   }): Promise<ComparisonResult>;

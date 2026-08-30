@@ -12,7 +12,7 @@ and the second file is the **Newer** version (the revision).
    file picker; the first selected file fills the card you opened and the
    second fills the other card.
 3. Use the swap button if the versions are in the wrong order.
-4. Select **Compare PDFs**. PDF Diff renders the pages, compares their pixels,
+4. Select **Compare**. PDF Diff renders the pages, compares their pixels,
    and checks their extracted text.
 
 PDF files must be smaller than 150 MB. A file can be replaced from its card or
@@ -80,8 +80,10 @@ setting, and compare again.
 ## Privacy and limits
 
 PDF Diff processes files locally in the browser. The PDFs are not uploaded to
-an application server. The app accepts PDF files up to 150 MB each and needs a
-browser with a working canvas for rendering and comparison.
+an application server. Recent comparison history contains only filenames, file
+sizes, dates, and comparison settings; PDFs must be selected again for another
+comparison. The app accepts PDF files up to 150 MB each and needs a browser
+with a working canvas for rendering and comparison.
 
 PDF Diff shows the detected visual and text differences to help with review;
 it does not edit, merge, or export PDF files.

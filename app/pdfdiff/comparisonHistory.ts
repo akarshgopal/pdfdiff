@@ -1,7 +1,7 @@
 import type { DiffOptions } from "./PdfDiffApp";
 
 const DATABASE_NAME = "pdfdiff-history";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAME = "comparisons";
 const MAX_SAVED_COMPARISONS = 6;
 
@@ -11,34 +11,55 @@ export interface ComparisonHistorySummary {
   earlierSize: number;
   newerName: string;
   newerSize: number;
+  options: DiffOptions;
   updatedAt: number;
 }
 
-interface StoredComparison extends ComparisonHistorySummary {
-  earlierBlob: Blob;
-  earlierLastModified: number;
-  earlierType: string;
-  newerBlob: Blob;
-  newerLastModified: number;
-  newerType: string;
-  options: DiffOptions;
+type StoredComparison = ComparisonHistorySummary;
+
+interface LegacyStoredComparison extends StoredComparison {
+  earlierBlob?: Blob;
+  earlierLastModified?: number;
+  earlierType?: string;
+  newerBlob?: Blob;
+  newerLastModified?: number;
+  newerType?: string;
 }
 
-export interface ResumableComparison {
-  id: string;
-  earlierFile: File;
-  newerFile: File;
-  options: DiffOptions;
+function withoutFileData(record: LegacyStoredComparison): StoredComparison {
+  return {
+    id: record.id,
+    earlierName: record.earlierName,
+    earlierSize: record.earlierSize,
+    newerName: record.newerName,
+    newerSize: record.newerSize,
+    options: record.options,
+    updatedAt: record.updatedAt,
+  };
 }
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const database = request.result;
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME, { keyPath: "id" });
+        return;
       }
+      if (event.oldVersion >= 2) return;
+
+      // Version 1 stored complete PDF blobs. Rewrite every record as metadata
+      // so upgrading releases that browser storage without losing history.
+      const store = request.transaction?.objectStore(STORE_NAME);
+      const cursorRequest = store?.openCursor();
+      if (!cursorRequest) return;
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor) return;
+        cursor.update(withoutFileData(cursor.value as LegacyStoredComparison));
+        cursor.continue();
+      };
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("Unable to open comparison history."));
@@ -80,12 +101,13 @@ export async function listComparisonHistory(): Promise<ComparisonHistorySummary[
   const records = await readAll();
   return records
     .sort((left, right) => right.updatedAt - left.updatedAt)
-    .map(({ id, earlierName, earlierSize, newerName, newerSize, updatedAt }) => ({
+    .map(({ id, earlierName, earlierSize, newerName, newerSize, options, updatedAt }) => ({
       id,
       earlierName,
       earlierSize,
       newerName,
       newerSize,
+      options,
       updatedAt,
     }));
 }
@@ -100,14 +122,8 @@ export async function saveComparisonHistory(input: {
     id: input.id ?? crypto.randomUUID(),
     earlierName: input.earlierFile.name,
     earlierSize: input.earlierFile.size,
-    earlierBlob: input.earlierFile,
-    earlierLastModified: input.earlierFile.lastModified,
-    earlierType: input.earlierFile.type,
     newerName: input.newerFile.name,
     newerSize: input.newerFile.size,
-    newerBlob: input.newerFile,
-    newerLastModified: input.newerFile.lastModified,
-    newerType: input.newerFile.type,
     options: input.options,
     updatedAt: Date.now(),
   };
@@ -124,23 +140,6 @@ export async function saveComparisonHistory(input: {
   await writeTransaction((store) => {
     expiredIds.forEach((id) => store.delete(id));
   }, "Unable to trim comparison history.");
-}
-
-export async function loadComparisonHistory(id: string): Promise<ResumableComparison | null> {
-  const record = await readRequest((store) => store.get(id) as IDBRequest<StoredComparison | undefined>, "Unable to load this comparison.");
-  if (!record) return null;
-  return {
-    id: record.id,
-    earlierFile: new File([record.earlierBlob], record.earlierName, {
-      type: record.earlierType || "application/pdf",
-      lastModified: record.earlierLastModified,
-    }),
-    newerFile: new File([record.newerBlob], record.newerName, {
-      type: record.newerType || "application/pdf",
-      lastModified: record.newerLastModified,
-    }),
-    options: record.options,
-  };
 }
 
 export async function clearComparisonHistory(): Promise<void> {

@@ -1,44 +1,45 @@
-import vinext from "vinext";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 
-// macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
-const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+function canonicalOrigin(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (!/^https?:$/.test(url.protocol) || url.username || url.password) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
 
-const localBindingConfig = {
-  main: "./worker/index.ts",
-  compatibility_flags: ["nodejs_compat"],
-  d1_databases: [],
-  r2_buckets: [],
-};
-
-export default defineConfig(async () => {
-  // Keep Wrangler and Miniflare state project-local. These are non-secret tool
-  // settings; application environment belongs in ignored `.env*` files.
-  process.env.WRANGLER_WRITE_LOGS ??= "false";
-  process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
-  process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
-
-  // Wrangler snapshots its log path while the Cloudflare plugin is imported.
-  const { cloudflare } = await import("@cloudflare/vite-plugin");
-
+function absoluteMetadata(origin: string | null): Plugin {
   return {
-    // Vinext's RSC dev bootstrap can inject a browser-only React Refresh
-    // preamble into the development entry. Keep that preamble out of the
-    // server/client bootstrap while this Vinext version is in use.
+    name: "pdfdiff-absolute-metadata",
+    transformIndexHtml(html) {
+      const metadata = origin ? [
+        `<link rel="canonical" href="${origin}/" />`,
+        `<meta property="og:url" content="${origin}/" />`,
+        `<meta property="og:image" content="${origin}/og.png" />`,
+        `<meta name="twitter:image" content="${origin}/og.png" />`,
+      ].join("\n    ") : "";
+      return html.replace("<!-- absolute-site-metadata -->", metadata);
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  return {
     server: {
-      hmr: false,
-      ...(isCodexSeatbeltSandbox
+      ...(process.env.CODEX_SANDBOX === "seatbelt"
         ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),
     },
     plugins: [
       tailwindcss(),
-      vinext({ react: false }),
-      cloudflare({
-        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-        config: localBindingConfig,
-      }),
+      react(),
+      absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL)),
     ],
   };
 });

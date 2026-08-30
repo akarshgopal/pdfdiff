@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "@pdfdiff/viewer-react/theme.css";
-@source "../app";
+@source "./";
 @source "../components";
 
 @custom-variant dark (&:where(.dark, .dark *));

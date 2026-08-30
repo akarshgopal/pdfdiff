@@ -83,14 +83,20 @@ export async function loadPdfPair(
   newerSource: PdfSource,
   options: PdfLoadOptions = {},
 ): Promise<{ earlier: LoadedPdf; newer: LoadedPdf }> {
-  const earlier = await loadPdf(earlierSource, options);
-  try {
-    const newer = await loadPdf(newerSource, options);
-    return { earlier, newer };
-  } catch (error) {
-    await earlier.destroy().catch(() => undefined);
-    throw error;
+  const [earlierResult, newerResult] = await Promise.allSettled([
+    loadPdf(earlierSource, options),
+    loadPdf(newerSource, options),
+  ]);
+  if (earlierResult.status === "fulfilled" && newerResult.status === "fulfilled") {
+    return { earlier: earlierResult.value, newer: newerResult.value };
   }
+  await Promise.allSettled([
+    earlierResult.status === "fulfilled" ? earlierResult.value.destroy() : Promise.resolve(),
+    newerResult.status === "fulfilled" ? newerResult.value.destroy() : Promise.resolve(),
+  ]);
+  if (earlierResult.status === "rejected") throw earlierResult.reason;
+  if (newerResult.status === "rejected") throw newerResult.reason;
+  throw new Error("Unable to load the PDF pair.");
 }
 
 export async function getPdfMetadata(pdf: LoadedPdf | PDFDocumentProxy, signal?: PdfLoadOptions["signal"]): Promise<PdfMetadata> {

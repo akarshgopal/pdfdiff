@@ -1,4 +1,5 @@
 import type { SemanticPageDiff } from "@pdfdiff/core";
+import type { ReactNode } from "react";
 
 export type DiffViewMode = "diff" | "semantic-text" | "side-by-side" | "swipe" | "blink" | "earlier" | "newer";
 export type SourceSide = "earlier" | "newer";
@@ -52,6 +53,8 @@ export interface DiffPage {
 export interface DiffComparison {
   readonly earlierName: string;
   readonly newerName: string;
+  readonly earlierPageCount?: number;
+  readonly newerPageCount?: number;
   readonly pages: readonly DiffPage[];
   readonly elapsedMs?: number;
   readonly comparePagePair?: (request: {
@@ -74,6 +77,8 @@ export interface ViewerOptions {
 
 export interface PdfDiffViewerProps {
   comparison: DiffComparison;
+  processingProgress?: { readonly completed: number; readonly total: number };
+  headerActions?: ReactNode;
   onNewComparison?: () => void;
   onAnalytics?: (event: ViewerAnalyticsEvent) => void;
   initialOptions?: ViewerOptions;

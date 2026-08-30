@@ -113,4 +113,40 @@ test("viewer renders unified A/B navigation, overlay thumbnails, and a collapsed
   assert.match(html, /Comparison overlay preview/);
   assert.match(html, /aria-label="Open change inspector"/);
   assert.doesNotMatch(html, /Change position|Changed area/);
+  assert.doesNotMatch(html, />Changes found<\/span>/);
+});
+
+test("viewer renders supplied header actions in the comparison workspace", () => {
+  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
+    comparison: {
+      earlierName: "earlier.pdf",
+      newerName: "newer.pdf",
+      pages: [{ ...currentPage }],
+    },
+    headerActions: createElement("button", { type: "button", "aria-label": "Toggle dark mode" }, "theme"),
+  }));
+
+  assert.match(html, /aria-label="Toggle dark mode"/);
+});
+
+test("viewer renders document counts and progress without treating pending pages as changes", () => {
+  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
+    comparison: {
+      earlierName: "earlier.pdf",
+      newerName: "newer.pdf",
+      earlierPageCount: 3,
+      newerPageCount: 2,
+      pages: [
+        { index: 0, status: "processing" },
+        { index: 1, status: "processing" },
+        { index: 2, status: "processing" },
+      ],
+    },
+    processingProgress: { completed: 0, total: 3 },
+  }));
+
+  assert.match(html, /A<\/span><strong>1 \/ 3/);
+  assert.match(html, /B<\/span><strong>1 \/ 2/);
+  assert.doesNotMatch(html, />Changed <span>/);
+  assert.match(html, /Comparing pages · 0 of 3 complete/);
 });

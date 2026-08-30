@@ -1,10 +1,9 @@
-"use client";
-
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { createPdfJsEngine } from "@pdfdiff/pdfjs-browser";
 import type { ComparisonPage, ComparisonResult, RasterImage, VisualPageGeometry } from "@pdfdiff/core";
 import type { DiffComparison, DiffPage, DiffSemanticOverlay, DiffRegion, DiffTextChange } from "@pdfdiff/viewer-react";
 import type { PdfDiffEngine } from "./pdfdiff/PdfDiffApp";
+import { describeRegions } from "./pdfdiff/regionLabels";
 
 const MAX_VIEWER_TEXT_CHANGES = 80;
 const MAX_VIEWER_SEMANTIC_OVERLAYS = 160;
@@ -29,18 +28,17 @@ async function imageUrl(image: RasterImage, format: "webp" | "png" = "webp"): Pr
   return url;
 }
 
-function regionsForPage(page: ComparisonPage): DiffRegion[] {
+/** Regions arrive in overlay pixels; the viewer and the overlays both use page-relative percentages. */
+function regionsForPage(page: ComparisonPage, overlays: readonly DiffSemanticOverlay[]): DiffRegion[] {
   const width = page.width ?? 1;
   const height = page.height ?? 1;
-  return (page.regions ?? []).map((region) => ({
+  return describeRegions((page.regions ?? []).map((region) => ({
     id: String(region.id),
     x: (region.x / width) * 100,
     y: (region.y / height) * 100,
     width: (region.width / width) * 100,
     height: (region.height / height) * 100,
-    kind: "changed",
-    label: `Change ${region.id}`,
-  }));
+  })), overlays);
 }
 
 function textChangesForPage(page: ComparisonPage): DiffTextChange[] {
@@ -83,6 +81,8 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
     page.newer ? imageUrl(page.newer) : undefined,
     page.diff ? imageUrl(page.diff, "png") : undefined,
   ]);
+  const semanticBeforeOverlays = semanticOverlaysForPage(page, "earlier");
+  const semanticAfterOverlays = semanticOverlaysForPage(page, "newer");
   return {
     index: page.index,
     width: page.width,
@@ -93,21 +93,20 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
     diffSrc,
     changedPixels: page.changedPixels,
     changedPercent: page.changedPercent,
-    regions: regionsForPage(page),
+    regions: regionsForPage(page, [...semanticBeforeOverlays, ...semanticAfterOverlays]),
     textChanges: textChangesForPage(page),
     textChangeCount: page.semantic?.changes.length ?? 0,
     semantic: page.semantic,
-    semanticBeforeOverlays: semanticOverlaysForPage(page, "earlier"),
-    semanticAfterOverlays: semanticOverlaysForPage(page, "newer"),
+    semanticBeforeOverlays,
+    semanticAfterOverlays,
     error: page.error,
   };
 }
 
 type RawPagePairResolver = (request: { earlierPageIndex: number; newerPageIndex: number; signal: AbortSignal }) => Promise<ComparisonPage>;
 
-async function toViewerComparison(result: ComparisonResult, resolveRawPagePair?: RawPagePairResolver): Promise<DiffComparison> {
-  const pages = await Promise.all(result.pages.map(toViewerPage));
-  const urls = new Set<string>();
+async function toViewerComparison(result: ComparisonResult, resolveRawPagePair?: RawPagePairResolver, convertedPages = new Map<number, DiffPage>(), urls = new Set<string>()): Promise<DiffComparison> {
+  const pages = await Promise.all(result.pages.map((page) => convertedPages.get(page.index) ?? toViewerPage(page)));
   const pairCache = new Map<string, DiffPage>();
   let disposed = false;
   const trackPageUrls = (page: DiffPage): void => {
@@ -151,15 +150,50 @@ const engine = createPdfJsEngine({ workerSrc: workerUrl });
 
 export const browserPdfDiffEngine: PdfDiffEngine = {
   async compare(request) {
-    const result = await engine.compare(request);
-    return toViewerComparison(result, ({ earlierPageIndex, newerPageIndex, signal }) => engine.comparePagePair({
-      earlier: request.earlier,
-      newer: request.newer,
-      earlierPageIndex,
-      newerPageIndex,
-      options: request.options,
-      signal,
-      onMetric: request.onMetric,
-    }));
+    const convertedPages = new Map<number, DiffPage>();
+    const urls = new Set<string>();
+    const revokePage = (page: DiffPage): void => {
+      for (const url of [page.beforeSrc, page.afterSrc, page.diffSrc]) if (url) URL.revokeObjectURL(url);
+    };
+    try {
+      const result = await engine.compare({
+        ...request,
+        onReady: (event) => request.onReady?.({
+          earlierName: event.earlierName ?? "Earlier PDF",
+          newerName: event.newerName ?? "Newer PDF",
+          earlierPageCount: event.earlierPageCount,
+          newerPageCount: event.newerPageCount,
+          total: event.total,
+        }),
+        onPage: async (rawPage) => {
+          const page = await toViewerPage(rawPage);
+          if (request.signal.aborted) {
+            revokePage(page);
+            throw new DOMException("The comparison was aborted.", "AbortError");
+          }
+          convertedPages.set(page.index, page);
+          for (const url of [page.beforeSrc, page.afterSrc, page.diffSrc]) if (url) urls.add(url);
+          request.onPage?.(page);
+        },
+      });
+      const comparison = await toViewerComparison(result, ({ earlierPageIndex, newerPageIndex, signal }) => engine.comparePagePair({
+        earlier: request.earlier,
+        newer: request.newer,
+        earlierPageIndex,
+        newerPageIndex,
+        options: request.options,
+        signal,
+        onMetric: request.onMetric,
+      }), convertedPages, urls);
+      return {
+        ...comparison,
+        earlierPageCount: result.pages.reduce((count, page) => page.earlier ? count + 1 : count, 0),
+        newerPageCount: result.pages.reduce((count, page) => page.newer ? count + 1 : count, 0),
+      };
+    } catch (error) {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+      throw error;
+    }
   },
 };

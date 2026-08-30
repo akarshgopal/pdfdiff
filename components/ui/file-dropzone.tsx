@@ -6,7 +6,6 @@ import { formatFileSize } from "../../lib/format";
 
 type FileDropzoneProps = {
   label: string;
-  description: string;
   file: File | null;
   active: boolean;
   onChoose: () => void;
@@ -20,8 +19,9 @@ function DropzonePrompt({ file }: Pick<FileDropzoneProps, "file">) {
   return <><CloudUpload className="size-5" strokeWidth={1.8} aria-hidden="true" /><span className="sr-only">Upload file</span></>;
 }
 
-function FileDetails({ file, description }: Pick<FileDropzoneProps, "file" | "description">) {
-  return <><span className="mt-2 max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold tracking-[-0.02em] text-foreground" title={file?.name}>{file ? file.name : description}</span>{file ? <span className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.size)} · PDF</span> : <><span className="mt-2 text-sm font-medium text-primary">Drop here or browse</span><span className="mt-1 text-xs text-muted-foreground">PDF only · up to 150 MB</span></>}</>;
+function FileDetails({ file }: Pick<FileDropzoneProps, "file">) {
+  if (!file) return <><span className="mt-2 text-sm font-semibold text-primary">Drop here or browse</span><span className="mt-1 text-xs text-muted-foreground">PDF · up to 150 MB</span></>;
+  return <><span className="mt-2 max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold tracking-[-0.02em] text-foreground" title={file.name}>{file.name}</span><span className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.size)}</span></>;
 }
 
 function SelectedFileActions({ file, label, onRemove, onChoose }: Pick<FileDropzoneProps, "file" | "label" | "onRemove" | "onChoose">) {
@@ -31,7 +31,6 @@ function SelectedFileActions({ file, label, onRemove, onChoose }: Pick<FileDropz
 
 export function FileDropzone({
   label,
-  description,
   file,
   active,
   onChoose,
@@ -48,7 +47,7 @@ export function FileDropzone({
         file && "border-solid border-success/60 bg-success/5",
       )}
       role="group"
-      aria-label={`${label}: ${file ? file.name : description}`}
+      aria-label={`${label} PDF${file ? `: ${file.name}` : ""}`}
       onDragEnter={(event) => {
         event.preventDefault();
         onActive(true);
@@ -66,7 +65,7 @@ export function FileDropzone({
           <DropzonePrompt file={file} />
         </span>
         <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-        <FileDetails file={file} description={description} />
+        <FileDetails file={file} />
       </button>
       <SelectedFileActions file={file} label={label} onRemove={onRemove} onChoose={onChoose} />
     </div>
