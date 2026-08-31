@@ -1,4 +1,4 @@
-import type { DiffPage, DiffViewMode, SourceSide } from "./types.js";
+import type { DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
 
 export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcut: string }> = [
   { id: "diff", label: "Overlay", shortcut: "1" },
@@ -6,6 +6,30 @@ export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcu
   { id: "swipe", label: "Swipe", shortcut: "3" },
   { id: "semantic-text", label: "Text", shortcut: "4" },
 ];
+
+export const MIN_ZOOM = 25;
+export const MAX_ZOOM = 400;
+export const ZOOM_STEP = 25;
+
+/** The browser owns fullscreen; the viewer only asks for it. */
+export function toggleFullscreen(): void {
+  if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+  else void document.documentElement.requestFullscreen?.().catch(() => undefined);
+}
+
+/**
+ * Zoom past this asks for the high-resolution re-render, and only a drop back
+ * below the lower bound cancels it — the gap keeps a wheel hovering around the
+ * threshold from re-rendering on every notch.
+ */
+export function qualityForZoom(zoom: number, current: RenderQuality): RenderQuality {
+  if (zoom >= 150) return "high";
+  return zoom <= 125 ? "standard" : current;
+}
+
+export function clampZoom(zoom: number): number {
+  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom)));
+}
 
 const normalizedPairModes = new Set<DiffViewMode>(["diff", "semantic-text", "swipe"]);
 
@@ -31,8 +55,10 @@ export function modeNeedsComparedPair(mode: DiffViewMode): boolean {
   return normalizedPairModes.has(mode);
 }
 
-function previewSources(mode: DiffViewMode, comparisonPairPage: DiffPage | null, earlierPage: DiffPage | null, newerPage: DiffPage | null): Pick<DiffPage, "beforeSrc" | "afterSrc"> {
-  if (modeNeedsComparedPair(mode) && comparisonPairPage) {
+function previewSources(comparisonPairPage: DiffPage | null, earlierPage: DiffPage | null, newerPage: DiffPage | null): Pick<DiffPage, "beforeSrc" | "afterSrc"> {
+  // The resolved pair is the same two source pages, rendered together, so its
+  // images win whenever it exists — including the re-render at high quality.
+  if (comparisonPairPage) {
     return { beforeSrc: comparisonPairPage.beforeSrc, afterSrc: comparisonPairPage.afterSrc };
   }
   return {
@@ -59,8 +85,7 @@ function comparisonDetails(page: DiffPage | null): Partial<DiffPage> {
   return { diffSrc, status, changedPixels, changedPercent, regions: regions ?? [], textChanges: textChanges ?? [], textChangeCount: textChangeCount ?? 0, semantic, semanticBeforeOverlays, semanticAfterOverlays, error };
 }
 
-export function buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage }: {
-  mode: DiffViewMode;
+export function buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage }: {
   currentPage: DiffPage | null;
   earlierPage: DiffPage | null;
   newerPage: DiffPage | null;
@@ -70,7 +95,7 @@ export function buildPreviewPage({ mode, currentPage, earlierPage, newerPage, co
   if (!previewBase) return null;
   return {
     ...previewBase,
-    ...previewSources(mode, comparisonPairPage, earlierPage, newerPage),
+    ...previewSources(comparisonPairPage, earlierPage, newerPage),
     ...comparisonDetails(comparisonPairPage),
   };
 }

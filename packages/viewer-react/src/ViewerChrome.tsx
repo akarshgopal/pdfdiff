@@ -1,72 +1,54 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
+import { Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
 import { styles, styleProps } from "./styles.js";
-import type { DiffComparison, DiffPage, DiffViewMode, SourceSide } from "./types.js";
-import { pagePairDescription, pagePairLabel, pageStatus, sourceForSide, statusSymbol, viewModes } from "./viewer-utils.js";
-import { isNoisePage, noiseCount, summaryHeadline, type ComparisonSummary } from "./summary.js";
-import type { ExportFormat } from "./export.js";
-
-const MIN_ZOOM = 25;
-const MAX_ZOOM = 400;
-const ZOOM_STEP = 25;
+import type { DiffComparison, DiffPage, DiffViewMode, OverlayStyle, SourceSide, ViewerSettings } from "./types.js";
+import { MAX_ZOOM, MIN_ZOOM, pagePairDescription, pagePairLabel, pageStatus, statusSymbol, viewModes, ZOOM_STEP } from "./viewer-utils.js";
+import { isNoisePage, summaryHeadline, type ComparisonSummary } from "./summary.js";
+import type { ExportChoice } from "./export.js";
 
 function ThumbPlaceholder() {
   return <div {...styleProps(styles.thumbPlaceholder)} aria-hidden="true"><span {...styleProps(styles.thumbLine)} /><span {...styleProps(styles.thumbLine, styles.thumbLineShort)} /><span {...styleProps(styles.thumbDiagram)} /><span {...styleProps(styles.thumbLine, styles.thumbLineShort)} /></div>;
 }
 
-export function WorkspaceHeader({ comparison, onNewComparison, onHelp, headerActions }: { comparison: DiffComparison; onNewComparison?: () => void; onHelp: () => void; headerActions?: ReactNode }) {
+/** The document-level answer belongs beside the document names, not in a bar of its own. */
+export function WorkspaceHeader({ comparison, summary, onNewComparison, headerActions }: { comparison: DiffComparison; summary: ComparisonSummary; onNewComparison?: () => void; headerActions?: ReactNode }) {
   return (
     <header {...styleProps(styles.workspaceBar)}>
       <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
       <div {...styleProps(styles.documentPair)} aria-label="Compared documents"><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>A</span><span {...styleProps(styles.documentChipName)} title={comparison.earlierName}>{comparison.earlierName}</span></div><span {...styleProps(styles.pairArrow)} aria-hidden="true">↔</span><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>B</span><span {...styleProps(styles.documentChipName)} title={comparison.newerName}>{comparison.newerName}</span></div></div>
-      <div {...styleProps(styles.workspaceActions)}>{headerActions}<button {...styleProps(styles.helpButton)} type="button" aria-haspopup="dialog" onClick={onHelp}><span {...styleProps(styles.helpButtonMark)} aria-hidden="true">?</span><span {...styleProps(styles.desktopOnly)}>Help</span></button>{onNewComparison ? <button {...styleProps(styles.quietButton)} type="button" onClick={onNewComparison}>New comparison</button> : null}</div>
+      <div {...styleProps(styles.headerSummary)} aria-label="Comparison summary">
+        <strong {...styleProps(styles.headerHeadline)}>{summaryHeadline(summary)}</strong>
+        {summary.pagesWithUnreadableText
+          ? <span {...styleProps(styles.headerWarning)} title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR.">⚠ Text unavailable</span>
+          : summary.pagesWithoutText ? <span {...styleProps(styles.headerWarning)} title="These pages have no selectable text, so only the visual comparison applies.">⚠ No selectable text</span> : null}
+      </div>
+      <div {...styleProps(styles.workspaceActions)}>{headerActions}{onNewComparison ? <button {...styleProps(styles.quietButton)} type="button" onClick={onNewComparison}>New comparison</button> : null}</div>
     </header>
   );
 }
 
-export function SummaryBar({ summary, hideNoise, onHideNoiseChange, onlyChanged, onOnlyChangedChange, onExport }: {
-  summary: ComparisonSummary;
-  hideNoise: boolean;
-  onHideNoiseChange: (value: boolean) => void;
-  onlyChanged: boolean;
-  onOnlyChangedChange: (value: boolean) => void;
-  onExport?: (format: ExportFormat) => void;
-}) {
-  const noise = noiseCount(summary);
-  return (
-    <div {...styleProps(styles.summaryBar)} aria-label="Comparison summary">
-      <strong {...styleProps(styles.summaryHeadline)}>{summaryHeadline(summary)}</strong>
-      {summary.pagesWithUnreadableText
-        ? <span {...styleProps(styles.summaryWarning)} title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR.">⚠ Text unavailable</span>
-        : summary.pagesWithoutText ? <span {...styleProps(styles.summaryWarning)} title="These pages have no selectable text, so only the visual comparison applies.">⚠ No selectable text</span> : null}
-      <div {...styleProps(styles.summaryFilters)}>
-        {noise ? <FilterChip label="Hide reflow noise" active={hideNoise} onChange={onHideNoiseChange} /> : null}
-        <FilterChip label="Only changed pages" active={onlyChanged} onChange={onOnlyChangedChange} />
-        {onExport ? <ExportMenu onExport={onExport} /> : null}
-      </div>
-    </div>
-  );
-}
-
-function ExportMenu({ onExport }: { onExport: (format: ExportFormat) => void }) {
+function ExportMenu({ onExport, canExportImage }: { onExport: (choice: ExportChoice) => void; canExportImage: boolean }) {
   const [open, setOpen] = useState(false);
+  const choices = canExportImage ? exportOptions : exportOptions.filter(([choice]) => choice !== "page-image");
   return (
     <div {...styleProps(styles.exportWrap)}>
-      <button {...styleProps(styles.filterChip, open && styles.filterChipOn)} type="button" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((value) => !value)}>Export ▾</button>
-      {open ? <div {...styleProps(styles.exportMenu)} role="menu">{exportOptions.map(([format, label]) => (
-        <button key={format} {...styleProps(styles.exportItem)} type="button" role="menuitem" onClick={() => { onExport(format); setOpen(false); }}>{label}</button>
+      <IconButton label="Export" active={open} icon={<Download size={16} />} onClick={() => setOpen((value) => !value)} expanded={open} />
+      {open ? <div {...styleProps(styles.exportMenu)} role="menu">{choices.map(([choice, label]) => (
+        <button key={choice} {...styleProps(styles.exportItem)} type="button" role="menuitem" onClick={() => { onExport(choice); setOpen(false); }}>{label}</button>
       ))}</div> : null}
     </div>
   );
 }
 
-const exportOptions: ReadonlyArray<readonly [ExportFormat, string]> = [
+const exportOptions: ReadonlyArray<readonly [ExportChoice, string]> = [
+  ["page-image", "This page's diff image (.png)"],
   ["text", "Change summary (.txt)"],
   ["csv", "Change list (.csv)"],
   ["json", "Full report (.json)"],
 ];
 
-function FilterChip({ label, active, onChange }: { label: string; active: boolean; onChange: (value: boolean) => void }) {
-  return <button {...styleProps(styles.filterChip, active && styles.filterChipOn)} type="button" aria-pressed={active} onClick={() => onChange(!active)}>{label}</button>;
+function IconButton({ label, icon, onClick, disabled, active, expanded }: { label: string; icon: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean; expanded?: boolean }) {
+  return <button {...styleProps(styles.iconButton, active && styles.modeButtonCurrent)} type="button" aria-label={label} title={label} disabled={disabled} aria-expanded={expanded} aria-haspopup={expanded === undefined ? undefined : "menu"} onClick={onClick}>{icon}</button>;
 }
 
 function UnifiedPageNavigation({ earlierPageIndex, newerPageIndex, earlierPageCount, newerPageCount, onPageChange }: { earlierPageIndex: number; newerPageIndex: number; earlierPageCount: number; newerPageCount: number; onPageChange: (side: SourceSide, index: number) => void }) {
@@ -96,10 +78,6 @@ function visiblePages(pages: ReadonlyArray<DiffPage>, filters: RailFilters): Arr
   return pages.map((page, index) => ({ page, index })).filter(({ page, index }) => railPageVisible(page, index, filters));
 }
 
-function hiddenPageCount(pages: ReadonlyArray<DiffPage>, filters: RailFilters): number {
-  return pages.length - visiblePages(pages, filters).length;
-}
-
 function pageThumbnail(page: DiffPage): string | undefined {
   return page.diffSrc ?? page.afterSrc ?? page.beforeSrc;
 }
@@ -114,48 +92,57 @@ function PageRailItem({ page, index, selected, onSelect }: { page: DiffPage; ind
   const state = pageStatus(page);
   const thumbnail = pageThumbnail(page);
   const status = page.changedPercent ? `${page.changedPercent.toFixed(1)}%` : statusSymbol(state);
-  return <button {...styleProps(styles.pageButton, selected && styles.pageButtonCurrent)} type="button" aria-label={pagePairDescription(page, index, state)} aria-current={selected ? "page" : undefined} onClick={() => onSelect(index)}><div {...styleProps(styles.pageThumb)}>{thumbnail ? <img {...styleProps(styles.pageThumbImage)} src={thumbnail} alt="Comparison overlay preview" draggable={false} /> : <ThumbPlaceholder />}{page.alignment === "moved" ? <span {...styleProps(styles.pageBadge)}>moved</span> : null}</div><div {...styleProps(styles.pageNumber)}><span>{pagePairLabel(page, index)}</span><span {...styleProps(styles.pageStatus, pageStatusStyle(state))}>{status}</span></div></button>;
+  return <button {...styleProps(styles.pageButton, selected && styles.pageButtonCurrent)} type="button" aria-label={pagePairDescription(page, index, state)} aria-current={selected ? "page" : undefined} onClick={() => onSelect(index)}><div {...styleProps(styles.pageThumb)}>{thumbnail ? <img {...styleProps(styles.pageThumbImage)} src={thumbnail} alt="Comparison overlay preview" loading="lazy" decoding="async" draggable={false} /> : <ThumbPlaceholder />}{page.alignment === "moved" ? <span {...styleProps(styles.pageBadge)}>moved</span> : null}</div><div {...styleProps(styles.pageNumber)}><span>{pagePairLabel(page, index)}</span><span {...styleProps(styles.pageStatus, pageStatusStyle(state))}>{status}</span></div></button>;
 }
 
 export function PageRail({ pages, pageIndex, earlierPageIndex, newerPageIndex, earlierPageCount, newerPageCount, onSelectPage, onSourcePageChange, onlyChanged, hideNoise }: { pages: ReadonlyArray<DiffPage>; onlyChanged?: boolean; hideNoise?: boolean; pageIndex: number; earlierPageIndex: number; newerPageIndex: number; earlierPageCount: number; newerPageCount: number; onSelectPage: (index: number) => void; onSourcePageChange: (side: SourceSide, index: number) => void }) {
+  const visible = useMemo(
+    () => visiblePages(pages, { onlyChanged, hideNoise, pageIndex }),
+    [pages, onlyChanged, hideNoise, pageIndex],
+  );
   if (pages.length <= 1) return null;
+  const hidden = pages.length - visible.length;
   return (
     <aside {...styleProps(styles.pageRail)} aria-label="Pages">
       <div {...styleProps(styles.railHeader)}>
         <h2 {...styleProps(styles.railHeading)}>Pages</h2>
         <UnifiedPageNavigation earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onPageChange={onSourcePageChange} />
       </div>
-      {visiblePages(pages, { onlyChanged, hideNoise, pageIndex }).map(({ page, index }) => <PageRailItem key={page.index} page={page} index={index} selected={index === pageIndex} onSelect={onSelectPage} />)}
-      {hiddenPageCount(pages, { onlyChanged, hideNoise, pageIndex }) ? <p {...styleProps(styles.railNote)}>{hiddenPageCount(pages, { onlyChanged, hideNoise, pageIndex })} pages hidden by filters</p> : null}
+      {visible.map(({ page, index }) => <PageRailItem key={page.index} page={page} index={index} selected={index === pageIndex} onSelect={onSelectPage} />)}
+      {hidden ? <p {...styleProps(styles.railNote)}>{hidden} pages hidden by filters</p> : null}
     </aside>
   );
 }
 
-export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, earlierPage, newerPage, earlierPageIndex, newerPageIndex, onOpenSource, textUnavailable }: {
+export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnavailable, isFullscreen, onToggleFullscreen, onSettings, onHelp, onExport, canExportImage }: {
   mode: DiffViewMode;
   onModeChange: (mode: DiffViewMode) => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
-  earlierPage: DiffPage | null;
-  newerPage: DiffPage | null;
-  earlierPageIndex: number;
-  newerPageIndex: number;
-  onOpenSource: (side: SourceSide) => void;
   textUnavailable?: boolean;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+  onSettings: () => void;
+  onHelp: () => void;
+  onExport?: (choice: ExportChoice) => void;
+  canExportImage: boolean;
 }) {
   return (
     <div {...styleProps(styles.toolbar)}>
+      <div {...styleProps(styles.modeGroup)} role="toolbar" aria-label="View mode">{viewModes.map((item) => {
+        const disabled = item.id === "semantic-text" && textUnavailable;
+        return <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" disabled={disabled} aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={disabled ? "Text comparison unavailable: this PDF has no Unicode mapping" : `${item.label} (${item.shortcut})`} onClick={() => onModeChange(item.id)}><span {...styleProps(styles.desktopOnly)}>{item.label}</span><span {...styleProps(styles.mobileOnly)}>{item.shortcut}</span></button>;
+      })}</div>
       <div {...styleProps(styles.toolbarGroup)}>
-        <div {...styleProps(styles.modeGroup)} role="toolbar" aria-label="View mode">{viewModes.map((item) => {
-          const disabled = item.id === "semantic-text" && textUnavailable;
-          return <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" disabled={disabled} aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={disabled ? "Text comparison unavailable: this PDF has no Unicode mapping" : `${item.label} (${item.shortcut})`} onClick={() => onModeChange(item.id)}><span {...styleProps(styles.desktopOnly)}>{item.label}</span><span {...styleProps(styles.mobileOnly)}>{item.shortcut}</span></button>;
-        })}</div>
-        <div {...styleProps(styles.sourceGroup)} role="group" aria-label="Open source page">
-          <button {...styleProps(styles.sourceButton)} type="button" aria-label={`Open source A page ${earlierPageIndex + 1}`} title="Open source A" disabled={!sourceForSide(earlierPage, "earlier")} onClick={() => onOpenSource("earlier")}>A <span aria-hidden="true">↗</span></button>
-          <button {...styleProps(styles.sourceButton)} type="button" aria-label={`Open source B page ${newerPageIndex + 1}`} title="Open source B" disabled={!sourceForSide(newerPage, "newer")} onClick={() => onOpenSource("newer")}>B <span aria-hidden="true">↗</span></button>
-        </div>
+        <IconButton label="Zoom out" icon={<ZoomOut size={16} />} disabled={zoom <= MIN_ZOOM} onClick={() => onZoomChange(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))} />
+        <span {...styleProps(styles.zoomLabel)}>{zoom}%</span>
+        <IconButton label="Zoom in" icon={<ZoomIn size={16} />} disabled={zoom >= MAX_ZOOM} onClick={() => onZoomChange(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))} />
+        <IconButton label="Reset zoom" icon={<RotateCcw size={16} />} disabled={zoom === 100} onClick={() => onZoomChange(100)} />
+        <IconButton label="Fullscreen" icon={isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />} onClick={onToggleFullscreen} />
+        <IconButton label="Settings" icon={<Settings size={16} />} onClick={onSettings} />
+        <IconButton label="Keyboard shortcuts" icon={<Keyboard size={16} />} onClick={onHelp} />
+        {onExport ? <ExportMenu onExport={onExport} canExportImage={canExportImage} /> : null}
       </div>
-      <div {...styleProps(styles.toolbarGroup)}><button {...styleProps(styles.iconButton)} type="button" aria-label="Zoom out" disabled={zoom <= MIN_ZOOM} onClick={() => onZoomChange(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))}>−</button><span {...styleProps(styles.zoomLabel)}>{zoom}%</span><button {...styleProps(styles.iconButton)} type="button" aria-label="Zoom in" disabled={zoom >= MAX_ZOOM} onClick={() => onZoomChange(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))}>+</button></div>
     </div>
   );
 }
@@ -163,4 +150,41 @@ export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, earlierP
 export function StatusFooter({ processingProgress }: { processingProgress?: { completed: number; total: number } }) {
   if (!processingProgress) return null;
   return <div {...styleProps(styles.statusFooter)} aria-live="polite"><span {...styleProps(styles.statusAccent)}>Comparing pages · {processingProgress.completed} of {processingProgress.total} complete</span></div>;
+}
+
+function SettingsCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return <label {...styleProps(styles.settingsRow)}>{label}<input {...styleProps(styles.settingsCheckbox)} type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /></label>;
+}
+
+/** Appearance and filters only: every control here is a CSS or list write, never a re-comparison. */
+export function SettingsDialog({ overlay, onOverlayChange, settings, onSettingsChange, onClose }: {
+  overlay: OverlayStyle;
+  onOverlayChange: (overlay: OverlayStyle) => void;
+  settings: ViewerSettings;
+  onSettingsChange: (settings: ViewerSettings) => void;
+  onClose: () => void;
+}) {
+  const update = <Key extends keyof ViewerSettings>(key: Key, value: ViewerSettings[Key]) => onSettingsChange({ ...settings, [key]: value });
+  return (
+    <div {...styleProps(styles.dialogBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section {...styleProps(styles.settingsDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-settings-title">
+        <header {...styleProps(styles.helpHeader)}><h2 id="viewer-settings-title" {...styleProps(styles.helpTitle)}>Settings</h2><button {...styleProps(styles.iconButton)} type="button" aria-label="Close settings" onClick={onClose}>×</button></header>
+        <div {...styleProps(styles.settingsBody)}>
+          <section {...styleProps(styles.settingsGroup)}>
+            <h3 {...styleProps(styles.settingsGroupTitle)}>Overlay colours</h3>
+            <label {...styleProps(styles.settingsRow)}>Newer content<input {...styleProps(styles.overlaySwatch)} type="color" value={overlay.addedColor} aria-label="Colour for newer content" onChange={(event) => onOverlayChange({ ...overlay, addedColor: event.target.value })} /></label>
+            <label {...styleProps(styles.settingsRow)}>Earlier content<input {...styleProps(styles.overlaySwatch)} type="color" value={overlay.removedColor} aria-label="Colour for earlier content" onChange={(event) => onOverlayChange({ ...overlay, removedColor: event.target.value })} /></label>
+            <label {...styleProps(styles.settingsRow)}>Unchanged {Math.round(overlay.unchangedOpacity * 100)}%<input {...styleProps(styles.overlayRange)} type="range" min={0} max={100} value={Math.round(overlay.unchangedOpacity * 100)} aria-label="How strongly unchanged content shows through" onChange={(event) => onOverlayChange({ ...overlay, unchangedOpacity: Number(event.target.value) / 100 })} /></label>
+          </section>
+          <section {...styleProps(styles.settingsGroup)}>
+            <h3 {...styleProps(styles.settingsGroupTitle)}>View</h3>
+            <SettingsCheckbox label="Outline changed regions" checked={settings.showBoundingBoxes} onChange={(value) => update("showBoundingBoxes", value)} />
+            <SettingsCheckbox label="Hide reflow noise" checked={settings.hideNoise} onChange={(value) => update("hideNoise", value)} />
+            <SettingsCheckbox label="Only changed pages" checked={settings.onlyChanged} onChange={(value) => update("onlyChanged", value)} />
+          </section>
+        </div>
+        <footer {...styleProps(styles.helpFooter)}><button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>Done</button></footer>
+      </section>
+    </div>
+  );
 }

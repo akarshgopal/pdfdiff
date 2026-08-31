@@ -458,11 +458,19 @@ function joinSpatialItems(items: readonly SpatialTextItem[]): string {
   return text.trim().replace(/\s+/gu, " ");
 }
 
+/**
+ * Ordering has to be transitive or `sort` is free to return anything, and a
+ * per-pair line test is not: with a threshold that depends on both items, a can
+ * tie b and b tie c while a and c differ. One page-level band fixes the key per
+ * item, so the order is well defined and stable at any page length.
+ */
 function orderedSpatialItems(page: PageText): SpatialTextItem[] {
-  return page.items.filter((item) => item.str.trim()).slice().sort((first, second) => {
-    const yDifference = first.bounds.y - second.bounds.y;
-    return Math.abs(yDifference) > Math.max(first.fontSize, second.fontSize) * 0.35 ? yDifference : first.bounds.x - second.bounds.x;
-  });
+  const items = page.items.filter((item) => item.str.trim());
+  if (items.length === 0) return [];
+  const sizes = items.map((item) => item.fontSize).sort((first, second) => first - second);
+  const band = Math.max(0.5, sizes[sizes.length >> 1]! * 0.35);
+  return items.slice().sort((first, second) =>
+    Math.round(first.bounds.y / band) - Math.round(second.bounds.y / band) || first.bounds.x - second.bounds.x);
 }
 
 function closestSpatialRow(rows: readonly SpatialTextItem[][], item: SpatialTextItem): SpatialTextItem[] | undefined {
@@ -528,36 +536,78 @@ function spatialLines(page: PageText): SpatialTextLine[] {
     .sort((first, second) => first.y - second.y || first.x - second.x);
 }
 
-function characterNgramSimilarity(first: string, second: string): number {
-  const ngrams = (value: string): Map<string, number> => {
-    const compact = value.replace(/\s+/gu, " ");
-    const result = new Map<string, number>();
-    const size = compact.length < 3 ? 1 : 3;
-    for (let index = 0; index <= compact.length - size; index += 1) {
-      const gram = compact.slice(index, index + size);
-      result.set(gram, (result.get(gram) ?? 0) + 1);
-    }
-    return result;
-  };
-  const firstGrams = ngrams(first);
-  const secondGrams = ngrams(second);
-  const firstCount = [...firstGrams.values()].reduce((sum, count) => sum + count, 0);
-  const secondCount = [...secondGrams.values()].reduce((sum, count) => sum + count, 0);
-  if (!firstCount || !secondCount) return 0;
+/**
+ * Line pairing compares every unmatched line against every other, so anything
+ * derived from a single line is computed once here rather than per pair.
+ */
+interface LineIndex {
+  readonly tokens: readonly Token[];
+  /** Token occurrence counts, for the cheap upper bound on token similarity. */
+  readonly bag: ReadonlyMap<string, number>;
+  readonly grams: ReadonlyMap<string, number>;
+  readonly gramCount: number;
+  readonly wordCount: number;
+}
+
+function countedGrams(value: string): { grams: Map<string, number>; total: number } {
+  const compact = value.replace(/\s+/gu, " ");
+  const grams = new Map<string, number>();
+  const size = compact.length < 3 ? 1 : 3;
+  let total = 0;
+  for (let index = 0; index <= compact.length - size; index += 1) {
+    const gram = compact.slice(index, index + size);
+    grams.set(gram, (grams.get(gram) ?? 0) + 1);
+    total += 1;
+  }
+  return { grams, total };
+}
+
+const lineIndexes = new WeakMap<SpatialTextLine, LineIndex>();
+
+function lineIndex(line: SpatialTextLine): LineIndex {
+  const cached = lineIndexes.get(line);
+  if (cached) return cached;
+  const tokens = tokenize(line.canonical);
+  const bag = new Map<string, number>();
+  for (const token of tokens) bag.set(token.value, (bag.get(token.value) ?? 0) + 1);
+  const { grams, total } = countedGrams(line.canonical);
+  const index: LineIndex = { tokens, bag, grams, gramCount: total, wordCount: line.canonical.split(" ").length };
+  lineIndexes.set(line, index);
+  return index;
+}
+
+function overlapCount(first: ReadonlyMap<string, number>, second: ReadonlyMap<string, number>): number {
+  const [small, large] = first.size <= second.size ? [first, second] : [second, first];
   let shared = 0;
-  for (const [gram, count] of firstGrams) shared += Math.min(count, secondGrams.get(gram) ?? 0);
-  return (shared * 2) / (firstCount + secondCount);
+  for (const [key, count] of small) shared += Math.min(count, large.get(key) ?? 0);
+  return shared;
+}
+
+function ngramSimilarity(first: LineIndex, second: LineIndex): number {
+  if (!first.gramCount || !second.gramCount) return 0;
+  return (overlapCount(first.grams, second.grams) * 2) / (first.gramCount + second.gramCount);
+}
+
+/**
+ * A common subsequence can never use a token more often than both sides carry
+ * it, so the token-bag overlap bounds the token similarity from above. That
+ * makes this a safe filter: a pair it rejects could not have passed anyway.
+ */
+function similarityCeiling(first: LineIndex, second: LineIndex): number {
+  if (!first.tokens.length || !second.tokens.length) return 0;
+  const bound = (overlapCount(first.bag, second.bag) * 2) / (first.tokens.length + second.tokens.length);
+  return Math.max(bound, ngramSimilarity(first, second) * 0.94);
 }
 
 function lineSimilarity(first: SpatialTextLine, second: SpatialTextLine, signal?: AbortSignalLike): number {
-  const firstTokens = tokenize(first.canonical);
-  const secondTokens = tokenize(second.canonical);
-  if (!firstTokens.length || !secondTokens.length) return 0;
-  const result = primitiveDiff(firstTokens, secondTokens, signal);
+  const firstIndex = lineIndex(first);
+  const secondIndex = lineIndex(second);
+  if (!firstIndex.tokens.length || !secondIndex.tokens.length) return 0;
+  const result = primitiveDiff(firstIndex.tokens, secondIndex.tokens, signal);
   if (!result.exact) return 0;
   const same = result.edits.reduce((count, edit) => count + (edit.kind === "same" ? 1 : 0), 0);
-  const tokenSimilarity = (same * 2) / (firstTokens.length + secondTokens.length);
-  return Math.max(tokenSimilarity, characterNgramSimilarity(first.canonical, second.canonical) * 0.94);
+  const tokenSimilarity = (same * 2) / (firstIndex.tokens.length + secondIndex.tokens.length);
+  return Math.max(tokenSimilarity, ngramSimilarity(firstIndex, secondIndex) * 0.94);
 }
 
 function spatialDistance(first: SpatialTextLine, second: SpatialTextLine, beforePage: PageText, afterPage: PageText): number {
@@ -568,17 +618,36 @@ function spatialDistance(first: SpatialTextLine, second: SpatialTextLine, before
   return Math.hypot(firstX - secondX, firstY - secondY);
 }
 
-function closestExactLine(before: SpatialTextLine, afterLines: readonly SpatialTextLine[], matchedAfter: ReadonlySet<SpatialTextLine>, beforePage: PageText, afterPage: PageText): SpatialTextLine | undefined {
-  return afterLines
-    .filter((after) => !matchedAfter.has(after) && after.canonical === before.canonical)
-    .sort((first, second) => spatialDistance(before, first, beforePage, afterPage) - spatialDistance(before, second, beforePage, afterPage))[0];
+function closestExactLine(before: SpatialTextLine, sameText: readonly SpatialTextLine[] | undefined, matchedAfter: ReadonlySet<SpatialTextLine>, beforePage: PageText, afterPage: PageText): SpatialTextLine | undefined {
+  let best: SpatialTextLine | undefined;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const after of sameText ?? []) {
+    if (matchedAfter.has(after)) continue;
+    const distance = spatialDistance(before, after, beforePage, afterPage);
+    if (distance < bestDistance) {
+      best = after;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+function byCanonicalText(lines: readonly SpatialTextLine[]): Map<string, SpatialTextLine[]> {
+  const groups = new Map<string, SpatialTextLine[]>();
+  for (const line of lines) {
+    const group = groups.get(line.canonical);
+    if (group) group.push(line);
+    else groups.set(line.canonical, [line]);
+  }
+  return groups;
 }
 
 function exactLineMatches(beforeLines: readonly SpatialTextLine[], afterLines: readonly SpatialTextLine[], beforePage: PageText, afterPage: PageText, matchedBefore: Set<SpatialTextLine>, matchedAfter: Set<SpatialTextLine>, signal?: AbortSignalLike): SpatialLineMatch[] {
   const matches: SpatialLineMatch[] = [];
+  const afterByText = byCanonicalText(afterLines);
   for (const before of beforeLines) {
     throwIfAborted(signal);
-    const after = closestExactLine(before, afterLines, matchedAfter, beforePage, afterPage);
+    const after = closestExactLine(before, afterByText.get(before.canonical), matchedAfter, beforePage, afterPage);
     if (!after) continue;
     matchedBefore.add(before);
     matchedAfter.add(after);
@@ -587,19 +656,23 @@ function exactLineMatches(beforeLines: readonly SpatialTextLine[], afterLines: r
   return matches;
 }
 
-function minimumLineSimilarity(before: SpatialTextLine, after: SpatialTextLine): number {
-  const wordCount = Math.min(before.canonical.split(" ").length, after.canonical.split(" ").length);
-  return wordCount <= 2 ? 0.72 : 0.52;
+function minimumLineSimilarity(before: LineIndex, after: LineIndex): number {
+  return Math.min(before.wordCount, after.wordCount) <= 2 ? 0.72 : 0.52;
 }
 
 function changedLineCandidates(beforeLines: readonly SpatialTextLine[], afterLines: readonly SpatialTextLine[], beforePage: PageText, afterPage: PageText, matchedBefore: ReadonlySet<SpatialTextLine>, matchedAfter: ReadonlySet<SpatialTextLine>, signal?: AbortSignalLike): SpatialCandidate[] {
   const candidates: SpatialCandidate[] = [];
   for (const before of beforeLines) {
     if (matchedBefore.has(before)) continue;
+    const beforeIndex = lineIndex(before);
     for (const after of afterLines) {
       if (matchedAfter.has(after)) continue;
+      const afterIndex = lineIndex(after);
+      const floor = minimumLineSimilarity(beforeIndex, afterIndex);
+      // Skip the token diff outright when no possible score could clear the floor.
+      if (similarityCeiling(beforeIndex, afterIndex) < floor) continue;
       const similarity = lineSimilarity(before, after, signal);
-      if (similarity < minimumLineSimilarity(before, after)) continue;
+      if (similarity < floor) continue;
       const beforeCenterX = (before.x + before.width / 2) / Math.max(1, beforePage.width);
       const afterCenterX = (after.x + after.width / 2) / Math.max(1, afterPage.width);
       if (Math.abs(beforeCenterX - afterCenterX) > 0.24 && similarity < 0.9) continue;
@@ -655,10 +728,24 @@ function compareSpatialMatches(first: SpatialLineMatch, second: SpatialLineMatch
   return matchCoordinate(first, "y") - matchCoordinate(second, "y") || matchCoordinate(first, "x") - matchCoordinate(second, "x");
 }
 
-function spatialChange(match: SpatialLineMatch, id: string, options: SemanticDiffOptions): SemanticTextChange {
+/**
+ * Narrowing a changed line to the words that actually differ costs a token diff,
+ * and the change list plus both overlays all want the same answer, so it is
+ * computed once per match and looked up afterwards.
+ */
+function conciseTextByMatch(matches: readonly SpatialLineMatch[], options: SemanticDiffOptions): Map<SpatialLineMatch, { before: string; after: string }> {
+  const concise = new Map<SpatialLineMatch, { before: string; after: string }>();
+  for (const match of matches) {
+    if (match.kind !== "changed" || !match.before || !match.after) continue;
+    concise.set(match, conciseChangedText(match.before.text, match.after.text, options));
+  }
+  return concise;
+}
+
+function spatialChange(match: SpatialLineMatch, id: string, concise: ReadonlyMap<SpatialLineMatch, { before: string; after: string }>): SemanticTextChange {
   const before = match.before ? match.before.text : "";
   const after = match.after ? match.after.text : "";
-  const text = match.kind === "changed" ? conciseChangedText(before, after, options) : { before, after };
+  const text = concise.get(match) ?? { before, after };
   return { id, kind: match.kind as SemanticChangeKind, before: text.before, after: text.after };
 }
 
@@ -677,12 +764,11 @@ function highlightedSpatialQuads(line: SpatialTextLine, text: string): readonly 
   return [subQuad(line.quads[0]!, start / line.text.length, (start + text.length) / line.text.length)];
 }
 
-function spatialOverlays(matches: readonly SpatialLineMatch[], changeIds: ReadonlyMap<SpatialLineMatch, string>, side: "before" | "after", options: SemanticDiffOptions): SemanticTextOverlay[] {
+function spatialOverlays(matches: readonly SpatialLineMatch[], changeIds: ReadonlyMap<SpatialLineMatch, string>, side: "before" | "after", concise: ReadonlyMap<SpatialLineMatch, { before: string; after: string }>): SemanticTextOverlay[] {
   return matches.flatMap((match) => {
     const line = lineForSide(match, side);
     if (!line) return [];
-    const concise = match.kind === "changed" && match.before && match.after ? conciseChangedText(match.before.text, match.after.text, options) : null;
-    const text = concise ? concise[side] : line.text;
+    const text = concise.get(match)?.[side] ?? line.text;
     return [{ id: changeIds.get(match)!, kind: match.kind as SemanticChangeKind, text, quads: highlightedSpatialQuads(line, text) }];
   });
 }
@@ -690,10 +776,14 @@ function spatialOverlays(matches: readonly SpatialLineMatch[], changeIds: Readon
 /** A line counts as moved once it leaves the sub-point wobble of identical typesetting. */
 const SHIFT_TOLERANCE = 1.5;
 
-function unchangedLines(matches: readonly SpatialLineMatch[]): UnchangedTextLine[] {
+function unchangedLines(matches: readonly SpatialLineMatch[], beforePage: PageText, afterPage: PageText): UnchangedTextLine[] {
+  // The two pages need not share a size, so the newer position is expressed in
+  // the earlier page's points before asking how far the line moved.
+  const scaleX = beforePage.width / Math.max(1, afterPage.width);
+  const scaleY = beforePage.height / Math.max(1, afterPage.height);
   return matches.flatMap((match) => {
     if (match.kind !== "same" || !match.before || !match.after) return [];
-    const distance = Math.hypot(match.after.x - match.before.x, match.after.y - match.before.y);
+    const distance = Math.hypot(match.after.x * scaleX - match.before.x, match.after.y * scaleY - match.before.y);
     return [{
       text: match.before.text,
       beforeQuads: match.before.quads,
@@ -719,7 +809,8 @@ function spatialPageDiff(beforePage: PageText, afterPage: PageText, options: Sem
   const beforeLines = matches.flatMap((match) => match.before ? [match.before] : []).sort((first, second) => first.y - second.y || first.x - second.x);
   const afterLines = matches.flatMap((match) => match.after ? [match.after] : []).sort((first, second) => first.y - second.y || first.x - second.x);
 
-  const changes = changeMatches.map((match) => spatialChange(match, changeIds.get(match)!, options));
+  const concise = conciseTextByMatch(changeMatches, options);
+  const changes = changeMatches.map((match) => spatialChange(match, changeIds.get(match)!, concise));
   return {
     before: spatialRuns(beforeLines, beforeMatch, changeIds, "before"),
     after: spatialRuns(afterLines, afterMatch, changeIds, "after"),
@@ -729,9 +820,9 @@ function spatialPageDiff(beforePage: PageText, afterPage: PageText, options: Sem
     hasBeforeText: beforeDecodable && beforeLines.length > 0,
     hasAfterText: afterDecodable && afterLines.length > 0,
     textUndecodable: !beforeDecodable || !afterDecodable,
-    beforeOverlays: spatialOverlays(changeMatches, changeIds, "before", options),
-    afterOverlays: spatialOverlays(changeMatches, changeIds, "after", options),
-    unchangedLines: unchangedLines(matches),
+    beforeOverlays: spatialOverlays(changeMatches, changeIds, "before", concise),
+    afterOverlays: spatialOverlays(changeMatches, changeIds, "after", concise),
+    unchangedLines: unchangedLines(matches, beforePage, afterPage),
   };
 }
 

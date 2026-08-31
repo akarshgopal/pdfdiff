@@ -2,9 +2,12 @@ import {
   alignByTranslation,
   alignPages,
   classifyRegions,
+  limitRegions,
   fingerprintPage,
   diffImages,
+  overlayLayers,
   diffSemanticPages,
+  measure,
   measureAsync,
   throwIfAborted,
   type ComparisonPage,
@@ -19,6 +22,7 @@ import {
   type DiffOptions,
   type PageText,
   type RasterImage,
+  type RgbColor,
   type SemanticPageDiff,
   type TextQuad,
   type VisualPageGeometry,
@@ -32,8 +36,34 @@ const PREVIEW_SCALE = 2;
 const MAX_PIXELS = 3_000_000;
 const MAX_DIMENSION = 2800;
 const REGION_MIN_PIXELS = 8;
+/** How many regions the viewer shows. */
 const MAX_REGIONS = 80;
+/**
+ * Classification runs over far more regions than are displayed, so a page's
+ * class counts and its "is anything noticeable" verdict describe the whole
+ * page rather than whichever regions happened to be largest.
+ */
+const CLASSIFY_REGION_LIMIT = 1200;
 const ADDED_PAGE_THRESHOLD = 0.08;
+
+export type RenderQuality = "standard" | "high";
+
+interface RenderBudget {
+  readonly scale: number;
+  readonly maxPixels: number;
+  readonly maxDimension: number;
+}
+
+/**
+ * The batch pass renders every page, so its budget is sized for a whole
+ * document. A reviewer inspecting one page can afford more.
+ * ponytail: 2.25x the standard pixel budget; one page at a time keeps peak
+ * memory bounded, raise it if reviewers ask to zoom further.
+ */
+const RENDER_BUDGETS: Record<RenderQuality, RenderBudget> = {
+  standard: { scale: PREVIEW_SCALE, maxPixels: MAX_PIXELS, maxDimension: MAX_DIMENSION },
+  high: { scale: 3, maxPixels: 6_750_000, maxDimension: 4200 },
+};
 
 /**
  * Changed pixels arrive one glyph at a time; these gaps rejoin a word or line
@@ -44,6 +74,17 @@ function regionMergeGaps(pageHeight: number): { mergeGapX: number; mergeGapY: nu
   return {
     mergeGapX: Math.max(6, Math.round(pageHeight * 0.009)),
     mergeGapY: Math.max(2, Math.round(pageHeight * 0.0025)),
+  };
+}
+
+const DEFAULT_UNCHANGED_OPACITY = 0.24;
+
+/** An unset overlay style leaves the core defaults in place. */
+function overlayStyle(options: DiffOptions): { addedColor?: RgbColor; removedColor?: RgbColor; unchangedOpacity: number } {
+  return {
+    addedColor: options.overlay?.addedColor,
+    removedColor: options.overlay?.removedColor,
+    unchangedOpacity: options.overlay?.unchangedOpacity ?? DEFAULT_UNCHANGED_OPACITY,
   };
 }
 
@@ -62,22 +103,10 @@ function yieldToBrowser(signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, 0));
 }
 
-function imageDataFromRaster(image: RasterImage): ImageData {
-  return new ImageData(image.data as ImageDataArray, image.width, image.height);
-}
-
-function blankImage(width: number, height: number): ImageData {
+function blankImage(width: number, height: number): RasterImage {
   const data = new Uint8ClampedArray(width * height * 4);
   data.fill(255);
-  return new ImageData(data, width, height);
-}
-
-function asRenderedPage(page: RenderedPage, imageData: ImageData): RenderedPage {
-  const canvas = document.createElement("canvas");
-  canvas.width = imageData.width;
-  canvas.height = imageData.height;
-  canvas.getContext("2d", { alpha: false })?.putImageData(imageData, 0, 0);
-  return { ...page, data: imageData.data, imageData, canvas };
+  return { width, height, data };
 }
 
 function emptyPageText(pageNumber: number, page: RenderedPage): PageText {
@@ -131,6 +160,13 @@ interface PageComparisonRequest {
   readonly index: number;
   readonly options: DiffOptions;
   readonly signal: AbortSignal;
+  /**
+   * Recolourable layers cost an extra pass and three more encodes per page, so
+   * only the page a reviewer is actually looking at asks for them.
+   */
+  readonly withLayers?: boolean;
+  /** Render resolution for this page; the batch pass leaves it at standard. */
+  readonly quality?: RenderQuality;
   readonly earlierText?: PageText;
   readonly newerText?: PageText;
   readonly alignment?: PageAlignmentKind;
@@ -144,12 +180,12 @@ async function pageTextFor(cached: PageText | undefined, document: LoadedPdf, pa
 
 async function compareExistingPage(request: PageComparisonRequest): Promise<ComparisonPage> {
   const { earlier, newer, earlierPageNumber, newerPageNumber, options, signal, metrics } = request;
-  const rendered = await renderPagePair(earlier, newer, earlierPageNumber, newerPageNumber, { scale: PREVIEW_SCALE, maxPixels: MAX_PIXELS, maxDimension: MAX_DIMENSION, signal, metrics });
+  const rendered = await renderPagePair(earlier, newer, earlierPageNumber, newerPageNumber, { ...RENDER_BUDGETS[request.quality ?? "standard"], signal, metrics });
   await yieldToBrowser(signal);
   const translation = options.alignment === "translation" ? alignByTranslation(rendered.earlier, rendered.newer, signal, metrics) : { image: rendered.newer, dx: 0, dy: 0 };
-  const alignedNewer = translation.image === rendered.newer ? rendered.newer : asRenderedPage(rendered.newer, imageDataFromRaster(translation.image));
+  const alignedNewer: RenderedPage = translation.image === rendered.newer ? rendered.newer : { ...rendered.newer, data: translation.image.data };
   await yieldToBrowser(signal);
-  const result = diffImages(rendered.earlier, alignedNewer, { threshold: comparisonThreshold(options.sensitivity), includeAA: false, unchangedOpacity: 0.24, regionOptions: { minPixels: REGION_MIN_PIXELS, maxRegions: MAX_REGIONS, connectivity: 8, readingOrder: true, ...regionMergeGaps(rendered.earlier.height) }, signal, metrics });
+  const result = diffImages(rendered.earlier, alignedNewer, { threshold: comparisonThreshold(options.sensitivity), includeAA: false, ...overlayStyle(options), regionOptions: { minPixels: REGION_MIN_PIXELS, maxRegions: CLASSIFY_REGION_LIMIT, connectivity: 8, readingOrder: true, ...regionMergeGaps(rendered.earlier.height) }, signal, metrics });
   const [oldText, newText] = await Promise.all([
     pageTextFor(request.earlierText, earlier, earlierPageNumber, signal, metrics),
     pageTextFor(request.newerText, newer, newerPageNumber, signal, metrics),
@@ -169,9 +205,10 @@ async function compareExistingPage(request: PageComparisonRequest): Promise<Comp
     earlier: rendered.earlier,
     newer: alignedNewer,
     diff: result.overlay,
+    diffLayers: request.withLayers ? measure(metrics, "core.visual.layers", () => overlayLayers(rendered.earlier, alignedNewer, result.directionMask, signal), { width: result.width, height: result.height }) : undefined,
     changedPixels: result.changedPixels,
     changedPercent: result.changedPercent,
-    regions: classification.regions,
+    regions: limitRegions(classification.regions, MAX_REGIONS),
     changeClasses: classification.counts,
     noticeable: classification.noticeable,
     semantic,
@@ -194,8 +231,8 @@ async function compareMissingPage(request: MissingPageRequest): Promise<Comparis
   const rendered = await renderPage(document, pageNumber, { scale: PREVIEW_SCALE, maxPixels: MAX_PIXELS, maxDimension: MAX_DIMENSION, signal, metrics });
   await yieldToBrowser(signal);
   const blank = blankImage(rendered.width, rendered.height);
-  const oldImage: RasterImage = hasEarlier ? rendered : { width: rendered.width, height: rendered.height, data: blank.data };
-  const newImage: RasterImage = hasEarlier ? { width: rendered.width, height: rendered.height, data: blank.data } : rendered;
+  const oldImage: RasterImage = hasEarlier ? rendered : blank;
+  const newImage: RasterImage = hasEarlier ? blank : rendered;
   const result = diffImages(oldImage, newImage, { threshold: ADDED_PAGE_THRESHOLD, includeAA: true, regionOptions: { minPixels: REGION_MIN_PIXELS, maxRegions: Math.min(MAX_REGIONS, 40), readingOrder: true, ...regionMergeGaps(rendered.height) }, signal, metrics });
   const pageText = await pageTextFor(request.pageText, document, pageNumber, signal, metrics);
   const semantic = hasEarlier ? diffSemanticPages(pageText, emptyPageText(pageNumber, rendered), { signal, metrics }) : diffSemanticPages(emptyPageText(pageNumber, rendered), pageText, { signal, metrics });
@@ -256,16 +293,19 @@ async function comparePdfPair(
   newer: PdfSource,
   options: DiffOptions,
   signal: AbortSignal,
-  workerSrc: string,
+  loadPair: (earlier: PdfSource, newer: PdfSource, signal: AbortSignal, metrics?: DiffMetricSink) => Promise<LoadedPair>,
   onReady?: (event: ComparisonReadyEvent) => void | Promise<void>,
   onPage?: (page: ComparisonPage) => void | Promise<void>,
   onProgress?: (progress: { completed: number; total: number }) => void,
   onMetric?: DiffMetricSink,
+  releaseOnFailure: () => Promise<void> = async () => undefined,
 ): Promise<ComparisonResult> {
   const sourceAttributes = { earlierBytes: sourceByteLength(earlier), newerBytes: sourceByteLength(newer) };
   return measureAsync(onMetric, "comparison.total", async () => {
     const startedAt = performance.now();
-    const pair = await measureAsync(onMetric, "pdf.load.pair", () => loadPdfPair(earlier, newer, { signal, workerSrc, metrics: onMetric }), sourceAttributes);
+    // The documents stay in the shared cache so the first page a reviewer opens
+    // in overlay mode does not have to parse both files a second time.
+    const pair = await measureAsync(onMetric, "pdf.load.pair", () => loadPair(earlier, newer, signal, onMetric), sourceAttributes);
     const pages: ComparisonPage[] = [];
 
     try {
@@ -288,6 +328,11 @@ async function comparePdfPair(
         total: totalPages,
         alignment,
       });
+      // A page's rasters are three full-size buffers. Once a streaming caller
+      // has taken them the engine must not keep them, or peak memory grows with
+      // the page count instead of staying flat. Without onPage there is no other
+      // consumer, so the result keeps them.
+      const keepRasters = !onPage;
       for (const [index, aligned] of alignment.entries()) {
         throwIfAborted(signal);
         const metrics = pageMetricSink(onMetric, aligned.newerPageNumber ?? aligned.earlierPageNumber ?? index + 1);
@@ -299,37 +344,38 @@ async function comparePdfPair(
           newerPageNumber: aligned.newerPageNumber ?? 0,
           kind: aligned.kind,
         });
-        pages.push(page);
         await onPage?.(page);
+        pages.push(keepRasters ? page : { ...page, earlier: undefined, newer: undefined, diff: undefined });
         onProgress?.({ completed: index + 1, total: totalPages });
       }
 
       return { earlierName: "name" in earlier ? earlier.name : undefined, newerName: "name" in newer ? newer.name : undefined, pages, alignment, elapsedMs: Math.round(performance.now() - startedAt) };
-    } finally {
-      await Promise.allSettled([pair.earlier.destroy(), pair.newer.destroy()]);
+    } catch (error) {
+      await releaseOnFailure();
+      throw error;
     }
   }, sourceAttributes);
 }
 
-async function comparePdfPagePair(earlier: PdfSource, newer: PdfSource, earlierPageNumber: number, newerPageNumber: number, options: DiffOptions, signal: AbortSignal, workerSrc: string, onMetric?: DiffMetricSink): Promise<ComparisonPage> {
-  const sourceAttributes = { earlierBytes: sourceByteLength(earlier), newerBytes: sourceByteLength(newer), earlierPageNumber, newerPageNumber };
+type LoadedPair = { earlier: LoadedPdf; newer: LoadedPdf };
+
+async function comparePdfPagePair(earlier: PdfSource, newer: PdfSource, earlierPageNumber: number, newerPageNumber: number, options: DiffOptions, quality: RenderQuality, signal: AbortSignal, loadPair: (earlier: PdfSource, newer: PdfSource, signal: AbortSignal, metrics?: DiffMetricSink) => Promise<LoadedPair>, onMetric?: DiffMetricSink): Promise<ComparisonPage> {
+  const sourceAttributes = { earlierBytes: sourceByteLength(earlier), newerBytes: sourceByteLength(newer), earlierPageNumber, newerPageNumber, quality };
   return measureAsync(onMetric, "comparison.page_pair", async () => {
-    const pair = await measureAsync(onMetric, "pdf.load.pair", () => loadPdfPair(earlier, newer, { signal, workerSrc, metrics: onMetric }), sourceAttributes);
-    try {
-      throwIfAborted(signal);
-      return await compareExistingPage({
-        earlier: pair.earlier,
-        newer: pair.newer,
-        earlierPageNumber,
-        newerPageNumber,
-        index: earlierPageNumber - 1,
-        options,
-        signal,
-        metrics: onMetric,
-      });
-    } finally {
-      await Promise.allSettled([pair.earlier.destroy(), pair.newer.destroy()]);
-    }
+    const pair = await measureAsync(onMetric, "pdf.load.pair", () => loadPair(earlier, newer, signal, onMetric), sourceAttributes);
+    throwIfAborted(signal);
+    return compareExistingPage({
+      earlier: pair.earlier,
+      newer: pair.newer,
+      earlierPageNumber,
+      newerPageNumber,
+      index: earlierPageNumber - 1,
+      options,
+      signal,
+      withLayers: true,
+      quality,
+      metrics: onMetric,
+    });
   }, sourceAttributes);
 }
 
@@ -345,14 +391,45 @@ export interface PdfJsEngine extends DiffEngine<PdfSource, AbortSignal> {
     earlierPageIndex: number;
     newerPageIndex: number;
     options: DiffOptions;
+    quality?: RenderQuality;
     signal: AbortSignal;
     onMetric?: DiffMetricSink;
   }): Promise<ComparisonPage>;
 }
 
 export function createPdfJsEngine({ workerSrc }: PdfJsEngineOptions): PdfJsEngine {
+  /**
+   * Picking mismatched A and B pages in the viewer re-parsed both documents
+   * every time, which for large files dominates the interaction. The most
+   * recent pair is kept loaded instead. It is only ever released when a new
+   * comparison starts, so a page-pair request can never race a destroy.
+   */
+  let loaded: { earlier: PdfSource; newer: PdfSource; pair: Promise<LoadedPair> } | null = null;
+  const stale: Array<Promise<LoadedPair>> = [];
+
+  const releaseLoadedPairs = async (): Promise<void> => {
+    const pending = [...stale, ...(loaded ? [loaded.pair] : [])];
+    loaded = null;
+    stale.length = 0;
+    await Promise.allSettled(pending.map(async (entry) => {
+      const pair = await entry.catch(() => null);
+      if (pair) await Promise.allSettled([pair.earlier.destroy(), pair.newer.destroy()]);
+    }));
+  };
+
+  const loadPair = (earlier: PdfSource, newer: PdfSource, signal: AbortSignal, metrics?: DiffMetricSink): Promise<LoadedPair> => {
+    if (loaded && loaded.earlier === earlier && loaded.newer === newer) return loaded.pair;
+    if (loaded) stale.push(loaded.pair);
+    const pair = loadPdfPair(earlier, newer, { signal, workerSrc, metrics });
+    loaded = { earlier, newer, pair };
+    return pair;
+  };
+
   return {
-    compare: ({ earlier, newer, options, signal, onReady, onPage, onProgress, onMetric }) => comparePdfPair(earlier, newer, options, signal, workerSrc, onReady, onPage, onProgress, onMetric),
-    comparePagePair: ({ earlier, newer, earlierPageIndex, newerPageIndex, options, signal, onMetric }) => comparePdfPagePair(earlier, newer, earlierPageIndex + 1, newerPageIndex + 1, options, signal, workerSrc, onMetric),
+    compare: async ({ earlier, newer, options, signal, onReady, onPage, onProgress, onMetric }) => {
+      await releaseLoadedPairs();
+      return comparePdfPair(earlier, newer, options, signal, loadPair, onReady, onPage, onProgress, onMetric, releaseLoadedPairs);
+    },
+    comparePagePair: ({ earlier, newer, earlierPageIndex, newerPageIndex, options, quality, signal, onMetric }) => comparePdfPagePair(earlier, newer, earlierPageIndex + 1, newerPageIndex + 1, options, quality ?? "standard", signal, loadPair, onMetric),
   };
 }

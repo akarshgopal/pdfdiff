@@ -19,6 +19,7 @@ import {
   saveComparisonHistory,
   type ComparisonHistorySummary,
 } from "./comparisonHistory";
+import { fromHex, readOverlaySettings, toHex, writeOverlaySettings } from "./overlaySettings";
 
 export type DiffOptions = CoreDiffOptions;
 
@@ -68,6 +69,11 @@ interface ComparisonInput {
   historyId?: string;
 }
 
+function viewerOverlay(options: DiffOptions) {
+  const overlay = options.overlay ?? readOverlaySettings();
+  return { addedColor: toHex(overlay.addedColor), removedColor: toHex(overlay.removedColor), unchangedOpacity: overlay.unchangedOpacity };
+}
+
 function progressPercent(completed: number, total: number): number {
   return total > 0 ? Math.round((completed / total) * 100) : 0;
 }
@@ -92,7 +98,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   const [progress, setProgress] = useState(0);
   const [pageProgress, setPageProgress] = useState<{ completed: number; total: number } | null>(null);
   const [activeDrop, setActiveDrop] = useState<"earlier" | "newer" | null>(null);
-  const [options, setOptions] = useState<DiffOptions>({ sensitivity: 28, alignment: "none" });
+  const [options, setOptions] = useState<DiffOptions>(() => ({ sensitivity: 28, alignment: "none", overlay: readOverlaySettings() }));
   const [history, setHistory] = useState<ComparisonHistorySummary[]>([]);
   const [rememberFiles, setRememberFiles] = useState(false);
   const inputEarlier = useRef<HTMLInputElement>(null);
@@ -155,6 +161,22 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
       return;
     }
     setFile(side, file);
+  };
+
+  /**
+   * The viewer tints live in hex; the engine bakes page thumbnails from RGB at
+   * comparison time. Persisting the viewer's choice keeps the next run's
+   * thumbnails in the same colours the reviewer just picked.
+   */
+  const setOverlay = (style: { addedColor: string; removedColor: string; unchangedOpacity: number }) => {
+    const current = options.overlay ?? readOverlaySettings();
+    const overlay = {
+      addedColor: fromHex(style.addedColor, current.addedColor),
+      removedColor: fromHex(style.removedColor, current.removedColor),
+      unchangedOpacity: style.unchangedOpacity,
+    };
+    writeOverlaySettings(overlay);
+    setOptions((existing) => ({ ...existing, overlay }));
   };
 
   const swapFiles = () => {
@@ -299,7 +321,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   }
 
   if (!comparison) return null;
-  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} /></div></main>;
+  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} defaultOverlay={viewerOverlay(options)} onOverlayChange={setOverlay} /></div></main>;
 }
 
 export { PdfDiffApp };

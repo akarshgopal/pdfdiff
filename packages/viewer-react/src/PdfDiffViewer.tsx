@@ -3,26 +3,24 @@ import {
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
-  type WheelEvent,
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { styles, styleProps, type TailwindClass } from "./styles.js";
-import type { DiffPage, DiffRegion, DiffSemanticOverlay, DiffViewMode, PdfDiffViewerProps, SourceSide } from "./types.js";
-import { PageRail, StatusFooter, SummaryBar, ViewerToolbar, WorkspaceHeader } from "./ViewerChrome.js";
+import type { DiffPage, DiffRegion, DiffSemanticOverlay, DiffViewMode, PdfDiffViewerProps, SourceSide, ViewerSettings } from "./types.js";
+import { PageRail, SettingsDialog, StatusFooter, ViewerToolbar, WorkspaceHeader } from "./ViewerChrome.js";
 import { summarizeComparison } from "./summary.js";
-import { downloadReport } from "./export.js";
+import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
-import { modeNeedsComparedPair, sourceForSide } from "./viewer-utils.js";
+import { clampZoom, modeNeedsComparedPair, toggleFullscreen } from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
+import { OverlayLayerStack } from "./OverlayLayers.js";
+import type { OverlayStyle } from "./types.js";
 
-const MIN_ZOOM = 25;
-const MAX_ZOOM = 400;
-
-function zoomStyle(zoom: number): CSSProperties {
-  return { zoom: zoom / 100 };
-}
+export const DEFAULT_OVERLAY_STYLE: OverlayStyle = { addedColor: "#10bebe", removedColor: "#ee4856", unchangedOpacity: 0.24 };
 
 function getRegionStyle(region: DiffRegion): CSSProperties {
   return {
@@ -107,13 +105,11 @@ function semanticSummary(semantic: DiffPage["semantic"]): { changes: string; tok
 
 function SemanticPdfPreview({
   page,
-  zoom,
   selectedRegion,
   showHighlights,
   onSelectChange,
 }: {
   page: DiffPage;
-  zoom: number;
   selectedRegion: string | null;
   showHighlights: boolean;
   onSelectChange: (id: string) => void;
@@ -130,7 +126,7 @@ function SemanticPdfPreview({
   }, [selectedRegion, showHighlights]);
 
   return (
-    <div ref={previewRef} {...styleProps(styles.paper, styles.semanticPaper)} style={zoomStyle(zoom)}>
+    <div ref={previewRef} {...styleProps(styles.paper, styles.semanticPaper)}>
       <div {...styleProps(styles.semanticSummary)}><span>{summary.changes}</span><span>{summary.tokens}</span></div>
       <div {...styleProps(styles.semanticLegend)}><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />Removed</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />Added</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />Changed</span><span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span></div>
       <div {...styleProps(styles.semanticGrid)}>
@@ -142,7 +138,7 @@ function SemanticPdfPreview({
   );
 }
 
-function SwipePreview({ before, after, zoom, swipe, onSwipeChange }: { before?: string; after?: string; zoom: number; swipe: number; onSwipeChange: (value: number) => void }) {
+function SwipePreview({ before, after, swipe, onSwipeChange }: { before?: string; after?: string; swipe: number; onSwipeChange: (value: number) => void }) {
   const setSwipeFromPointer = (event: PointerEvent<HTMLDivElement>): void => {
     const paper = event.currentTarget.parentElement;
     if (!paper) return;
@@ -171,14 +167,14 @@ function SwipePreview({ before, after, zoom, swipe, onSwipeChange }: { before?: 
     onSwipeChange(next);
   };
   const sizingSource = before ?? after;
-  return <div {...styleProps(styles.paper, styles.swipeWrap)} style={zoomStyle(zoom)}>{sizingSource ? <img {...styleProps(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} /> : <PaperFallback label="Preview is still rendering" />}{before ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}><img {...styleProps(styles.swipeLayerImage)} src={before} alt="Earlier version of this page" draggable={false} /></div> : null}{after ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}><img {...styleProps(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} /></div> : null}<div {...styleProps(styles.swipeHandle)} style={{ left: `${swipe}%` }} role="slider" aria-label="Swipe position" aria-valuemin={0} aria-valuemax={100} aria-valuenow={swipe} aria-valuetext={`${swipe}%`} tabIndex={0} onKeyDown={handleKeyDown} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd}><span {...styleProps(styles.swipeDivider)} aria-hidden="true" /></div></div>;
+  return <div {...styleProps(styles.paper, styles.swipeWrap)}>{sizingSource ? <img {...styleProps(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} /> : <PaperFallback label="Preview is still rendering" />}{before ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}><img {...styleProps(styles.swipeLayerImage)} src={before} alt="Earlier version of this page" draggable={false} /></div> : null}{after ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}><img {...styleProps(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} /></div> : null}<div {...styleProps(styles.swipeHandle)} style={{ left: `${swipe}%` }} role="slider" aria-label="Swipe position" aria-valuemin={0} aria-valuemax={100} aria-valuenow={swipe} aria-valuetext={`${swipe}%`} tabIndex={0} onKeyDown={handleKeyDown} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd}><span {...styleProps(styles.swipeDivider)} aria-hidden="true" /></div></div>;
 }
 
 function PagePreview({
   page,
   mode,
-  zoom,
   swipe,
+  overlay,
   showBoundingBoxes,
   showSemanticHighlights,
   selectedRegion,
@@ -190,8 +186,8 @@ function PagePreview({
 }: {
   page: DiffPage;
   mode: DiffViewMode;
-  zoom: number;
   swipe: number;
+  overlay: OverlayStyle;
   showBoundingBoxes: boolean;
   showSemanticHighlights: boolean;
   selectedRegion: string | null;
@@ -204,77 +200,86 @@ function PagePreview({
   const before = page.beforeSrc;
   const after = page.afterSrc;
   const diff = page.diffSrc;
-  const unavailable = comparedPairUnavailable(mode, pairComparisonPending, pairError, zoom);
+  const unavailable = comparedPairUnavailable(mode, pairComparisonPending, pairError);
   if (unavailable) return unavailable;
-  if (mode === "semantic-text") return <SemanticPdfPreview page={page} zoom={zoom} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
+  if (mode === "semantic-text") return <SemanticPdfPreview page={page} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
 
-  if (mode === "side-by-side") return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" /></div></div></div>;
-  if (mode === "swipe") return <SwipePreview before={before} after={after} zoom={zoom} swipe={swipe} onSwipeChange={onSwipeChange} />;
-  return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} zoom={zoom} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} />;
+  if (mode === "side-by-side") return <div {...styleProps(styles.paper)}><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" /></div></div></div>;
+  if (mode === "swipe") return <SwipePreview before={before} after={after} swipe={swipe} onSwipeChange={onSwipeChange} />;
+  return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} overlay={overlay} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} />;
 }
 
-function comparedPairUnavailable(mode: DiffViewMode, pending: boolean, error: string | null, zoom: number) {
+function comparedPairUnavailable(mode: DiffViewMode, pending: boolean, error: string | null) {
   if (!modeNeedsComparedPair(mode)) return null;
-  if (pending) return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PaperFallback label="Preparing the selected A and B pages…" /></div>;
-  return error ? <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PaperFallback label={error} /></div> : null;
+  if (pending) return <div {...styleProps(styles.paper)}><PaperFallback label="Preparing the selected A and B pages…" /></div>;
+  return error ? <div {...styleProps(styles.paper)}><PaperFallback label={error} /></div> : null;
 }
 
-function DiffPreview({ page, source, hasDiff, zoom, showBoundingBoxes, selectedRegion, onRegionClick }: { page: DiffPage; source?: string; hasDiff: boolean; zoom: number; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void }) {
+function DiffPreview({ page, source, hasDiff, overlay, showBoundingBoxes, selectedRegion, onRegionClick }: { page: DiffPage; source?: string; hasDiff: boolean; overlay: OverlayStyle; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void }) {
   const regions = showBoundingBoxes ? page.regions ?? [] : [];
-  return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />{!hasDiff && page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)}>Added · Removed</div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
+  return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}{!hasDiff && page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)}>Added · Removed</div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
 }
 
-interface DragState {
-  pointerId: number;
-  clientX: number;
-  clientY: number;
-  scrollLeft: number;
-  scrollTop: number;
-}
-
-interface ZoomAnchor {
-  xRatio: number;
-  yRatio: number;
-  viewportX: number;
-  viewportY: number;
-}
-
-function PanZoomStage({ zoom, onZoomChange, children }: { zoom: number; onZoomChange: (zoom: number) => void; children: ReactNode }) {
+function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number; onZoomChange: (zoom: number) => void; resetKey: string; children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<DragState | null>(null);
-  const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef({ x: 0, y: 0 });
+  const dragRef = useRef<{ pointerId: number; clientX: number; clientY: number; panX: number; panY: number } | null>(null);
   const [panning, setPanning] = useState(false);
 
-  useEffect(() => {
+  // The transform is written straight to the node. Scaling a composited layer
+  // costs no relayout, and panning this way costs no React render either.
+  const applyTransform = useCallback((scale: number) => {
     const stage = stageRef.current;
-    const anchor = zoomAnchorRef.current;
-    if (!stage || !anchor) return;
-    zoomAnchorRef.current = null;
-    const frame = window.requestAnimationFrame(() => {
-      stage.scrollLeft = anchor.xRatio * stage.scrollWidth - anchor.viewportX;
-      stage.scrollTop = anchor.yRatio * stage.scrollHeight - anchor.viewportY;
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [zoom]);
+    const content = contentRef.current;
+    if (!stage || !content) return;
+    const overflowX = Math.max(0, (content.offsetWidth * scale - stage.clientWidth) / 2);
+    const overflowY = Math.max(0, content.offsetHeight * scale - stage.clientHeight);
+    const { x, y } = panRef.current;
+    panRef.current = { x: Math.max(-overflowX, Math.min(overflowX, x)), y: Math.max(-overflowY, Math.min(0, y)) };
+    content.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scale})`;
+  }, []);
 
-  const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const stage = stageRef.current;
-    if (!stage) return;
-    const bounds = stage.getBoundingClientRect();
-    const viewportX = event.clientX - bounds.left;
-    const viewportY = event.clientY - bounds.top;
-    const rawZoom = zoom * Math.exp(-event.deltaY * 0.0015);
-    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(rawZoom / 5) * 5));
+  useEffect(() => applyTransform(zoom / 100), [zoom, applyTransform]);
+  useEffect(() => {
+    panRef.current = { x: 0, y: 0 };
+    applyTransform(zoom / 100);
+    // A new page or view starts centred; keeping the old pan would land the
+    // reviewer somewhere off the page.
+  }, [resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // React attaches onWheel as a passive root listener, where preventDefault is
+  // ignored, so the zoom handler owns a non-passive listener on the stage.
+  const handleWheel = (event: globalThis.WheelEvent) => {
+    const content = contentRef.current;
+    if (!content) return;
+    const nextZoom = clampZoom(Math.round(zoom * Math.exp(-event.deltaY * 0.0015) / 5) * 5);
     if (nextZoom === zoom) return;
-    zoomAnchorRef.current = {
-      xRatio: (stage.scrollLeft + viewportX) / Math.max(1, stage.scrollWidth),
-      yRatio: (stage.scrollTop + viewportY) / Math.max(1, stage.scrollHeight),
-      viewportX,
-      viewportY,
+    // Hold the point under the cursor still. The shift is its distance from
+    // the transform origin times the scale change — and the origin is the
+    // top edge but the horizontal centre, so x measures from the middle.
+    const rect = content.getBoundingClientRect();
+    const shrink = 1 - nextZoom / zoom;
+    panRef.current = {
+      x: panRef.current.x + (event.clientX - rect.left - rect.width / 2) * shrink,
+      y: panRef.current.y + (event.clientY - rect.top) * shrink,
     };
     onZoomChange(nextZoom);
   };
+  const wheelHandler = useRef(handleWheel);
+  useEffect(() => {
+    wheelHandler.current = handleWheel;
+  });
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const listener = (event: globalThis.WheelEvent): void => {
+      event.preventDefault();
+      wheelHandler.current(event);
+    };
+    stage.addEventListener("wheel", listener, { passive: false });
+    return () => stage.removeEventListener("wheel", listener);
+  }, []);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -284,23 +289,16 @@ function PanZoomStage({ zoom, onZoomChange, children }: { zoom: number; onZoomCh
     if (!stage) return;
     event.preventDefault();
     stage.setPointerCapture(event.pointerId);
-    dragRef.current = {
-      pointerId: event.pointerId,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      scrollLeft: stage.scrollLeft,
-      scrollTop: stage.scrollTop,
-    };
+    dragRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, panX: panRef.current.x, panY: panRef.current.y };
     setPanning(true);
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const stage = stageRef.current;
     const drag = dragRef.current;
-    if (!stage || !drag || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.pointerId !== event.pointerId) return;
     event.preventDefault();
-    stage.scrollLeft = drag.scrollLeft - (event.clientX - drag.clientX);
-    stage.scrollTop = drag.scrollTop - (event.clientY - drag.clientY);
+    panRef.current = { x: drag.panX + (event.clientX - drag.clientX), y: drag.panY + (event.clientY - drag.clientY) };
+    applyTransform(zoom / 100);
   };
 
   const stopPanning = (event: PointerEvent<HTMLDivElement>) => {
@@ -316,51 +314,12 @@ function PanZoomStage({ zoom, onZoomChange, children }: { zoom: number; onZoomCh
       ref={stageRef}
       {...styleProps(styles.stage, panning && styles.stagePanning)}
       aria-label="Document canvas. Scroll to zoom and drag to pan."
-      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={stopPanning}
       onPointerCancel={stopPanning}
     >
-      <div {...styleProps(styles.stageCenter)}>{children}</div>
-    </div>
-  );
-}
-
-function FullPageViewer({
-  page,
-  pageNumber,
-  pageCount,
-  earlierName,
-  newerName,
-  side,
-  onSideChange,
-  onPageChange,
-  onClose,
-}: {
-  page: DiffPage;
-  pageNumber: number;
-  pageCount: number;
-  earlierName: string;
-  newerName: string;
-  side: SourceSide;
-  onSideChange: (side: SourceSide) => void;
-  onPageChange: (side: SourceSide, index: number) => void;
-  onClose: () => void;
-}) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const source = sourceForSide(page, side);
-  const fileName = side === "earlier" ? earlierName : newerName;
-  const sourceLabel = side === "earlier" ? "Earlier" : "Newer";
-  useEffect(() => { closeButtonRef.current?.focus(); }, []);
-  if (!source) return null;
-  return (
-    <div {...styleProps(styles.fullPageBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section {...styleProps(styles.fullPageDialog)} role="dialog" aria-modal="true" aria-labelledby="full-page-viewer-title">
-        <header {...styleProps(styles.fullPageToolbar)}><div {...styleProps(styles.fullPageHeading)}><h2 id="full-page-viewer-title" {...styleProps(styles.fullPageTitle)} title={fileName}>{fileName}</h2></div><div {...styleProps(styles.fullPageActions)}><div {...styleProps(styles.sourceGroup)} role="group" aria-label="Source page"><button {...styleProps(styles.sourceButton, side === "earlier" && styles.modeButtonCurrent)} type="button" aria-pressed={side === "earlier"} disabled={!sourceForSide(page, "earlier")} onClick={() => onSideChange("earlier")}>Earlier</button><button {...styleProps(styles.sourceButton, side === "newer" && styles.modeButtonCurrent)} type="button" aria-pressed={side === "newer"} disabled={!sourceForSide(page, "newer")} onClick={() => onSideChange("newer")}>Newer</button></div><div {...styleProps(styles.fullPagePageNav)} aria-label={`${sourceLabel} page navigation`}><button {...styleProps(styles.iconButton)} type="button" aria-label="Previous source page" disabled={pageNumber <= 1} onClick={() => onPageChange(side, pageNumber - 2)}>←</button><span {...styleProps(styles.fullPagePagePosition)}>Page {pageNumber} / {pageCount}</span><button {...styleProps(styles.iconButton)} type="button" aria-label="Next source page" disabled={pageNumber >= pageCount} onClick={() => onPageChange(side, pageNumber)}>→</button></div><button ref={closeButtonRef} {...styleProps(styles.iconButton, styles.fullPageClose)} type="button" aria-label="Close full-page view" title="Close full-page view (Escape)" onClick={onClose}>×</button></div></header>
-        <div {...styleProps(styles.fullPageStage)}><img {...styleProps(styles.fullPageImage)} src={source} alt={`${sourceLabel} version of page ${pageNumber}`} draggable={false} /></div>
-        <footer {...styleProps(styles.fullPageFooter)}><span>Shift + ← → Earlier · Ctrl/Cmd + ← → Newer · Esc to close</span></footer>
-      </section>
+      <div {...styleProps(styles.stageCenter)}><div ref={contentRef} {...styleProps(styles.stageContent)}>{children}</div></div>
     </div>
   );
 }
@@ -374,7 +333,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
   return (
-    <div {...styleProps(styles.fullPageBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div {...styleProps(styles.dialogBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section {...styleProps(styles.helpDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-help-title">
         <header {...styleProps(styles.helpHeader)}><h2 id="viewer-help-title" {...styleProps(styles.helpTitle)}>How to compare PDFs</h2><button ref={closeButtonRef} {...styleProps(styles.iconButton)} type="button" aria-label="Close help" onClick={onClose}>×</button></header>
         <div {...styleProps(styles.helpBody)}>
@@ -389,35 +348,52 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison }: PdfDiffViewerProps) {
-  const viewer = useViewerState({ comparison });
-  const [hideNoise, setHideNoise] = useState(true);
-  const [onlyChanged, setOnlyChanged] = useState(false);
-  const summary = summarizeComparison(comparison);
+const DEFAULT_SETTINGS: ViewerSettings = { showBoundingBoxes: false, hideNoise: true, onlyChanged: false };
+
+export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison, defaultOverlay, onOverlayChange }: PdfDiffViewerProps) {
+  // The save shortcut needs the live overlay settings, which are owned below;
+  // the ref keeps the keyboard hook from depending on render order.
+  const saveRef = useRef<() => void>(() => undefined);
+  const viewer = useViewerState({ comparison, onSave: () => saveRef.current() });
+  const [overlay, setOverlay] = useState<OverlayStyle>(defaultOverlay ?? DEFAULT_OVERLAY_STYLE);
+  const changeOverlay = (next: OverlayStyle): void => {
+    setOverlay(next);
+    onOverlayChange?.(next);
+  };
+  const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
+  const [showSettings, setShowSettings] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const summary = useMemo(() => summarizeComparison(comparison), [comparison]);
   const {
     pages, pageIndex, mode, zoom, swipe, selectedRegion,
-    fullPageSide, earlierPageIndex, newerPageIndex, showHelp, earlierPageCount,
-    newerPageCount, pairComparisonPending, pairError, currentPage, earlierPage, newerPage,
-    fullPageIndex, fullPage, fullPageCount, previewPage, selectPage,
-    goToSourcePage, changeMode, setZoom, setSwipe, setSelectedRegion,
-    setFullPageSide, setShowHelp,
+    earlierPageIndex, newerPageIndex, showHelp, earlierPageCount,
+    newerPageCount, pairComparisonPending, pairError, currentPage, previewPage,
+    selectPage, goToSourcePage, changeMode, setZoom, setSwipe, setSelectedRegion, setShowHelp,
   } = viewer;
-  const closeHelp = () => setShowHelp(false);
+  useEffect(() => {
+    saveRef.current = () => { if (previewPage) void downloadPageImage(comparison, previewPage, overlay); };
+  });
+  // Fullscreen can also be left with Escape or the browser's own chrome, so the
+  // button follows the document rather than its own state.
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
   if (!currentPage || !previewPage) return null;
   return (
     <section {...styleProps(styles.viewerRoot)} aria-label="PDF comparison workspace">
-      <WorkspaceHeader comparison={comparison} onNewComparison={onNewComparison} onHelp={() => setShowHelp(true)} headerActions={headerActions} />
-      <SummaryBar summary={summary} hideNoise={hideNoise} onHideNoiseChange={setHideNoise} onlyChanged={onlyChanged} onOnlyChangedChange={setOnlyChanged} onExport={(format) => downloadReport(comparison, format)} />
+      <WorkspaceHeader comparison={comparison} summary={summary} onNewComparison={onNewComparison} headerActions={headerActions} />
       <div {...styleProps(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
-        <PageRail onlyChanged={onlyChanged} hideNoise={hideNoise} pages={pages} pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSelectPage={selectPage} onSourcePageChange={goToSourcePage} />
+        <PageRail onlyChanged={settings.onlyChanged} hideNoise={settings.hideNoise} pages={pages} pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSelectPage={selectPage} onSourcePageChange={goToSourcePage} />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
-          <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} earlierPage={earlierPage} newerPage={newerPage} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} onOpenSource={setFullPageSide} textUnavailable={previewPage.semantic?.textUndecodable} />
-          <PanZoomStage zoom={zoom} onZoomChange={setZoom}><PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} showBoundingBoxes showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
+          <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} textUnavailable={previewPage.semantic?.textUndecodable} isFullscreen={isFullscreen} onToggleFullscreen={toggleFullscreen} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} canExportImage={canDownloadPageImage(previewPage)} onExport={(choice) => { if (choice === "page-image") void downloadPageImage(comparison, previewPage, overlay); else downloadReport(comparison, choice); }} />
+          <PanZoomStage zoom={zoom} onZoomChange={setZoom} resetKey={`${mode}:${earlierPageIndex}:${newerPageIndex}`}><PagePreview page={previewPage} mode={mode} swipe={swipe} overlay={overlay} showBoundingBoxes={settings.showBoundingBoxes} showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
           <StatusFooter processingProgress={processingProgress} />
         </section>
       </div>
-      {fullPageSide && fullPage && sourceForSide(fullPage, fullPageSide) ? <FullPageViewer page={fullPage} pageNumber={fullPageIndex + 1} pageCount={fullPageCount} earlierName={comparison.earlierName} newerName={comparison.newerName} side={fullPageSide} onSideChange={setFullPageSide} onPageChange={goToSourcePage} onClose={() => setFullPageSide(null)} /> : null}
-      {showHelp ? <HelpDialog onClose={closeHelp} /> : null}
+      {showSettings ? <SettingsDialog overlay={overlay} onOverlayChange={changeOverlay} settings={settings} onSettingsChange={setSettings} onClose={() => setShowSettings(false)} /> : null}
+      {showHelp ? <HelpDialog onClose={() => setShowHelp(false)} /> : null}
     </section>
   );
 }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import type { DiffComparison, DiffPage, DiffViewMode, SourceSide } from "./types.js";
-import { buildPreviewPage, clampPageIndex, modeNeedsComparedPair, sourcePageCount, viewModes } from "./viewer-utils.js";
+import type { DiffComparison, DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
+import { buildPreviewPage, clampPageIndex, modeNeedsComparedPair, qualityForZoom, sourcePageCount, viewModes } from "./viewer-utils.js";
 import { useViewerKeyboard } from "./useViewerKeyboard.js";
 
 interface PairResolution {
   comparison: DiffComparison;
   key: string;
+  quality: RenderQuality;
   page?: DiffPage;
   error?: string;
 }
@@ -19,33 +20,39 @@ function pageAt(pages: ReadonlyArray<DiffPage>, index: number): DiffPage | null 
   return pages[index] ?? null;
 }
 
-function comparisonPairState(comparison: DiffComparison, pages: ReadonlyArray<DiffPage>, earlierPageIndex: number, newerPageIndex: number, resolution: PairResolution | null): ComparisonPairState {
-  if (earlierPageIndex === newerPageIndex) return { page: pageAt(pages, earlierPageIndex), error: null };
-  const key = `${earlierPageIndex}:${newerPageIndex}`;
-  if (resolution?.comparison === comparison && resolution.key === key) {
-    return { page: resolution.page ?? null, error: resolution.error ?? null };
+function resolutionFor(comparison: DiffComparison, key: string, resolution: PairResolution | null): PairResolution | null {
+  return resolution?.comparison === comparison && resolution.key === key ? resolution : null;
+}
+
+/**
+ * A page arrives from the batch pass without overlay layers, because building
+ * them for every page costs time and memory to serve one visible page. The
+ * on-demand resolver that already backs mismatched A/B pairs supplies them for
+ * the page on screen, and its cache means a page pays that cost once.
+ */
+function comparisonPairState(comparison: DiffComparison, pages: ReadonlyArray<DiffPage>, earlierPageIndex: number, newerPageIndex: number, key: string, resolution: PairResolution | null): ComparisonPairState {
+  const resolved = resolutionFor(comparison, key, resolution);
+  if (earlierPageIndex === newerPageIndex) {
+    return { page: resolved?.page ?? pageAt(pages, earlierPageIndex), error: null };
   }
+  if (resolved) return { page: resolved.page ?? null, error: resolved.error ?? null };
   return {
     page: null,
     error: comparison.comparePagePair ? null : "This comparison source cannot calculate a diff for independently selected pages.",
   };
 }
 
-function fullPageState(side: SourceSide | null, earlier: { page: DiffPage | null; index: number; count: number }, newer: { page: DiffPage | null; index: number; count: number }) {
-  return side === "earlier" ? earlier : newer;
-}
-
-export function useViewerState({ comparison }: { comparison: DiffComparison }) {
+export function useViewerState({ comparison, onSave }: { comparison: DiffComparison; onSave?: () => void }) {
   const pages = comparison.pages;
   const [pageIndex, setPageIndex] = useState(0);
   const [mode, setMode] = useState<DiffViewMode>("diff");
   const [zoom, setZoom] = useState(100);
   const [swipe, setSwipe] = useState(50);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [fullPageSide, setFullPageSide] = useState<SourceSide | null>(null);
   const [earlierPageIndex, setEarlierPageIndex] = useState(0);
   const [newerPageIndex, setNewerPageIndex] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
+  const [quality, setQuality] = useState<RenderQuality>("standard");
   const [pairResolution, setPairResolution] = useState<PairResolution | null>(null);
 
   const earlierPageCount = comparison.earlierPageCount ?? sourcePageCount(pages, "earlier");
@@ -56,9 +63,21 @@ export function useViewerState({ comparison }: { comparison: DiffComparison }) {
   const sourcePagesAligned = earlierPageIndex === newerPageIndex;
   const pairKey = `${earlierPageIndex}:${newerPageIndex}`;
   const pairComparisonMode = modeNeedsComparedPair(mode);
-  const pair = comparisonPairState(comparison, pages, earlierPageIndex, newerPageIndex, pairResolution);
+  const pair = comparisonPairState(comparison, pages, earlierPageIndex, newerPageIndex, pairKey, pairResolution);
   const pairError = pairComparisonMode ? pair.error : null;
   const comparisonPairPage = pair.page;
+  // One resolution per page pair, tagged with the quality it was rendered at.
+  // Keying it this way keeps the last render on screen while a quality change
+  // re-renders, and still stops a page that genuinely has no layers from asking
+  // for them forever.
+  const resolved = resolutionFor(comparison, pairKey, pairResolution);
+  const upToDate = resolved?.quality === quality;
+  const staleQuality = Boolean(resolved) && !upToDate;
+  const needsPairComparison = pairComparisonMode && !sourcePagesAligned && !pair.page && !pair.error;
+  const needsOverlayLayers = mode === "diff" && Boolean(pair.page) && !pair.page?.layers;
+  // A high-quality page only exists once it has been re-rendered, so asking for
+  // it is what makes it appear — the batch page is never good enough.
+  const needsHighQuality = quality !== "standard";
 
   const selectPage = useCallback((index: number) => {
     const nextIndex = clampPageIndex(index, pages.length);
@@ -73,13 +92,19 @@ export function useViewerState({ comparison }: { comparison: DiffComparison }) {
     if (side === "earlier") setEarlierPageIndex(nextIndex);
     else setNewerPageIndex(nextIndex);
     setSelectedRegion(null);
-    if (fullPageSide) setFullPageSide(side);
-  }, [earlierPageCount, fullPageSide, newerPageCount]);
+  }, [earlierPageCount, newerPageCount]);
 
   const stepSourcePage = useCallback((side: SourceSide, direction: 1 | -1) => {
     const currentIndex = side === "earlier" ? earlierPageIndex : newerPageIndex;
     goToSourcePage(side, currentIndex + direction);
   }, [earlierPageIndex, goToSourcePage, newerPageIndex]);
+
+  // Quality is a consequence of how closely the reviewer is looking, not a
+  // button they should have to find, so it moves with the zoom that caused it.
+  const changeZoom = useCallback((next: number) => {
+    setZoom(next);
+    setQuality((current) => qualityForZoom(next, current));
+  }, []);
 
   const changeMode = useCallback((nextMode: DiffViewMode) => setMode(nextMode), []);
 
@@ -89,29 +114,25 @@ export function useViewerState({ comparison }: { comparison: DiffComparison }) {
   }, [changeMode, mode]);
 
   useEffect(() => {
-    if (!pairComparisonMode || sourcePagesAligned || pair.page || pair.error || !comparison.comparePagePair) return;
+    if (!comparison.comparePagePair || upToDate) return;
+    // Either the pair itself is missing, or it is present but has no layers to tint.
+    if (!needsPairComparison && !needsOverlayLayers && !needsHighQuality && !staleQuality) return;
 
     const abortController = new AbortController();
-    void comparison.comparePagePair({ earlierPageIndex, newerPageIndex, signal: abortController.signal }).then((page) => {
+    void comparison.comparePagePair({ earlierPageIndex, newerPageIndex, quality, signal: abortController.signal }).then((page) => {
       if (abortController.signal.aborted) return;
-      setPairResolution({ comparison, key: pairKey, page });
+      setPairResolution({ comparison, key: pairKey, quality, page });
     }).catch((error: unknown) => {
       if (abortController.signal.aborted) return;
-      setPairResolution({ comparison, key: pairKey, error: error instanceof Error ? error.message : "Unable to compare the selected pages." });
+      setPairResolution({ comparison, key: pairKey, quality, error: error instanceof Error ? error.message : "Unable to compare the selected pages." });
     });
     return () => abortController.abort();
-  }, [comparison, earlierPageIndex, newerPageIndex, pairComparisonMode, pairKey, pair.error, pair.page, sourcePagesAligned]);
+  }, [comparison, earlierPageIndex, newerPageIndex, quality, pairKey, upToDate, staleQuality, needsPairComparison, needsOverlayLayers, needsHighQuality]);
 
-  useViewerKeyboard({ enabled: !showHelp, pageIndex, pageCount: pages.length, earlierPageCount, newerPageCount, fullPageSide, onSelectPage: selectPage, onStepSourcePage: stepSourcePage, onGoToSourcePage: goToSourcePage, onCloseFullPage: () => setFullPageSide(null), onClearSelection: () => setSelectedRegion(null), onChangeMode: changeMode, onCycleMode: cycleMode });
+  useViewerKeyboard({ enabled: !showHelp, pageIndex, pageCount: pages.length, earlierPageCount, newerPageCount, onSelectPage: selectPage, onStepSourcePage: stepSourcePage, onGoToSourcePage: goToSourcePage, onClearSelection: () => setSelectedRegion(null), onChangeMode: changeMode, onCycleMode: cycleMode, zoom, onZoomChange: changeZoom, onSave });
 
-  const previewPage = buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage });
-  const pairComparisonPending = pairComparisonMode && !sourcePagesAligned && !pair.page && !pairError;
-  const fullPage = fullPageState(
-    fullPageSide,
-    { page: earlierPage, index: earlierPageIndex, count: earlierPageCount },
-    { page: newerPage, index: newerPageIndex, count: newerPageCount },
-  );
-
+  const previewPage = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage });
+  const pairComparisonPending = needsPairComparison;
   return {
     pages,
     pageIndex,
@@ -119,7 +140,6 @@ export function useViewerState({ comparison }: { comparison: DiffComparison }) {
     zoom,
     swipe,
     selectedRegion,
-    fullPageSide,
     earlierPageIndex,
     newerPageIndex,
     showHelp,
@@ -130,18 +150,14 @@ export function useViewerState({ comparison }: { comparison: DiffComparison }) {
     currentPage,
     earlierPage,
     newerPage,
-    fullPageIndex: fullPage.index,
-    fullPage: fullPage.page,
-    fullPageCount: fullPage.count,
     previewPage,
     selectPage,
     goToSourcePage,
     stepSourcePage,
     changeMode,
-    setZoom,
+    setZoom: changeZoom,
     setSwipe,
     setSelectedRegion,
-    setFullPageSide,
     setShowHelp,
   };
 }

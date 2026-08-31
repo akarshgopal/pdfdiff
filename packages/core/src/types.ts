@@ -120,9 +120,21 @@ export type PageStatus = "same" | "changed" | "added" | "removed" | "processing"
 
 export type AlignmentMode = "none" | "translation";
 
+/**
+ * How the overlay is painted. The colours are baked into the raster when a page
+ * is compared, so these belong to the comparison rather than to the viewer.
+ */
+export interface OverlayStyle {
+  readonly addedColor: RgbColor;
+  readonly removedColor: RgbColor;
+  /** How strongly unchanged content shows through, 0 to 1. */
+  readonly unchangedOpacity: number;
+}
+
 export interface DiffOptions {
   readonly sensitivity: number;
   readonly alignment: AlignmentMode;
+  readonly overlay?: OverlayStyle;
 }
 
 export interface VisualPageGeometry {
@@ -148,6 +160,8 @@ export interface ComparisonPage {
   readonly earlier?: RasterImage;
   readonly newer?: RasterImage;
   readonly diff?: RasterImage;
+  /** Recolourable overlay layers, when the adapter was asked for them. */
+  readonly diffLayers?: import("./visual-diff.js").OverlayLayers;
   readonly changedPixels?: number;
   readonly changedPercent?: number;
   readonly regions?: readonly ChangeRegion[];

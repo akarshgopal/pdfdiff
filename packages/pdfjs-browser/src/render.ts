@@ -108,18 +108,13 @@ async function renderIntoCanvas(
   }
 
   const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  return {
-    pageNumber: page.pageNumber,
-    width: canvas.width,
-    height: canvas.height,
-    data: imageData.data,
-    widthPoints,
-    heightPoints,
-    rotation,
-    scale,
-    canvas,
-    imageData,
-  };
+  const width = canvas.width;
+  const height = canvas.height;
+  // The pixels now live in imageData; releasing the backing store here keeps a
+  // long comparison from holding one full-size canvas per rendered page.
+  canvas.width = 0;
+  canvas.height = 0;
+  return { pageNumber: page.pageNumber, width, height, data: imageData.data, widthPoints, heightPoints, rotation, scale };
 }
 
 /** Render one page into a bounded canvas. */

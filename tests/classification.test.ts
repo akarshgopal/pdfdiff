@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { classifyRegions, type ChangeRegion } from "@pdfdiff/core";
+import { classifyRegions, limitRegions, type ChangeRegion } from "@pdfdiff/core";
 
 function region(id: number, x: number, y: number, width: number, height: number): ChangeRegion {
   return { id, x, y, width, height, pixelCount: width * height, area: width * height };
@@ -102,4 +102,35 @@ test("near-misses within tolerance still attach to their text", () => {
     changedText: [{ x: 140, y: 100, width: 20, height: 10 }],
   });
   assert.equal(far.regions[0]!.changeClass, "graphic");
+});
+
+test("a page's verdict survives the display cap: real edits outrank bulk reflow", () => {
+  // A reflowed page: many large regions over text that only moved, plus two
+  // small ones over words that genuinely changed.
+  const movedText = [];
+  const regions = [];
+  for (let index = 0; index < 200; index += 1) {
+    const y = index * 10;
+    movedText.push({ x: 0, y, width: 500, height: 8 });
+    regions.push({ id: index + 1, x: 0, y, width: 500, height: 8, pixelCount: 4000, area: 4000 });
+  }
+  const changedText = [{ x: 20, y: 2000, width: 30, height: 8 }];
+  regions.push({ id: 900, x: 20, y: 2000, width: 30, height: 8, pixelCount: 240, area: 240 });
+
+  const classified = classifyRegions({ regions, changedText, movedText, staticText: [] });
+  assert.equal(classified.counts.content, 1, "the real edit is counted");
+  assert.equal(classified.counts.reflow, 200);
+  assert.equal(classified.noticeable, true, "a page with a real edit is noticeable");
+
+  const shown = limitRegions(classified.regions, 80);
+  assert.equal(shown.length, 80);
+  assert.ok(shown.some((region) => region.id === 900), "the small content region is not crowded out by bulk reflow");
+  assert.deepEqual(shown.map((region) => region.id), [...shown.map((region) => region.id)].sort((a, b) => a - b), "reading order is preserved");
+});
+
+test("ranking by size alone would have dropped that edit", () => {
+  const regions = Array.from({ length: 200 }, (_, index) => ({ id: index + 1, x: 0, y: index * 10, width: 500, height: 8, pixelCount: 4000, area: 4000 }));
+  regions.push({ id: 900, x: 20, y: 2000, width: 30, height: 8, pixelCount: 240, area: 240 });
+  const bySize = [...regions].sort((a, b) => b.pixelCount - a.pixelCount).slice(0, 80);
+  assert.ok(!bySize.some((region) => region.id === 900), "guards the regression this replaced");
 });

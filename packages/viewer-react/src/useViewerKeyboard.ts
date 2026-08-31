@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { DiffViewMode, SourceSide } from "./types.js";
-import { viewModes } from "./viewer-utils.js";
+import { clampZoom, toggleFullscreen, viewModes, ZOOM_STEP } from "./viewer-utils.js";
 
 interface ViewerKeyboardOptions {
   readonly enabled: boolean;
@@ -8,21 +8,52 @@ interface ViewerKeyboardOptions {
   readonly pageCount: number;
   readonly earlierPageCount: number;
   readonly newerPageCount: number;
-  readonly fullPageSide: SourceSide | null;
   readonly onSelectPage: (index: number) => void;
   readonly onStepSourcePage: (side: SourceSide, direction: 1 | -1) => void;
   readonly onGoToSourcePage: (side: SourceSide, index: number) => void;
-  readonly onCloseFullPage: () => void;
   readonly onClearSelection: () => void;
   readonly onChangeMode: (mode: DiffViewMode) => void;
   readonly onCycleMode: (direction: 1 | -1) => void;
+  readonly zoom: number;
+  readonly onZoomChange: (zoom: number) => void;
+  readonly onSave?: () => void;
+}
+
+const zoomSteps: Record<string, number> = { "+": ZOOM_STEP, "=": ZOOM_STEP, "-": -ZOOM_STEP, _: -ZOOM_STEP };
+
+function handleViewerAction(event: KeyboardEvent, options: ViewerKeyboardOptions): boolean {
+  // Ctrl/Cmd + S and browser zoom stay with the browser.
+  if (event.ctrlKey || event.metaKey || event.altKey) return false;
+  const step = zoomSteps[event.key];
+  if (step !== undefined) {
+    event.preventDefault();
+    options.onZoomChange(clampZoom(options.zoom + step));
+    return true;
+  }
+  if (event.key === "0") {
+    event.preventDefault();
+    options.onZoomChange(100);
+    return true;
+  }
+  const key = event.key.toLowerCase();
+  if (key === "f") {
+    event.preventDefault();
+    toggleFullscreen();
+    return true;
+  }
+  if (key === "s" && options.onSave) {
+    event.preventDefault();
+    options.onSave();
+    return true;
+  }
+  return false;
 }
 
 const forwardKeys = new Set(["arrowright", "pagedown", "j", "n"]);
 const backwardKeys = new Set(["arrowleft", "pageup", "k", "p"]);
 
-function sourceSideForEvent(event: KeyboardEvent, fullPageSide: SourceSide | null): SourceSide | null {
-  return event.shiftKey ? "earlier" : event.ctrlKey || event.metaKey ? "newer" : fullPageSide;
+function sourceSideForEvent(event: KeyboardEvent): SourceSide | null {
+  return event.shiftKey ? "earlier" : event.ctrlKey || event.metaKey ? "newer" : null;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -40,7 +71,7 @@ function handlePageStep(event: KeyboardEvent, options: ViewerKeyboardOptions): b
   const direction = stepDirection(event.key.toLowerCase());
   if (!direction) return false;
   event.preventDefault();
-  const side = sourceSideForEvent(event, options.fullPageSide);
+  const side = sourceSideForEvent(event);
   if (side) options.onStepSourcePage(side, direction);
   else options.onSelectPage(options.pageIndex + direction);
   return true;
@@ -71,7 +102,7 @@ function handleBoundary(event: KeyboardEvent, options: ViewerKeyboardOptions): b
   if (event.key !== "Home" && event.key !== "End") return false;
   event.preventDefault();
   const firstPage = event.key === "Home";
-  const side = sourceSideForEvent(event, options.fullPageSide);
+  const side = sourceSideForEvent(event);
   if (!side) options.onSelectPage(firstPage ? 0 : options.pageCount - 1);
   else if (side === "earlier") options.onGoToSourcePage(side, firstPage ? 0 : options.earlierPageCount - 1);
   else options.onGoToSourcePage(side, firstPage ? 0 : options.newerPageCount - 1);
@@ -80,12 +111,7 @@ function handleBoundary(event: KeyboardEvent, options: ViewerKeyboardOptions): b
 
 function handleKeyDown(event: KeyboardEvent, options: ViewerKeyboardOptions): void {
   if (isEditableTarget(event.target)) return;
-  if (event.key === "Escape" && options.fullPageSide) {
-    event.preventDefault();
-    options.onCloseFullPage();
-    return;
-  }
-  if (handlePageStep(event, options) || handleModeChange(event, options) || handleBoundary(event, options)) return;
+  if (handlePageStep(event, options) || handleModeChange(event, options) || handleBoundary(event, options) || handleViewerAction(event, options)) return;
   if (event.key === "Escape") options.onClearSelection();
 }
 

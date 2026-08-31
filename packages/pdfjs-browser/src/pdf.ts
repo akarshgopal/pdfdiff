@@ -10,9 +10,11 @@ function isFile(source: PdfSource): source is File {
 async function readSource(source: PdfSource, signal?: PdfLoadOptions["signal"]): Promise<Uint8Array> {
   throwIfAborted(signal);
   if (isFile(source)) {
+    // arrayBuffer() already hands back a private copy; slicing it again doubles
+    // peak memory for no benefit on files this size.
     const buffer = await source.arrayBuffer();
     throwIfAborted(signal);
-    return new Uint8Array(buffer).slice();
+    return new Uint8Array(buffer);
   }
   if (source instanceof ArrayBuffer) return new Uint8Array(source).slice();
   return source.slice();

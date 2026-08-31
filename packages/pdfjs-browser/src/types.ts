@@ -37,10 +37,7 @@ export interface DocumentTextOptions {
   metrics?: DiffMetricSink;
 }
 
-export interface RenderedPage extends CoreRenderedPage {
-  readonly canvas: HTMLCanvasElement;
-  readonly imageData: ImageData;
-}
+export type RenderedPage = CoreRenderedPage;
 
 export interface RenderedPagePair {
   readonly earlier: RenderedPage;

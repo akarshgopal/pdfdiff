@@ -17,7 +17,7 @@
     "start": "vite preview",
     "deploy": "pnpm run build && WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy --config wrangler.jsonc",
     "deploy:dry-run": "pnpm run build && WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy --config wrangler.jsonc --dry-run",
-    "test": "pnpm run build && node --test tests/rendered-html.test.mjs && node --experimental-strip-types --test tests/core.test.ts tests/text-quality.test.ts tests/semantic.test.ts tests/viewer-modes.test.ts tests/region-labels.test.ts tests/region-merge.test.ts tests/document-alignment.test.ts tests/classification.test.ts tests/report.test.ts tests/cli.test.ts",
+    "test": "pnpm run build && node --test tests/rendered-html.test.mjs && node --experimental-strip-types --test tests/core.test.ts tests/text-quality.test.ts tests/overlay-settings.test.ts tests/semantic.test.ts tests/viewer-modes.test.ts tests/region-labels.test.ts tests/region-merge.test.ts tests/document-alignment.test.ts tests/classification.test.ts tests/report.test.ts tests/cli.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist"
   },

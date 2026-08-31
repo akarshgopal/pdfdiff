@@ -5,6 +5,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   adjacentChangedPageIndex,
   buildPreviewPage,
+  canDownloadPageImage,
+  clampZoom,
+  pageImageFileName,
+  qualityForZoom,
   modeNeedsComparedPair,
   PdfDiffViewer,
   type DiffPage,
@@ -39,7 +43,7 @@ const comparedModes: DiffViewMode[] = ["diff", "semantic-text", "swipe"];
 const directModes: DiffViewMode[] = ["side-by-side"];
 
 function assertComparedPreview(mode: DiffViewMode): void {
-  const preview = buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage });
+  const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage });
   assert.ok(preview);
   assert.equal(preview.beforeSrc, "pair-a", `${mode} earlier source`);
   assert.equal(preview.afterSrc, "pair-b", `${mode} newer source`);
@@ -57,9 +61,17 @@ test("Diff, Semantic, and Swipe use the exact normalized A/B pair", () => {
   for (const mode of comparedModes) assertComparedPreview(mode);
 });
 
-test("Side-by-side uses independently selected originals", () => {
+test("a resolved pair supplies the sources for every mode, so a high-quality re-render reaches Split too", () => {
+  for (const mode of [...comparedModes, ...directModes]) {
+    const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage });
+    assert.equal(preview?.beforeSrc, "pair-a", `${mode} earlier source`);
+    assert.equal(preview?.afterSrc, "pair-b", `${mode} newer source`);
+  }
+});
+
+test("Side-by-side falls back to independently selected originals", () => {
   for (const mode of directModes) {
-    const preview = buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage });
+    const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage: null });
     assert.equal(preview?.beforeSrc, "selected-a", `${mode} earlier source`);
     assert.equal(preview?.afterSrc, "selected-b", `${mode} newer source`);
   }
@@ -67,7 +79,7 @@ test("Side-by-side uses independently selected originals", () => {
 
 test("an unresolved pair cannot leak stale diff or semantic metadata", () => {
   for (const mode of comparedModes) {
-    const preview = buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage: null });
+    const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage: null });
     assert.equal(preview?.beforeSrc, "selected-a", `${mode} pending earlier source`);
     assert.equal(preview?.afterSrc, "selected-b", `${mode} pending newer source`);
     assert.equal(preview?.diffSrc, undefined, `${mode} stale diff`);
@@ -91,7 +103,7 @@ test("changed-page navigation wraps in either direction and ignores unchanged pa
 });
 
 test("viewer guidance names the four primary views and source A/B navigation", () => {
-  assert.deepEqual(helpModes.map(([name]) => name), ["Overlay", "Split", "Swipe", "Text", "Source A / Source B"]);
+  assert.deepEqual(helpModes.map(([name]) => name), ["Overlay", "Split", "Swipe", "Text"]);
   assert.equal(helpSteps[1]?.copy.includes("Overlay, Split, Swipe, or Text"), true);
   assert.deepEqual(helpShortcuts.find(([shortcut]) => shortcut === "1–4"), ["1–4", "Overlay, Split, Swipe, Text"]);
   assert.deepEqual(helpShortcuts.find(([shortcut]) => shortcut === "Shift + ← →"), ["Shift + ← →", "Source A pages"]);
@@ -112,6 +124,7 @@ test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable 
   assert.match(html, /Next source B page/);
   assert.match(html, /Comparison overlay preview/);
   assert.match(html, /Document canvas\. Scroll to zoom and drag to pan\./);
+  assert.doesNotMatch(html, /Open source A/, "the A/B modal is gone; fullscreen and zoom cover it");
   assert.doesNotMatch(html, /change inspector/i);
   assert.doesNotMatch(html, /View options/);
   assert.doesNotMatch(html, /Change position/);
@@ -164,8 +177,10 @@ test("the workspace opens with a document-level summary and filters", () => {
   assert.match(html, /1 changed of 2 pages/);
   assert.doesNotMatch(html, /2 text changes/);
   assert.doesNotMatch(html, /9 reflow\/formatting/);
-  assert.match(html, /Hide reflow noise/);
-  assert.match(html, /Only changed pages/);
+  // The filters moved behind the settings dialog, so the resting workspace shows neither.
+  assert.doesNotMatch(html, /Hide reflow noise/);
+  assert.doesNotMatch(html, /Only changed pages/);
+  assert.match(html, /aria-label="Settings"/);
 });
 
 test("a comparison whose only changes are reflow reports no substantive changes", () => {
@@ -213,4 +228,34 @@ test("viewer renders document counts and progress without treating pending pages
   assert.match(html, /B<\/span><strong>1 \/ 2/);
   assert.doesNotMatch(html, />Changed <span>/);
   assert.match(html, /Comparing pages · 0 of 3 complete/);
+});
+
+test("the marked-up page can leave the tab, named after both sources and the pages it pairs", () => {
+  const comparison = { earlierName: "Wheel Hub Rev A.pdf", newerName: "Wheel Hub Rev B.pdf", pages: [] };
+  const named = (page: DiffPage) => pageImageFileName(comparison, page);
+
+  assert.equal(named({ index: 0, earlierPageNumber: 3, newerPageNumber: 3 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-3.png");
+  assert.equal(named({ index: 0, earlierPageNumber: 3, newerPageNumber: 5 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-A3-B5.png", "a moved page names both sides");
+  assert.equal(named({ index: 0, earlierPageNumber: 2 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-A2.png", "a removed page");
+  assert.equal(named({ index: 7 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-8.png", "falls back to the row number");
+});
+
+test("the image export is offered only once a page has a rendered overlay", () => {
+  assert.equal(canDownloadPageImage(null), false);
+  assert.equal(canDownloadPageImage({ index: 0, status: "processing" }), false, "a page still rendering has nothing to save");
+  assert.equal(canDownloadPageImage({ index: 0, diffSrc: "blob:diff" }), true);
+  assert.equal(canDownloadPageImage({ index: 0, layers: { base: "b", added: "a", removed: "r" } }), true, "layers alone are enough to compose an export");
+});
+
+test("keyboard and toolbar zoom stay inside the same bounds", () => {
+  assert.equal(clampZoom(100 + 25), 125);
+  assert.equal(clampZoom(25 - 25), 25);
+  assert.equal(clampZoom(400 + 25), 400);
+});
+
+test("the high-resolution re-render follows the zoom, with a gap so a hovering wheel cannot thrash it", () => {
+  assert.equal(qualityForZoom(100, "standard"), "standard");
+  assert.equal(qualityForZoom(150, "standard"), "high", "close inspection asks for the sharper render");
+  assert.equal(qualityForZoom(140, "high"), "high", "backing off a little keeps what was already rendered");
+  assert.equal(qualityForZoom(125, "high"), "standard", "backing off past the lower bound releases it");
 });

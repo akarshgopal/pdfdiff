@@ -169,12 +169,20 @@ export function extractPageText(
   return measureAsync(options.metrics, "pdf.text.page", () => extractPageTextUnmeasured(pdf, pageNumber, options), { pageNumber });
 }
 
+const TEXT_CONCURRENCY = 4;
+
 export async function extractDocumentText(pdf: LoadedPdf, options: DocumentTextOptions = {}): Promise<readonly PageText[]> {
-  const pages: PageText[] = [];
-  for (let pageNumber = 1; pageNumber <= pdf.pageCount; pageNumber += 1) {
-    throwIfAborted(options.signal);
-    pages.push(await extractPageText(pdf, pageNumber, options));
-    options.onProgress?.({ completed: pageNumber, total: pdf.pageCount });
-  }
+  const pages: PageText[] = new Array(pdf.pageCount);
+  let next = 1;
+  let completed = 0;
+  const worker = async (): Promise<void> => {
+    for (let pageNumber = next++; pageNumber <= pdf.pageCount; pageNumber = next++) {
+      throwIfAborted(options.signal);
+      pages[pageNumber - 1] = await extractPageText(pdf, pageNumber, options);
+      completed += 1;
+      options.onProgress?.({ completed, total: pdf.pageCount });
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(TEXT_CONCURRENCY, pdf.pageCount) }, worker));
   return pages;
 }

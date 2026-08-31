@@ -58,7 +58,7 @@ async function runOnce(page, url, earlierPath, newerPath) {
   await page.locator('input[aria-label^="Choose one or two PDFs for newer"]').setInputFiles(newerPath);
 
   const startedAt = now();
-  await page.getByRole("button", { name: "Compare PDFs", exact: true }).click();
+  await page.getByRole("button", { name: "Compare", exact: true }).click();
   await page.locator('section[aria-label="PDF comparison workspace"]').waitFor({ state: "visible" });
   await page.locator('section[aria-label="PDF comparison workspace"] img').first().waitFor({ state: "visible" });
 
