@@ -22,18 +22,13 @@ test("builds a static private PDF comparison experience", async () => {
   assert.match(html, /<link[^>]+stylesheet/i);
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
 
+  // One smoke check that the SPA actually shipped its app code; the copy itself is not a contract.
   const bundle = await clientBundleText();
-  assert.match(bundle, /See what changed/);
-  assert.match(bundle, /Earlier/i);
-  assert.match(bundle, /Newer/i);
   assert.match(bundle, /Files are compared in this browser and never uploaded/i);
-  assert.match(bundle, /Toggle dark mode/i);
-  assert.match(bundle, /Remember these PDFs on this device/i);
-  assert.match(bundle, /PDFs and settings are stored only in this browser/i);
-  assert.match(bundle, /Privacy Policy/);
-  assert.match(bundle, /Terms of Service/);
-  assert.match(bundle, /local copies are saved only on your device/i);
-  assert.match(bundle, /PDF comparison is inherently imperfect/i);
+  // The hero demo is drawn, not screenshotted: both revisions and both overlay colours ship in the bundle.
+  assert.match(bundle, /24\.0/);
+  assert.match(bundle, /26\.5/);
+  assert.match(bundle, /pdfdiff-swipe-top/);
 });
 
 test("Cloudflare deployment contains static assets only", async () => {

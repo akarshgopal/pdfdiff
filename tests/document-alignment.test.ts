@@ -94,3 +94,12 @@ test("alignment survives an insertion near the start of a long document", () => 
   assert.equal(matched.length, 40);
   assert.ok(matched.every((pair) => pair.similarity === 1));
 });
+
+test("sequential pairing ignores content and pairs by position", () => {
+  const pairs = alignPages(pages(TERMS, NEW_PAGE), pages(NEW_PAGE, TERMS, TERMS), { sequential: true });
+  assert.deepEqual(pairs.map((pair) => [pair.earlierPageNumber, pair.newerPageNumber, pair.kind]), [
+    [1, 1, "matched"],
+    [2, 2, "matched"],
+    [undefined, 3, "added"],
+  ]);
+});

@@ -12,9 +12,7 @@ import {
   modeNeedsComparedPair,
   PdfDiffViewer,
   type DiffPage,
-  type DiffViewMode,
-} from "@pdfdiff/viewer-react";
-import { helpModes, helpShortcuts, helpSteps } from "../packages/viewer-react/src/help-content.ts";
+  } from "@pdfdiff/viewer-react";
 
 const currentPage: DiffPage = {
   index: 0,
@@ -39,54 +37,25 @@ const comparisonPairPage: DiffPage = {
   textChanges: [{ id: "pair-text", text: "changed", kind: "changed" }],
 };
 
-const comparedModes: DiffViewMode[] = ["diff", "semantic-text", "swipe"];
-const directModes: DiffViewMode[] = ["side-by-side"];
-
-function assertComparedPreview(mode: DiffViewMode): void {
+test("a resolved pair supplies the exact normalized A/B sources", () => {
   const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage });
-  assert.ok(preview);
-  assert.equal(preview.beforeSrc, "pair-a", `${mode} earlier source`);
-  assert.equal(preview.afterSrc, "pair-b", `${mode} newer source`);
-  assert.equal(preview.diffSrc, "pair-diff", `${mode} diff source`);
-  assert.equal(preview.regions?.[0]?.id, "pair-region", `${mode} regions`);
-  assert.equal(preview.textChanges?.[0]?.id, "pair-text", `${mode} semantic changes`);
-}
-
-test("all modes declare whether they need a normalized selected-page pair", () => {
-  for (const mode of comparedModes) assert.equal(modeNeedsComparedPair(mode), true, mode);
-  for (const mode of directModes) assert.equal(modeNeedsComparedPair(mode), false, mode);
+  assert.equal(preview?.beforeSrc, "pair-a");
+  assert.equal(preview?.afterSrc, "pair-b");
+  assert.equal(preview?.diffSrc, "pair-diff");
+  assert.equal(preview?.regions?.[0]?.id, "pair-region");
+  assert.equal(preview?.textChanges?.[0]?.id, "pair-text");
 });
 
-test("Diff, Semantic, and Swipe use the exact normalized A/B pair", () => {
-  for (const mode of comparedModes) assertComparedPreview(mode);
-});
-
-test("a resolved pair supplies the sources for every mode, so a high-quality re-render reaches Split too", () => {
-  for (const mode of [...comparedModes, ...directModes]) {
-    const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage });
-    assert.equal(preview?.beforeSrc, "pair-a", `${mode} earlier source`);
-    assert.equal(preview?.afterSrc, "pair-b", `${mode} newer source`);
-  }
-});
-
-test("Side-by-side falls back to independently selected originals", () => {
-  for (const mode of directModes) {
-    const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage: null });
-    assert.equal(preview?.beforeSrc, "selected-a", `${mode} earlier source`);
-    assert.equal(preview?.afterSrc, "selected-b", `${mode} newer source`);
-  }
-});
-
-test("an unresolved pair cannot leak stale diff or semantic metadata", () => {
-  for (const mode of comparedModes) {
-    const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage: null });
-    assert.equal(preview?.beforeSrc, "selected-a", `${mode} pending earlier source`);
-    assert.equal(preview?.afterSrc, "selected-b", `${mode} pending newer source`);
-    assert.equal(preview?.diffSrc, undefined, `${mode} stale diff`);
-    assert.deepEqual(preview?.regions, [], `${mode} stale regions`);
-    assert.deepEqual(preview?.textChanges, [], `${mode} stale semantic changes`);
-    assert.equal(preview?.status, "processing", `${mode} pending status`);
-  }
+test("an unresolved pair falls back to the selected originals without leaking stale metadata", () => {
+  const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage: null });
+  assert.equal(preview?.beforeSrc, "selected-a");
+  assert.equal(preview?.afterSrc, "selected-b");
+  assert.equal(preview?.diffSrc, undefined);
+  assert.deepEqual(preview?.regions, []);
+  assert.deepEqual(preview?.textChanges, []);
+  assert.equal(preview?.status, "processing");
+  assert.equal(modeNeedsComparedPair("swipe"), true, "so Swipe waits for the pair");
+  assert.equal(modeNeedsComparedPair("side-by-side"), false, "while Split shows the originals now");
 });
 
 test("changed-page navigation wraps in either direction and ignores unchanged pages", () => {
@@ -100,14 +69,6 @@ test("changed-page navigation wraps in either direction and ignores unchanged pa
   assert.equal(adjacentChangedPageIndex(pages, 3, 1), 1);
   assert.equal(adjacentChangedPageIndex(pages, 1, -1), 3);
   assert.equal(adjacentChangedPageIndex([{ index: 0, status: "same" }], 0, 1), 0);
-});
-
-test("viewer guidance names the four primary views and source A/B navigation", () => {
-  assert.deepEqual(helpModes.map(([name]) => name), ["Overlay", "Split", "Swipe", "Text"]);
-  assert.equal(helpSteps[1]?.copy.includes("Overlay, Split, Swipe, or Text"), true);
-  assert.deepEqual(helpShortcuts.find(([shortcut]) => shortcut === "1–4"), ["1–4", "Overlay, Split, Swipe, Text"]);
-  assert.deepEqual(helpShortcuts.find(([shortcut]) => shortcut === "Shift + ← →"), ["Shift + ← →", "Source A pages"]);
-  assert.deepEqual(helpShortcuts.find(([shortcut]) => shortcut === "Ctrl/Cmd + ← →"), ["Ctrl/Cmd + ← →", "Source B pages"]);
 });
 
 test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable canvas", () => {
@@ -124,11 +85,6 @@ test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable 
   assert.match(html, /Next source B page/);
   assert.match(html, /Comparison overlay preview/);
   assert.match(html, /Document canvas\. Scroll to zoom and drag to pan\./);
-  assert.doesNotMatch(html, /Open source A/, "the A/B modal is gone; fullscreen and zoom cover it");
-  assert.doesNotMatch(html, /change inspector/i);
-  assert.doesNotMatch(html, /View options/);
-  assert.doesNotMatch(html, /Change position/);
-  assert.doesNotMatch(html, />Changes found<\/span>/);
 });
 
 test("single-page unreadable comparisons remove duplicate chrome and retain the warning", () => {

@@ -62,30 +62,13 @@ const comparison = await engine.compare({
 - `pnpm start`: preview the production build locally
 - `pnpm deploy:dry-run`: build and validate the Cloudflare asset deployment
 - `pnpm deploy`: build and deploy the static assets to Cloudflare
-- `pnpm test`: build and run the rendered HTML, core, and semantic tests
+- `pnpm test`: build the packages and run the unit tests
+- `pnpm run test:dist`: build the site and check the shipped `dist/` output
 - `pnpm lint`: run ESLint
 - `pnpm bench:core`: run deterministic core performance and quality scenarios
 - `pnpm bench:browser`: run the app through Playwright and Chromium
-- `pnpm screenshots`: recapture the landing page screenshots in `public/shots`
 - `pnpm run bench:report -- --baseline=... --current=...`: compare benchmark JSON
 
-## Landing page screenshots
-
-The screenshots on the landing page are captured from the real workspace rather
-than mocked up. `tools/capture-screenshots.mjs` drives a built site with
-Playwright, compares a fixture pair from `examples/pdf-fixtures/` for each view,
-and writes light and dark WebP files into `public/shots`. Regenerate them
-whenever the workspace chrome changes:
-
-```bash
-pnpm build && pnpm start &
-pnpm screenshots -- --url=http://localhost:4173/
-```
-
-The encode step needs ImageMagick (`magick`) and `cwebp` on `PATH`; pass
-`--skip-encode` to stop at the PNGs. The captions that describe each shot live
-in `app/pdfdiff/landing-content.ts` and name the fixture pair, so keep the two
-in step.
 
 ## Deployment
 

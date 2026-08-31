@@ -102,4 +102,7 @@ export interface PdfDiffViewerProps {
   /** Seeds the overlay controls; the viewer owns the live value from then on. */
   defaultOverlay?: OverlayStyle;
   onOverlayChange?: (overlay: OverlayStyle) => void;
+  /** Page pairing mode; changing it re-runs the comparison, so the host owns it. */
+  matchPages?: boolean;
+  onMatchPagesChange?: (matchPages: boolean) => void;
 }

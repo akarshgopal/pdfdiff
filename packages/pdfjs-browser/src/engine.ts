@@ -316,7 +316,7 @@ async function comparePdfPair(
       const alignment = alignPages(
         earlierText.map((page) => fingerprintPage(page.text, page.pageNumber)),
         newerText.map((page) => fingerprintPage(page.text, page.pageNumber)),
-        { signal, metrics: onMetric },
+        { signal, metrics: onMetric, sequential: options.matchPages === false },
       );
       const totalPages = alignment.length;
 

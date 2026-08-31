@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
 import { styles, styleProps } from "./styles.js";
+import type { CSSProperties } from "react";
 import type { DiffComparison, DiffPage, DiffViewMode, OverlayStyle, SourceSide, ViewerSettings } from "./types.js";
 import { MAX_ZOOM, MIN_ZOOM, pagePairDescription, pagePairLabel, pageStatus, statusSymbol, viewModes, ZOOM_STEP } from "./viewer-utils.js";
 import { isNoisePage, summaryHeadline, type ComparisonSummary } from "./summary.js";
@@ -156,12 +157,14 @@ function SettingsCheckbox({ label, checked, onChange }: { label: string; checked
   return <label {...styleProps(styles.settingsRow)}>{label}<input {...styleProps(styles.settingsCheckbox)} type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /></label>;
 }
 
-/** Appearance and filters only: every control here is a CSS or list write, never a re-comparison. */
-export function SettingsDialog({ overlay, onOverlayChange, settings, onSettingsChange, onClose }: {
+/** Appearance and filters, plus the one control that does re-run the comparison. */
+export function SettingsDialog({ overlay, onOverlayChange, settings, onSettingsChange, matchPages, onMatchPagesChange, onClose }: {
   overlay: OverlayStyle;
   onOverlayChange: (overlay: OverlayStyle) => void;
   settings: ViewerSettings;
   onSettingsChange: (settings: ViewerSettings) => void;
+  matchPages?: boolean;
+  onMatchPagesChange?: (matchPages: boolean) => void;
   onClose: () => void;
 }) {
   const update = <Key extends keyof ViewerSettings>(key: Key, value: ViewerSettings[Key]) => onSettingsChange({ ...settings, [key]: value });
@@ -174,7 +177,7 @@ export function SettingsDialog({ overlay, onOverlayChange, settings, onSettingsC
             <h3 {...styleProps(styles.settingsGroupTitle)}>Overlay colours</h3>
             <label {...styleProps(styles.settingsRow)}>Newer content<input {...styleProps(styles.overlaySwatch)} type="color" value={overlay.addedColor} aria-label="Colour for newer content" onChange={(event) => onOverlayChange({ ...overlay, addedColor: event.target.value })} /></label>
             <label {...styleProps(styles.settingsRow)}>Earlier content<input {...styleProps(styles.overlaySwatch)} type="color" value={overlay.removedColor} aria-label="Colour for earlier content" onChange={(event) => onOverlayChange({ ...overlay, removedColor: event.target.value })} /></label>
-            <label {...styleProps(styles.settingsRow)}>Unchanged {Math.round(overlay.unchangedOpacity * 100)}%<input {...styleProps(styles.overlayRange)} type="range" min={0} max={100} value={Math.round(overlay.unchangedOpacity * 100)} aria-label="How strongly unchanged content shows through" onChange={(event) => onOverlayChange({ ...overlay, unchangedOpacity: Number(event.target.value) / 100 })} /></label>
+            <label {...styleProps(styles.settingsRow)}>Unchanged {Math.round(overlay.unchangedOpacity * 100)}%<input {...styleProps(styles.overlayRange)} style={{ "--range-fill": `${Math.round(overlay.unchangedOpacity * 100)}%` } as CSSProperties} type="range" min={0} max={100} value={Math.round(overlay.unchangedOpacity * 100)} aria-label="How strongly unchanged content shows through" onChange={(event) => onOverlayChange({ ...overlay, unchangedOpacity: Number(event.target.value) / 100 })} /></label>
           </section>
           <section {...styleProps(styles.settingsGroup)}>
             <h3 {...styleProps(styles.settingsGroupTitle)}>View</h3>
@@ -182,6 +185,13 @@ export function SettingsDialog({ overlay, onOverlayChange, settings, onSettingsC
             <SettingsCheckbox label="Hide reflow noise" checked={settings.hideNoise} onChange={(value) => update("hideNoise", value)} />
             <SettingsCheckbox label="Only changed pages" checked={settings.onlyChanged} onChange={(value) => update("onlyChanged", value)} />
           </section>
+          {onMatchPagesChange ? (
+            <section {...styleProps(styles.settingsGroup)}>
+              <h3 {...styleProps(styles.settingsGroupTitle)}>Comparison</h3>
+              <SettingsCheckbox label="Match pages automatically" checked={matchPages !== false} onChange={onMatchPagesChange} />
+              <p {...styleProps(styles.settingsNote)}>Pairs pages by content so inserted or removed pages stay aligned. Off compares page 1 with page 1. Changing this compares the PDFs again.</p>
+            </section>
+          ) : null}
         </div>
         <footer {...styleProps(styles.helpFooter)}><button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>Done</button></footer>
       </section>

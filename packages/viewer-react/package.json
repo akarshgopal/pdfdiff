@@ -18,9 +18,10 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
       "import": "./dist/index.js"
     },
-    "./theme.css": "./dist/theme.css"
+    "./theme.css": { "development": "./src/theme.css", "default": "./dist/theme.css" }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && cp src/theme.css dist/theme.css"

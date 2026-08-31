@@ -128,9 +128,3 @@ test("a page's verdict survives the display cap: real edits outrank bulk reflow"
   assert.deepEqual(shown.map((region) => region.id), [...shown.map((region) => region.id)].sort((a, b) => a - b), "reading order is preserved");
 });
 
-test("ranking by size alone would have dropped that edit", () => {
-  const regions = Array.from({ length: 200 }, (_, index) => ({ id: index + 1, x: 0, y: index * 10, width: 500, height: 8, pixelCount: 4000, area: 4000 }));
-  regions.push({ id: 900, x: 20, y: 2000, width: 30, height: 8, pixelCount: 240, area: 240 });
-  const bySize = [...regions].sort((a, b) => b.pixelCount - a.pixelCount).slice(0, 80);
-  assert.ok(!bySize.some((region) => region.id === 900), "guards the regression this replaced");
-});

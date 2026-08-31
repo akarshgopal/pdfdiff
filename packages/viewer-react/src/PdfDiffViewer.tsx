@@ -126,7 +126,7 @@ function SemanticPdfPreview({
   }, [selectedRegion, showHighlights]);
 
   return (
-    <div ref={previewRef} {...styleProps(styles.paper, styles.semanticPaper)}>
+    <div ref={previewRef} {...styleProps(styles.paper, styles.paperTwoUp, styles.semanticPaper)}>
       <div {...styleProps(styles.semanticSummary)}><span>{summary.changes}</span><span>{summary.tokens}</span></div>
       <div {...styleProps(styles.semanticLegend)}><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />Removed</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />Added</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />Changed</span><span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span></div>
       <div {...styleProps(styles.semanticGrid)}>
@@ -204,7 +204,7 @@ function PagePreview({
   if (unavailable) return unavailable;
   if (mode === "semantic-text") return <SemanticPdfPreview page={page} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
 
-  if (mode === "side-by-side") return <div {...styleProps(styles.paper)}><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" /></div></div></div>;
+  if (mode === "side-by-side") return <div {...styleProps(styles.paper, styles.paperTwoUp)}><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" /></div></div></div>;
   if (mode === "swipe") return <SwipePreview before={before} after={after} swipe={swipe} onSwipeChange={onSwipeChange} />;
   return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} overlay={overlay} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} />;
 }
@@ -220,6 +220,19 @@ function DiffPreview({ page, source, hasDiff, overlay, showBoundingBoxes, select
   return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}{!hasDiff && page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)}>Added · Removed</div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
 }
 
+/** The stage's content box: its padding keeps the page clear of the toolbar edges. */
+function stageBox(stage: HTMLElement): { width: number; height: number } {
+  const padding = parseFloat(getComputedStyle(stage).paddingLeft) || 0;
+  return { width: stage.clientWidth - padding * 2, height: stage.clientHeight - padding * 2 };
+}
+
+/** 100% zoom shows the whole page, whatever the mode lays out; zoom scales up from there. */
+function fitScale(stage: HTMLElement, content: HTMLElement): number {
+  if (!content.offsetWidth || !content.offsetHeight) return 1;
+  const { width, height } = stageBox(stage);
+  return Math.min(width / content.offsetWidth, height / content.offsetHeight);
+}
+
 function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number; onZoomChange: (zoom: number) => void; resetKey: string; children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -229,24 +242,42 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
 
   // The transform is written straight to the node. Scaling a composited layer
   // costs no relayout, and panning this way costs no React render either.
-  const applyTransform = useCallback((scale: number) => {
+  const applyTransform = useCallback((zoomPercent: number) => {
     const stage = stageRef.current;
     const content = contentRef.current;
     if (!stage || !content) return;
-    const overflowX = Math.max(0, (content.offsetWidth * scale - stage.clientWidth) / 2);
-    const overflowY = Math.max(0, content.offsetHeight * scale - stage.clientHeight);
+    const { width, height } = stageBox(stage);
+    const scale = fitScale(stage, content) * zoomPercent / 100;
+    const overflowX = Math.max(0, (content.offsetWidth * scale - width) / 2);
+    const overflowY = Math.max(0, content.offsetHeight * scale - height);
     const { x, y } = panRef.current;
     panRef.current = { x: Math.max(-overflowX, Math.min(overflowX, x)), y: Math.max(-overflowY, Math.min(0, y)) };
     content.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scale})`;
   }, []);
 
-  useEffect(() => applyTransform(zoom / 100), [zoom, applyTransform]);
+  useEffect(() => applyTransform(zoom), [zoom, applyTransform]);
   useEffect(() => {
     panRef.current = { x: 0, y: 0 };
-    applyTransform(zoom / 100);
+    applyTransform(zoom);
     // A new page or view starts centred; keeping the old pan would land the
     // reviewer somewhere off the page.
   }, [resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Page images arrive after layout and the window resizes, both of which move
+  // the fit, so the scale is recomputed whenever either box changes.
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  });
+  useEffect(() => {
+    const stage = stageRef.current;
+    const content = contentRef.current;
+    if (!stage || !content) return;
+    const observer = new ResizeObserver(() => applyTransform(zoomRef.current));
+    observer.observe(stage);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [applyTransform]);
 
   // React attaches onWheel as a passive root listener, where preventDefault is
   // ignored, so the zoom handler owns a non-passive listener on the stage.
@@ -298,7 +329,7 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
     if (!drag || drag.pointerId !== event.pointerId) return;
     event.preventDefault();
     panRef.current = { x: drag.panX + (event.clientX - drag.clientX), y: drag.panY + (event.clientY - drag.clientY) };
-    applyTransform(zoom / 100);
+    applyTransform(zoom);
   };
 
   const stopPanning = (event: PointerEvent<HTMLDivElement>) => {
@@ -350,7 +381,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
 
 const DEFAULT_SETTINGS: ViewerSettings = { showBoundingBoxes: false, hideNoise: true, onlyChanged: false };
 
-export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison, defaultOverlay, onOverlayChange }: PdfDiffViewerProps) {
+export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison, defaultOverlay, onOverlayChange, matchPages, onMatchPagesChange }: PdfDiffViewerProps) {
   // The save shortcut needs the live overlay settings, which are owned below;
   // the ref keeps the keyboard hook from depending on render order.
   const saveRef = useRef<() => void>(() => undefined);
@@ -392,7 +423,7 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
           <StatusFooter processingProgress={processingProgress} />
         </section>
       </div>
-      {showSettings ? <SettingsDialog overlay={overlay} onOverlayChange={changeOverlay} settings={settings} onSettingsChange={setSettings} onClose={() => setShowSettings(false)} /> : null}
+      {showSettings ? <SettingsDialog overlay={overlay} onOverlayChange={changeOverlay} settings={settings} onSettingsChange={setSettings} matchPages={matchPages} onMatchPagesChange={onMatchPagesChange} onClose={() => setShowSettings(false)} /> : null}
       {showHelp ? <HelpDialog onClose={() => setShowHelp(false)} /> : null}
     </section>
   );

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DiffSemanticOverlay } from "@pdfdiff/viewer-react";
-import { describeRegions, overlapArea, regionLabel } from "../app/pdfdiff/regionLabels.ts";
+import { describeRegions, regionLabel } from "../app/pdfdiff/regionLabels.ts";
 
 function overlay(id: string, kind: DiffSemanticOverlay["kind"], text: string, x: number, y: number, width: number, height: number): DiffSemanticOverlay {
   return {
@@ -69,12 +69,6 @@ test("labels collapse whitespace and clip long runs", () => {
   const long = regionLabel("removed", "x".repeat(120))!;
   assert.equal(long.length, "Removed “”".length + 60);
   assert.ok(long.endsWith("…”"));
-});
-
-test("overlapArea reports zero for touching but non-overlapping boxes", () => {
-  const left = { x: 0, y: 0, width: 10, height: 10 };
-  assert.equal(overlapArea(left, { x: 10, y: 0, width: 10, height: 10 }), 0);
-  assert.equal(overlapArea(left, { x: 5, y: 5, width: 10, height: 10 }), 25);
 });
 
 test("an overlay without quads never matches", () => {

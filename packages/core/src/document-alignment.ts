@@ -36,6 +36,8 @@ export interface PageAlignmentOptions {
   readonly matchThreshold?: number;
   readonly band?: number;
   readonly detectMoves?: boolean;
+  /** Skip content matching and pair pages by position instead. */
+  readonly sequential?: boolean;
   readonly signal?: AbortSignalLike;
   readonly metrics?: DiffMetricSink;
 }
@@ -188,9 +190,23 @@ function detectMoves(pairs: readonly AlignedPagePair[], earlier: readonly PageFi
   });
 }
 
+/** Pair pages by position: page 1 with page 1, and so on. */
+function sequentialPairs(earlier: readonly PageFingerprint[], newer: readonly PageFingerprint[]): AlignedPagePair[] {
+  const pairs: AlignedPagePair[] = [];
+  for (let index = 0; index < Math.max(earlier.length, newer.length); index += 1) {
+    const before = earlier[index];
+    const after = newer[index];
+    if (before && after) pairs.push({ earlierPageNumber: before.pageNumber, newerPageNumber: after.pageNumber, kind: "matched", similarity: pageSimilarity(before, after) });
+    else if (before) pairs.push({ earlierPageNumber: before.pageNumber, kind: "removed", similarity: 0 });
+    else if (after) pairs.push({ newerPageNumber: after.pageNumber, kind: "added", similarity: 0 });
+  }
+  return pairs;
+}
+
 /** Align two page sequences by content so later pages survive an insertion. */
 export function alignPages(earlier: readonly PageFingerprint[], newer: readonly PageFingerprint[], options: PageAlignmentOptions = {}): AlignedPagePair[] {
   return measure(options.metrics, "core.align.pages", () => {
+    if (options.sequential) return sequentialPairs(earlier, newer);
     if (earlier.length === 0) return newer.map((page) => ({ newerPageNumber: page.pageNumber, kind: "added" as const, similarity: 0 }));
     if (newer.length === 0) return earlier.map((page) => ({ earlierPageNumber: page.pageNumber, kind: "removed" as const, similarity: 0 }));
     const matchThreshold = options.matchThreshold ?? DEFAULT_MATCH_THRESHOLD;

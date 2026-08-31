@@ -39,7 +39,6 @@ export function ThemeToggle() {
     <Button
       variant="outline"
       size="icon"
-      className="size-8 rounded-md border-border bg-card text-muted-foreground hover:border-foreground/30 hover:bg-background hover:text-foreground"
       aria-label="Toggle dark mode"
       title="Toggle dark mode"
       onClick={toggleTheme}

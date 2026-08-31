@@ -98,7 +98,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   const [progress, setProgress] = useState(0);
   const [pageProgress, setPageProgress] = useState<{ completed: number; total: number } | null>(null);
   const [activeDrop, setActiveDrop] = useState<"earlier" | "newer" | null>(null);
-  const [options, setOptions] = useState<DiffOptions>(() => ({ sensitivity: 28, alignment: "none", overlay: readOverlaySettings() }));
+  const [options, setOptions] = useState<DiffOptions>(() => ({ sensitivity: 28, alignment: "none", matchPages: true, overlay: readOverlaySettings() }));
   const [history, setHistory] = useState<ComparisonHistorySummary[]>([]);
   const [rememberFiles, setRememberFiles] = useState(false);
   const inputEarlier = useRef<HTMLInputElement>(null);
@@ -177,6 +177,13 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
     };
     writeOverlaySettings(overlay);
     setOptions((existing) => ({ ...existing, overlay }));
+  };
+
+  /** Page pairing changes what gets compared, so the toggle re-runs the comparison. */
+  const setMatchPages = (matchPages: boolean) => {
+    const next = { ...options, matchPages };
+    setOptions(next);
+    if (earlierFile && newerFile) void runComparison({ earlierFile, newerFile, options: next });
   };
 
   const swapFiles = () => {
@@ -321,7 +328,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   }
 
   if (!comparison) return null;
-  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} defaultOverlay={viewerOverlay(options)} onOverlayChange={setOverlay} /></div></main>;
+  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} defaultOverlay={viewerOverlay(options)} onOverlayChange={setOverlay} matchPages={options.matchPages !== false} onMatchPagesChange={setMatchPages} /></div></main>;
 }
 
 export { PdfDiffApp };

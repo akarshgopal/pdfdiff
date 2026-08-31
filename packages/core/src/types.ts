@@ -134,6 +134,8 @@ export interface OverlayStyle {
 export interface DiffOptions {
   readonly sensitivity: number;
   readonly alignment: AlignmentMode;
+  /** Pair pages by content; false pairs them by position. Defaults to true. */
+  readonly matchPages?: boolean;
   readonly overlay?: OverlayStyle;
 }
 
