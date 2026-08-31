@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { DiffViewMode, SourceSide } from "./types.js";
 import { viewModes } from "./viewer-utils.js";
 
@@ -90,13 +90,16 @@ function handleKeyDown(event: KeyboardEvent, options: ViewerKeyboardOptions): vo
 }
 
 export function useViewerKeyboard(options: ViewerKeyboardOptions): void {
-  const { enabled, pageIndex, pageCount, earlierPageCount, newerPageCount, fullPageSide, onSelectPage, onStepSourcePage, onGoToSourcePage, onCloseFullPage, onClearSelection, onChangeMode, onCycleMode } = options;
+  // The handler reads the latest props through a ref, so the window listener is
+  // attached once per enable rather than re-bound on every render.
+  const latest = useRef(options);
   useEffect(() => {
-    if (!enabled) return;
-    const currentOptions = { enabled, pageIndex, pageCount, earlierPageCount, newerPageCount, fullPageSide, onSelectPage, onStepSourcePage, onGoToSourcePage, onCloseFullPage, onClearSelection, onChangeMode, onCycleMode };
-    const listener = (event: KeyboardEvent) => handleKeyDown(event, currentOptions);
-
+    latest.current = options;
+  });
+  useEffect(() => {
+    if (!options.enabled) return;
+    const listener = (event: KeyboardEvent) => handleKeyDown(event, latest.current);
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [enabled, pageIndex, pageCount, earlierPageCount, newerPageCount, fullPageSide, onSelectPage, onStepSourcePage, onGoToSourcePage, onCloseFullPage, onClearSelection, onChangeMode, onCycleMode]);
+  }, [options.enabled]);
 }

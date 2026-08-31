@@ -91,7 +91,6 @@ export const styles = {
   swipeLayerImage: "block h-auto min-h-[520px] w-full select-none object-contain",
   swipeHandle: "pointer-events-auto absolute bottom-0 top-0 z-[1] flex w-6 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   swipeDivider: "pointer-events-none absolute bottom-0 top-0 w-0.5 bg-primary shadow-[0_0_0_1px_rgb(255_255_255_/_0.55)]",
-  blinkBadge: "absolute right-3.5 top-3.5 rounded-md bg-foreground/75 px-2 py-[5px] text-[10px] font-bold uppercase tracking-[0.06em] text-background",
   semanticPaper: "min-h-[520px] overflow-hidden bg-card",
   semanticSummary: "flex items-center justify-between gap-3 border-b border-border bg-secondary px-5 py-3 text-[11px] font-[650] text-muted-foreground",
   semanticLegend: "flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-card px-5 py-2 text-[10px] font-[620] text-muted-foreground",

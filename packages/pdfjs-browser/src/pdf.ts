@@ -1,7 +1,7 @@
 import { getDocument, type PDFDocumentLoadingTask, type PDFDocumentProxy } from "pdfjs-dist";
 import { measureAsync, PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
 import { configurePdfWorker, getConfiguredWorkerUrl } from "./worker.js";
-import type { LoadedPdf, PdfLoadOptions, PdfMetadata, PdfSource } from "./types.js";
+import type { LoadedPdf, PdfLoadOptions, PdfSource } from "./types.js";
 
 function isFile(source: PdfSource): source is File {
   return typeof File !== "undefined" && source instanceof File;
@@ -51,8 +51,7 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
 
   const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), { sourceType: sourceType(source) });
   throwIfAborted(options.signal);
-  const task = getDocument({ data, password: options.password });
-  task.onProgress = (progress: { loaded: number; total?: number }) => options.onProgress?.(progress.loaded, progress.total);
+  const task = getDocument({ data });
   const abort = watchAbort(task, options.signal);
 
   try {
@@ -97,29 +96,4 @@ export async function loadPdfPair(
   if (earlierResult.status === "rejected") throw earlierResult.reason;
   if (newerResult.status === "rejected") throw newerResult.reason;
   throw new Error("Unable to load the PDF pair.");
-}
-
-export async function getPdfMetadata(pdf: LoadedPdf | PDFDocumentProxy, signal?: PdfLoadOptions["signal"]): Promise<PdfMetadata> {
-  throwIfAborted(signal);
-  const document = "pdf" in pdf ? pdf.pdf : pdf;
-  const metadata = await document.getMetadata();
-  throwIfAborted(signal);
-  const info = metadata.info as unknown as Record<string, unknown>;
-  const stringValue = (key: string): string | undefined => typeof info[key] === "string" ? info[key] as string : undefined;
-  return {
-    pageCount: document.numPages,
-    fingerprint: getFingerprint(document),
-    title: stringValue("Title"),
-    author: stringValue("Author"),
-    subject: stringValue("Subject"),
-    keywords: stringValue("Keywords"),
-    creator: stringValue("Creator"),
-    producer: stringValue("Producer"),
-    creationDate: stringValue("CreationDate"),
-    modificationDate: stringValue("ModDate"),
-  };
-}
-
-export function getPageCount(pdf: LoadedPdf | PDFDocumentProxy): number {
-  return ("pdf" in pdf ? pdf.pdf : pdf).numPages;
 }

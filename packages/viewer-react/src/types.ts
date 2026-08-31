@@ -3,7 +3,7 @@ import type { ChangeClass, ChangeClassCounts, PageAlignmentKind, SemanticPageDif
 export type { ChangeClass, ChangeClassCounts, PageAlignmentKind };
 import type { ReactNode } from "react";
 
-export type DiffViewMode = "diff" | "semantic-text" | "side-by-side" | "swipe" | "blink" | "earlier" | "newer";
+export type DiffViewMode = "diff" | "semantic-text" | "side-by-side" | "swipe";
 export type SourceSide = "earlier" | "newer";
 export type AlignmentMode = "none" | "translation";
 export type DiffRegionKind = "added" | "removed" | "changed";
@@ -75,15 +75,9 @@ export interface DiffComparison {
   readonly dispose?: () => void;
 }
 
-export interface ViewerAnalyticsEvent {
-  name: "view_mode_used";
-  mode: DiffViewMode;
-}
-
 export interface PdfDiffViewerProps {
   comparison: DiffComparison;
   processingProgress?: { readonly completed: number; readonly total: number };
   headerActions?: ReactNode;
   onNewComparison?: () => void;
-  onAnalytics?: (event: ViewerAnalyticsEvent) => void;
 }

@@ -35,8 +35,8 @@ const comparisonPairPage: DiffPage = {
   textChanges: [{ id: "pair-text", text: "changed", kind: "changed" }],
 };
 
-const comparedModes: DiffViewMode[] = ["diff", "semantic-text", "swipe", "blink"];
-const directModes: DiffViewMode[] = ["side-by-side", "earlier", "newer"];
+const comparedModes: DiffViewMode[] = ["diff", "semantic-text", "swipe"];
+const directModes: DiffViewMode[] = ["side-by-side"];
 
 function assertComparedPreview(mode: DiffViewMode): void {
   const preview = buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage });
@@ -53,11 +53,11 @@ test("all modes declare whether they need a normalized selected-page pair", () =
   for (const mode of directModes) assert.equal(modeNeedsComparedPair(mode), false, mode);
 });
 
-test("Diff, Semantic, Swipe, and Blink use the exact normalized A/B pair", () => {
+test("Diff, Semantic, and Swipe use the exact normalized A/B pair", () => {
   for (const mode of comparedModes) assertComparedPreview(mode);
 });
 
-test("Side-by-side, Earlier, and Newer use independently selected originals", () => {
+test("Side-by-side uses independently selected originals", () => {
   for (const mode of directModes) {
     const preview = buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage });
     assert.equal(preview?.beforeSrc, "selected-a", `${mode} earlier source`);

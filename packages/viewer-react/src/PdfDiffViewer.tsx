@@ -179,7 +179,6 @@ function PagePreview({
   mode,
   zoom,
   swipe,
-  blinkOn,
   showBoundingBoxes,
   showSemanticHighlights,
   selectedRegion,
@@ -193,7 +192,6 @@ function PagePreview({
   mode: DiffViewMode;
   zoom: number;
   swipe: number;
-  blinkOn: boolean;
   showBoundingBoxes: boolean;
   showSemanticHighlights: boolean;
   selectedRegion: string | null;
@@ -212,27 +210,13 @@ function PagePreview({
 
   if (mode === "side-by-side") return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" /></div></div></div>;
   if (mode === "swipe") return <SwipePreview before={before} after={after} zoom={zoom} swipe={swipe} onSwipeChange={onSwipeChange} />;
-  if (mode === "blink") return <BlinkPreview before={before} after={after} blinkOn={blinkOn} zoom={zoom} />;
-  const sourcePreview = directSourcePreview(mode, before, after, zoom);
-  if (sourcePreview) return sourcePreview;
   return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} zoom={zoom} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} />;
-}
-
-function directSourcePreview(mode: DiffViewMode, before: string | undefined, after: string | undefined, zoom: number) {
-  if (mode === "earlier") return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PageImage source={before} alt="Earlier version of this page" /></div>;
-  if (mode === "newer") return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PageImage source={after} alt="Newer version of this page" /></div>;
-  return null;
 }
 
 function comparedPairUnavailable(mode: DiffViewMode, pending: boolean, error: string | null, zoom: number) {
   if (!modeNeedsComparedPair(mode)) return null;
   if (pending) return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PaperFallback label="Preparing the selected A and B pages…" /></div>;
   return error ? <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PaperFallback label={error} /></div> : null;
-}
-
-function BlinkPreview({ before, after, blinkOn, zoom }: { before?: string; after?: string; blinkOn: boolean; zoom: number }) {
-  const label = blinkOn ? "Newer" : "Earlier";
-  return <div {...styleProps(styles.paper)} style={zoomStyle(zoom)}><PageImage source={blinkOn ? after : before} alt={`${label} version of this page`} /><span {...styleProps(styles.blinkBadge)}>{label}</span></div>;
 }
 
 function DiffPreview({ page, source, hasDiff, zoom, showBoundingBoxes, selectedRegion, onRegionClick }: { page: DiffPage; source?: string; hasDiff: boolean; zoom: number; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void }) {
@@ -405,13 +389,13 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison, onAnalytics }: PdfDiffViewerProps) {
-  const viewer = useViewerState({ comparison, onAnalytics });
+export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison }: PdfDiffViewerProps) {
+  const viewer = useViewerState({ comparison });
   const [hideNoise, setHideNoise] = useState(true);
   const [onlyChanged, setOnlyChanged] = useState(false);
   const summary = summarizeComparison(comparison);
   const {
-    pages, pageIndex, mode, zoom, swipe, selectedRegion, blinkOn,
+    pages, pageIndex, mode, zoom, swipe, selectedRegion,
     fullPageSide, earlierPageIndex, newerPageIndex, showHelp, earlierPageCount,
     newerPageCount, pairComparisonPending, pairError, currentPage, earlierPage, newerPage,
     fullPageIndex, fullPage, fullPageCount, previewPage, selectPage,
@@ -428,7 +412,7 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
         <PageRail onlyChanged={onlyChanged} hideNoise={hideNoise} pages={pages} pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSelectPage={selectPage} onSourcePageChange={goToSourcePage} />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
           <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} earlierPage={earlierPage} newerPage={newerPage} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} onOpenSource={setFullPageSide} textUnavailable={previewPage.semantic?.textUndecodable} />
-          <PanZoomStage zoom={zoom} onZoomChange={setZoom}><PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} blinkOn={blinkOn} showBoundingBoxes showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
+          <PanZoomStage zoom={zoom} onZoomChange={setZoom}><PagePreview page={previewPage} mode={mode} zoom={zoom} swipe={swipe} showBoundingBoxes showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
           <StatusFooter processingProgress={processingProgress} />
         </section>
       </div>

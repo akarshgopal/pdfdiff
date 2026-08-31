@@ -1,4 +1,4 @@
-import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import type {
   DiffMetricSink,
   PageText,
@@ -10,9 +10,7 @@ export type PdfSource = File | ArrayBuffer | Uint8Array;
 
 export interface PdfLoadOptions {
   signal?: AbortSignal;
-  onProgress?: (loaded: number, total?: number) => void;
   metrics?: DiffMetricSink;
-  password?: string;
   workerSrc?: string;
 }
 
@@ -25,25 +23,10 @@ export interface LoadedPdf {
   destroy(): Promise<void>;
 }
 
-export interface PdfMetadata {
-  pageCount: number;
-  fingerprint: string | null;
-  title?: string;
-  author?: string;
-  subject?: string;
-  keywords?: string;
-  creator?: string;
-  producer?: string;
-  creationDate?: string;
-  modificationDate?: string;
-}
-
 export interface RenderOptions {
   scale?: number;
   maxPixels?: number;
   maxDimension?: number;
-  includeAnnotations?: boolean;
-  background?: string;
   signal?: AbortSignal;
   metrics?: DiffMetricSink;
 }
@@ -51,12 +34,9 @@ export interface RenderOptions {
 export interface DocumentTextOptions {
   signal?: AbortSignal;
   onProgress?: (event: ProgressEvent) => void;
-  includeMarkedContent?: boolean;
-  disableNormalization?: boolean;
   metrics?: DiffMetricSink;
 }
 
-export type PdfPage = PDFPageProxy;
 export interface RenderedPage extends CoreRenderedPage {
   readonly canvas: HTMLCanvasElement;
   readonly imageData: ImageData;

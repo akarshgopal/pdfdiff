@@ -7,7 +7,7 @@ export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcu
   { id: "semantic-text", label: "Text", shortcut: "4" },
 ];
 
-const normalizedPairModes = new Set<DiffViewMode>(["diff", "semantic-text", "swipe", "blink"]);
+const normalizedPairModes = new Set<DiffViewMode>(["diff", "semantic-text", "swipe"]);
 
 const statusSymbols: Record<NonNullable<DiffPage["status"]>, string> = {
   same: "✓",

@@ -1,20 +1,14 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
 
-function argument(name, fallback) {
-  const prefix = `--${name}=`;
-  const value = process.argv.find((entry) => entry.startsWith(prefix));
-  return value ? value.slice(prefix.length) : fallback;
-}
-
-function requiredArgument(name) {
-  const value = argument(name, undefined);
+function requiredOption(value, name) {
   if (!value) throw new Error(`Missing --${name}=...`);
   return value;
 }
 
-function numberArgument(name, fallback) {
-  const value = Number(argument(name, fallback));
-  return Number.isFinite(value) && value >= 0 ? value : fallback;
+function numberOption(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 function percentile(values, amount) {
@@ -69,11 +63,18 @@ function compareScenario(baseline, current, thresholdPercent) {
   return regressions;
 }
 
-const baselinePath = requiredArgument("baseline");
-const currentPath = requiredArgument("current");
-const outputPath = argument("output", undefined);
-const thresholdPercent = numberArgument("threshold", 20);
-const failOnRegression = process.argv.includes("--fail-on-regression");
+const { values } = parseArgs({ options: {
+  baseline: { type: "string" },
+  current: { type: "string" },
+  output: { type: "string" },
+  threshold: { type: "string" },
+  "fail-on-regression": { type: "boolean", default: false },
+} });
+const baselinePath = requiredOption(values.baseline, "baseline");
+const currentPath = requiredOption(values.current, "current");
+const outputPath = values.output;
+const thresholdPercent = numberOption(values.threshold, 20);
+const failOnRegression = values["fail-on-regression"];
 const [baseline, current] = await Promise.all([
   readFile(baselinePath, "utf8").then(JSON.parse),
   readFile(currentPath, "utf8").then(JSON.parse),

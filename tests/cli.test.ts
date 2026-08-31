@@ -93,3 +93,12 @@ test("the unreadable count reaches the JSON report", async () => {
   assert.equal(report.totals.pagesWithUnreadableText, 1);
   assert.equal(report.pages[0].textUnreadable, true);
 });
+
+test("every documented flag is accepted, including --no-detect-moves", async () => {
+  const { code, stderr } = await cli(EARLIER, NEWER, "--no-detect-moves", "--include-noise", "--threshold", "0.6", "--report", "json");
+  assert.equal(code, 0, stderr);
+});
+
+test("an unknown flag exits with the usage code", async () => {
+  assert.equal((await cli(EARLIER, NEWER, "--nope")).code, 2);
+});

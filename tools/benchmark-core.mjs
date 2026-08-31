@@ -1,19 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { createDiffMetricsCollector, diffImages, diffSemanticText, alignByTranslation } from "@pdfdiff/core";
+import { parseArgs } from "node:util";
+import { diffImages, diffSemanticText, alignByTranslation } from "@pdfdiff/core";
 
 const DEFAULT_RUNS = 5;
 const DEFAULT_WARMUPS = 1;
 const DEFAULT_OUTPUT = "benchmarks/runs/core.json";
 
-function argument(name, fallback) {
-  const prefix = `--${name}=`;
-  const value = process.argv.find((entry) => entry.startsWith(prefix));
-  return value ? value.slice(prefix.length) : fallback;
-}
-
-function numberArgument(name, fallback, minimum = 1) {
-  const value = Number(argument(name, fallback));
-  return Number.isFinite(value) && value >= minimum ? Math.floor(value) : fallback;
+function integerOption(value, fallback, minimum = 1) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= minimum ? Math.floor(parsed) : fallback;
 }
 
 function now() {
@@ -143,22 +138,23 @@ function buildScenarios() {
 }
 
 async function runScenario(entry, runs, warmups) {
-  const collector = createDiffMetricsCollector();
+  let metrics = [];
+  const sink = (metric) => metrics.push(metric);
   for (let index = 0; index < warmups; index += 1) {
-    collector.clear();
-    entry.operation(collector.sink);
+    metrics = [];
+    entry.operation(sink);
   }
 
   const results = [];
   for (let index = 0; index < runs; index += 1) {
-    collector.clear();
+    metrics = [];
     const startedAt = now();
-    const quality = entry.operation(collector.sink);
+    const quality = entry.operation(sink);
     results.push({
       index: index + 1,
       durationMs: Math.max(0, now() - startedAt),
       quality,
-      metrics: collector.snapshot(),
+      metrics,
     });
   }
 
@@ -172,9 +168,14 @@ async function runScenario(entry, runs, warmups) {
   };
 }
 
-const runs = numberArgument("runs", DEFAULT_RUNS);
-const warmups = numberArgument("warmups", DEFAULT_WARMUPS, 0);
-const output = argument("output", DEFAULT_OUTPUT);
+const { values } = parseArgs({ options: {
+  runs: { type: "string" },
+  warmups: { type: "string" },
+  output: { type: "string", default: DEFAULT_OUTPUT },
+} });
+const runs = integerOption(values.runs, DEFAULT_RUNS);
+const warmups = integerOption(values.warmups, DEFAULT_WARMUPS, 0);
+const output = values.output;
 const scenarios = [];
 
 for (const entry of buildScenarios()) {

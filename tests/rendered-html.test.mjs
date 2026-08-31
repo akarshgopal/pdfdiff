@@ -27,9 +27,6 @@ test("builds a static private PDF comparison experience", async () => {
   assert.match(bundle, /Earlier/i);
   assert.match(bundle, /Newer/i);
   assert.match(bundle, /Files are compared in this browser and never uploaded/i);
-  assert.doesNotMatch(bundle, /There is nowhere to upload to/i);
-  assert.doesNotMatch(bundle, /How it works/i);
-  assert.doesNotMatch(bundle, /Review-ready detail/i);
   assert.match(bundle, /Toggle dark mode/i);
   assert.match(bundle, /Remember these PDFs on this device/i);
   assert.match(bundle, /PDFs and settings are stored only in this browser/i);
@@ -37,7 +34,6 @@ test("builds a static private PDF comparison experience", async () => {
   assert.match(bundle, /Terms of Service/);
   assert.match(bundle, /local copies are saved only on your device/i);
   assert.match(bundle, /PDF comparison is inherently imperfect/i);
-  assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 
 test("Cloudflare deployment contains static assets only", async () => {

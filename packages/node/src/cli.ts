@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
 import { hasSubstantiveChanges, hasUnreadableText, reportToCsv, reportToJson, reportToText, type ComparisonReport } from "@pdfdiff/core";
 import { comparePdfText } from "./compare.js";
 
@@ -25,57 +26,56 @@ Compares extracted text and page structure. Visual and graphic differences
 need the browser app; this path is for scripted and CI use.
 `;
 
-interface CliOptions {
-  readonly earlier: string;
-  readonly newer: string;
-  readonly format: ReportFormat;
-  readonly out?: string;
-  readonly failOnChange: boolean;
-  readonly failOnUnreadable: boolean;
-  readonly includeNoise: boolean;
-  readonly detectMoves: boolean;
-  readonly threshold?: number;
-}
-
 class UsageError extends Error {}
 
-function readFormat(value: string | undefined): ReportFormat {
-  if (value && (FORMATS as readonly string[]).includes(value)) return value as ReportFormat;
+function readFormat(value: string): ReportFormat {
+  if ((FORMATS as readonly string[]).includes(value)) return value as ReportFormat;
   throw new UsageError(`--report must be one of ${FORMATS.join(", ")}`);
 }
 
-function readThreshold(value: string | undefined): number {
+function readThreshold(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) throw new UsageError("--threshold must be between 0 and 1");
   return parsed;
 }
 
-function parseArguments(argv: readonly string[]): CliOptions {
-  const positional: string[] = [];
-  let format: ReportFormat = "text";
-  let out: string | undefined;
-  let failOnChange = false;
-  let failOnUnreadable = false;
-  let includeNoise = false;
-  let detectMoves = true;
-  let threshold: number | undefined;
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index]!;
-    if (argument === "--report") format = readFormat(argv[++index]);
-    else if (argument === "--out") out = argv[++index];
-    else if (argument === "--fail-on-change") failOnChange = true;
-    else if (argument === "--fail-on-unreadable") failOnUnreadable = true;
-    else if (argument === "--include-noise") includeNoise = true;
-    else if (argument === "--no-detect-moves") detectMoves = false;
-    else if (argument === "--threshold") threshold = readThreshold(argv[++index]);
-    else if (argument.startsWith("-")) throw new UsageError(`Unknown option ${argument}`);
-    else positional.push(argument);
+function parseArguments(argv: readonly string[]) {
+  let parsed;
+  try {
+    parsed = parseArgs({
+      args: [...argv],
+      allowPositionals: true,
+      options: {
+        report: { type: "string", default: "text" },
+        out: { type: "string" },
+        "fail-on-change": { type: "boolean", default: false },
+        "fail-on-unreadable": { type: "boolean", default: false },
+        "include-noise": { type: "boolean", default: false },
+        // parseArgs has no --no-<flag> negation, so the documented spelling is the option.
+        "no-detect-moves": { type: "boolean", default: false },
+        threshold: { type: "string" },
+      },
+    });
+  } catch (error) {
+    throw new UsageError(error instanceof Error ? error.message : String(error));
   }
-
-  if (positional.length !== 2) throw new UsageError("Provide exactly two PDF paths.");
-  return { earlier: positional[0]!, newer: positional[1]!, format, out, failOnChange, failOnUnreadable, includeNoise, detectMoves, threshold };
+  const { values, positionals } = parsed;
+  if (positionals.length !== 2) throw new UsageError("Provide exactly two PDF paths.");
+  return {
+    earlier: positionals[0]!,
+    newer: positionals[1]!,
+    format: readFormat(values.report!),
+    out: values.out,
+    failOnChange: values["fail-on-change"]!,
+    failOnUnreadable: values["fail-on-unreadable"]!,
+    includeNoise: values["include-noise"]!,
+    detectMoves: !values["no-detect-moves"],
+    threshold: readThreshold(values.threshold),
+  };
 }
+
+type CliOptions = ReturnType<typeof parseArguments>;
 
 function render(report: ComparisonReport, options: CliOptions): string {
   if (options.format === "json") return reportToJson(report);

@@ -16,6 +16,7 @@
 import { spawn } from "node:child_process";
 import { mkdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
+import { parseArgs } from "node:util";
 import { chromium } from "playwright";
 
 const FIXTURES = "examples/pdf-fixtures";
@@ -34,15 +35,16 @@ const VIEWPORT = { width: 1440, height: 900 };
 const CROP = "2880x1680+0+0";
 const OUTPUT_WIDTH = 2000;
 
-function argument(name, fallback) {
-  const prefix = `--${name}=`;
-  return process.argv.find((entry) => entry.startsWith(prefix))?.slice(prefix.length) ?? fallback;
-}
 
-const url = argument("url", "http://localhost:4173/");
-const outputDirectory = resolve(process.cwd(), argument("out", "public/shots"));
+const { values } = parseArgs({ options: {
+  url: { type: "string", default: "http://localhost:4173/" },
+  out: { type: "string", default: "public/shots" },
+  "skip-encode": { type: "boolean", default: false },
+} });
+const url = values.url;
+const outputDirectory = resolve(process.cwd(), values.out);
 const workingDirectory = resolve(outputDirectory, ".png");
-const skipEncode = process.argv.includes("--skip-encode");
+const skipEncode = values["skip-encode"];
 
 function run(command, args, stdin) {
   return new Promise((fulfil, fail) => {

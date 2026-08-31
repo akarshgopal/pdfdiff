@@ -23,14 +23,6 @@ export interface RenderedPage extends RasterImage {
   readonly scale: number;
 }
 
-export interface RenderedPagePair {
-  readonly earlier: RenderedPage;
-  readonly newer: RenderedPage;
-  readonly width: number;
-  readonly height: number;
-  readonly scale: number;
-}
-
 export type RgbColor = readonly [number, number, number];
 
 export interface VisualDiffOptions {
@@ -131,17 +123,6 @@ export type AlignmentMode = "none" | "translation";
 export interface DiffOptions {
   readonly sensitivity: number;
   readonly alignment: AlignmentMode;
-  readonly policy?: DiffPolicy;
-}
-
-/** Optional resource and region limits applied by an adapter during comparison. */
-export interface DiffPolicy {
-  readonly maxPixels?: number;
-  readonly maxDimension?: number;
-  readonly regionMinPixels?: number;
-  readonly maxRegions?: number;
-  readonly regionMergeGapX?: number;
-  readonly regionMergeGapY?: number;
 }
 
 export interface VisualPageGeometry {

@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import type { DiffMetricSink, DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
-import { PdfDiffViewer, type DiffComparison, type DiffViewMode } from "@pdfdiff/viewer-react";
+import { PdfDiffViewer, type DiffComparison } from "@pdfdiff/viewer-react";
 import { ThemeToggle } from "../../components/ui/theme-toggle";
 import { styles, styleProps } from "./styles";
 import { LoadingScreen } from "./LoadingScreen";
@@ -41,16 +41,9 @@ export interface PdfDiffEngine {
   }): Promise<DiffComparison>;
 }
 
-export type PdfDiffAnalyticsEvent =
-  | { name: "comparison_started"; earlierSizeBucket: string; newerSizeBucket: string }
-  | { name: "comparison_completed"; pageCount: number; changedPageCount: number }
-  | { name: "comparison_failed"; errorCode: string }
-  | { name: "view_mode_used"; mode: DiffViewMode };
-
 export interface PdfDiffAppProps {
   engine?: PdfDiffEngine;
   initialComparison?: DiffComparison;
-  onAnalytics?: (event: PdfDiffAnalyticsEvent) => void;
   onMetric?: DiffMetricSink;
 }
 
@@ -62,13 +55,6 @@ const lazyBrowserEngine: PdfDiffEngine = {
 };
 
 const MAX_FILE_SIZE = 150 * 1024 * 1024;
-
-function sizeBucket(bytes: number): string {
-  if (bytes < 2 * 1024 * 1024) return "small";
-  if (bytes < 20 * 1024 * 1024) return "medium";
-  if (bytes < 80 * 1024 * 1024) return "large";
-  return "very_large";
-}
 
 function normalizeFile(file: File | undefined): File | null {
   if (!file) return null;
@@ -96,7 +82,7 @@ async function rememberComparison(input: ComparisonInput, refreshHistory: () => 
   return id;
 }
 
-export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onMetric }: PdfDiffAppProps) {
+export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfDiffAppProps) {
   const activeEngine = engine ?? lazyBrowserEngine;
   const [earlierFile, setEarlierFile] = useState<File | null>(null);
   const [newerFile, setNewerFile] = useState<File | null>(null);
@@ -184,7 +170,6 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
     setPhase("loading");
     setProgress(0);
     setPageProgress(null);
-    onAnalytics?.({ name: "comparison_started", earlierSizeBucket: sizeBucket(input.earlierFile.size), newerSizeBucket: sizeBucket(input.newerFile.size) });
     try {
       const result = await activeEngine.compare({
         earlier: input.earlierFile,
@@ -222,12 +207,10 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
       setPhase("workspace");
       setProgress(100);
       setPageProgress(null);
-      onAnalytics?.({ name: "comparison_completed", pageCount: result.pages.length, changedPageCount: result.pages.filter((page) => page.status !== "same").length });
     } catch (comparisonError) {
       if (abortController.signal.aborted) return;
       setError(comparisonErrorMessage(comparisonError));
       setPhase("upload");
-      onAnalytics?.({ name: "comparison_failed", errorCode: "compare_failed" });
     }
   };
 
@@ -316,7 +299,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
   }
 
   if (!comparison) return null;
-  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} onAnalytics={(event) => onAnalytics?.(event)} /></div></main>;
+  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} /></div></main>;
 }
 
 export { PdfDiffApp };

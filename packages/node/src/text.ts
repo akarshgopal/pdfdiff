@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { fingerprintPage, type PageFingerprint, type PageText } from "@pdfdiff/core";
 import { extractPageText } from "@pdfdiff/pdfjs-browser/text";
 
@@ -30,7 +31,7 @@ export async function readDocumentText(path: string): Promise<DocumentText> {
       pages.push(await extractPageText(loaded, pageNumber));
     }
     return {
-      name: path.split("/").pop() ?? path,
+      name: basename(path),
       pageCount: pdf.numPages,
       pages,
       fingerprints: pages.map((page) => fingerprintPage(page.text, page.pageNumber)),

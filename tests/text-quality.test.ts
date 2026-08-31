@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decodableRatio, diffSemanticPages, isDecodableText, stripUndecodable, type PageText } from "@pdfdiff/core";
+import { decodableRatio, diffSemanticPages, isDecodableText, type PageText } from "@pdfdiff/core";
 
 /** What a subset font with no ToUnicode map yields: glyph indices, not characters. */
 const GLYPH_CODES = "\u0001\u0002\u0001\u0001\u0001\n\u0001\u0002\u0003\u0004\n\u0005\u0006\u0007\u0008";
@@ -45,10 +45,6 @@ test("the threshold is adjustable", () => {
   assert.equal(decodableRatio(half), 0.5);
   assert.equal(isDecodableText(half, 0.4), true);
   assert.equal(isDecodableText(half, 0.75), false);
-});
-
-test("stripUndecodable removes glyph codes and keeps real words", () => {
-  assert.equal(stripUndecodable("WHEEL\u0001 \u0002HUB"), "WHEEL HUB");
 });
 
 test("a page diff over undecodable text reports that, instead of reporting no changes", () => {

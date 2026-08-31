@@ -5,7 +5,7 @@ const MAX_REGION_LABEL_CHARS = 60;
 const REGION_MATCH_TOLERANCE = 0.4;
 
 /** A rectangle in page-relative percentages, matching the viewer's overlay coordinates. */
-export interface Box {
+interface Box {
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -18,7 +18,7 @@ interface OverlayBox extends Box {
   readonly text: string;
 }
 
-export function overlayBox(overlay: DiffSemanticOverlay): OverlayBox | null {
+function overlayBox(overlay: DiffSemanticOverlay): OverlayBox | null {
   const points = overlay.quads.flat();
   if (points.length === 0) return null;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

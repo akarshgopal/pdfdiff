@@ -35,14 +35,13 @@ function fullPageState(side: SourceSide | null, earlier: { page: DiffPage | null
   return side === "earlier" ? earlier : newer;
 }
 
-export function useViewerState({ comparison, onAnalytics }: { comparison: DiffComparison; onAnalytics?: (event: { name: "view_mode_used"; mode: DiffViewMode }) => void }) {
+export function useViewerState({ comparison }: { comparison: DiffComparison }) {
   const pages = comparison.pages;
   const [pageIndex, setPageIndex] = useState(0);
   const [mode, setMode] = useState<DiffViewMode>("diff");
   const [zoom, setZoom] = useState(100);
   const [swipe, setSwipe] = useState(50);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [blinkOn, setBlinkOn] = useState(false);
   const [fullPageSide, setFullPageSide] = useState<SourceSide | null>(null);
   const [earlierPageIndex, setEarlierPageIndex] = useState(0);
   const [newerPageIndex, setNewerPageIndex] = useState(0);
@@ -82,21 +81,12 @@ export function useViewerState({ comparison, onAnalytics }: { comparison: DiffCo
     goToSourcePage(side, currentIndex + direction);
   }, [earlierPageIndex, goToSourcePage, newerPageIndex]);
 
-  const changeMode = useCallback((nextMode: DiffViewMode) => {
-    setMode(nextMode);
-    onAnalytics?.({ name: "view_mode_used", mode: nextMode });
-  }, [onAnalytics]);
+  const changeMode = useCallback((nextMode: DiffViewMode) => setMode(nextMode), []);
 
   const cycleMode = useCallback((direction: 1 | -1) => {
     const currentIndex = viewModes.findIndex((item) => item.id === mode);
     changeMode(viewModes[(currentIndex + direction + viewModes.length) % viewModes.length]!.id);
   }, [changeMode, mode]);
-
-  useEffect(() => {
-    if (mode !== "blink") return;
-    const timer = window.setInterval(() => setBlinkOn((value) => !value), 720);
-    return () => window.clearInterval(timer);
-  }, [mode]);
 
   useEffect(() => {
     if (!pairComparisonMode || sourcePagesAligned || pair.page || pair.error || !comparison.comparePagePair) return;
@@ -129,7 +119,6 @@ export function useViewerState({ comparison, onAnalytics }: { comparison: DiffCo
     zoom,
     swipe,
     selectedRegion,
-    blinkOn,
     fullPageSide,
     earlierPageIndex,
     newerPageIndex,

@@ -129,17 +129,14 @@ function separatorBetween(previous: PositionedTextItem | undefined, current: Pos
 async function extractPageTextUnmeasured(
   pdf: LoadedPdf,
   pageNumber: number,
-  options: Pick<DocumentTextOptions, "signal" | "disableNormalization" | "includeMarkedContent"> = {},
+  options: Pick<DocumentTextOptions, "signal"> = {},
 ): Promise<PageText> {
   throwIfAborted(options.signal);
   validatePageNumber(pageNumber, pdf.pageCount);
   const page = await pdf.pdf.getPage(pageNumber);
   throwIfAborted(options.signal);
   const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
-  const content = await page.getTextContent({
-    includeMarkedContent: options.includeMarkedContent ?? false,
-    disableNormalization: options.disableNormalization ?? false,
-  });
+  const content = await page.getTextContent({ includeMarkedContent: false, disableNormalization: false });
   throwIfAborted(options.signal);
   const items: PositionedTextItem[] = [];
   let text = "";
@@ -167,7 +164,7 @@ async function extractPageTextUnmeasured(
 export function extractPageText(
   pdf: LoadedPdf,
   pageNumber: number,
-  options: Pick<DocumentTextOptions, "signal" | "disableNormalization" | "includeMarkedContent" | "metrics"> = {},
+  options: Pick<DocumentTextOptions, "signal" | "metrics"> = {},
 ): Promise<PageText> {
   return measureAsync(options.metrics, "pdf.text.page", () => extractPageTextUnmeasured(pdf, pageNumber, options), { pageNumber });
 }

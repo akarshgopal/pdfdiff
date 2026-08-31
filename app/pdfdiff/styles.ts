@@ -1,4 +1,4 @@
-import { cn } from "../../lib/utils";
+export { styleProps, type TailwindClass } from "../../lib/utils";
 
 export const styles = {
   root: "min-h-screen bg-background font-sans tracking-[-0.01em] text-foreground",
@@ -61,8 +61,3 @@ export const styles = {
   progressFill: "h-full rounded-[5px] bg-primary transition-[width] duration-200",
 } as const;
 
-export type TailwindClass = string | false | null | undefined;
-
-export const styleProps = (...stylesToApply: TailwindClass[]) => ({
-  className: cn(...stylesToApply),
-});

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createDiffMetricsCollector, diffImages, diffSemanticText, summarizeDiffMetrics } from "@pdfdiff/core";
+import { diffImages, diffSemanticText, type DiffMetric } from "@pdfdiff/core";
 
 function raster(fill: number): { width: number; height: number; data: Uint8ClampedArray } {
   const data = new Uint8ClampedArray(16);
@@ -31,7 +31,7 @@ test("core semantic comparison is importable as a package API", () => {
 });
 
 test("core comparison emits opt-in phase metrics", () => {
-  const collector = createDiffMetricsCollector();
+  const metrics: DiffMetric[] = [];
   const earlier = raster(255);
   const newer = raster(255);
   newer.data[0] = 0;
@@ -39,15 +39,11 @@ test("core comparison emits opt-in phase metrics", () => {
   diffImages(earlier, newer, {
     threshold: 0,
     regionOptions: { minPixels: 1 },
-    metrics: collector.sink,
+    metrics: (metric) => metrics.push(metric),
   });
 
-  const metrics = collector.snapshot();
   assert.ok(metrics.some((metric) => metric.name === "core.visual.pixelmatch"));
   assert.ok(metrics.some((metric) => metric.name === "core.visual.overlay"));
   assert.ok(metrics.some((metric) => metric.name === "core.visual.regions"));
   assert.ok(metrics.every((metric) => metric.status === "ok" && metric.durationMs >= 0));
-  assert.equal(summarizeDiffMetrics(metrics).length, metrics.length);
-  collector.clear();
-  assert.equal(collector.snapshot().length, 0);
 });

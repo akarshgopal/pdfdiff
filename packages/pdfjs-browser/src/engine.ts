@@ -17,45 +17,33 @@ import {
   type DiffMetric,
   type DiffMetricSink,
   type DiffOptions,
-  type DiffPolicy,
   type PageText,
   type RasterImage,
   type SemanticPageDiff,
   type TextQuad,
   type VisualPageGeometry,
 } from "@pdfdiff/core";
-import { extractPageText } from "./text.js";
+import { extractDocumentText, extractPageText } from "./text.js";
 import { loadPdfPair } from "./pdf.js";
 import { renderPage, renderPagePair } from "./render.js";
 import type { LoadedPdf, PdfSource, RenderedPage } from "./types.js";
 
 const PREVIEW_SCALE = 2;
-type MergeGapPolicy = Pick<DiffPolicy, "regionMergeGapX" | "regionMergeGapY">;
-
-/** The merge gaps stay optional so an unset policy can derive them from the rendered page. */
-const DEFAULT_POLICY: Required<Omit<DiffPolicy, keyof MergeGapPolicy>> = {
-  maxPixels: 3_000_000,
-  maxDimension: 2800,
-  regionMinPixels: 8,
-  maxRegions: 80,
-};
+const MAX_PIXELS = 3_000_000;
+const MAX_DIMENSION = 2800;
+const REGION_MIN_PIXELS = 8;
+const MAX_REGIONS = 80;
 const ADDED_PAGE_THRESHOLD = 0.08;
-
-type ComparisonPolicy = Required<Omit<DiffPolicy, keyof MergeGapPolicy>> & MergeGapPolicy;
-
-function comparisonPolicy(options: DiffOptions): ComparisonPolicy {
-  return { ...DEFAULT_POLICY, ...options.policy };
-}
 
 /**
  * Changed pixels arrive one glyph at a time; these gaps rejoin a word or line
  * without pulling in the line below, and scale with the rendered page so the
  * behaviour holds for both letter pages and large-format drawings.
  */
-function regionMergeGaps(policy: ComparisonPolicy, pageHeight: number): { mergeGapX: number; mergeGapY: number } {
+function regionMergeGaps(pageHeight: number): { mergeGapX: number; mergeGapY: number } {
   return {
-    mergeGapX: policy.regionMergeGapX ?? Math.max(6, Math.round(pageHeight * 0.009)),
-    mergeGapY: policy.regionMergeGapY ?? Math.max(2, Math.round(pageHeight * 0.0025)),
+    mergeGapX: Math.max(6, Math.round(pageHeight * 0.009)),
+    mergeGapY: Math.max(2, Math.round(pageHeight * 0.0025)),
   };
 }
 
@@ -142,7 +130,6 @@ interface PageComparisonRequest {
   readonly newerPageNumber: number;
   readonly index: number;
   readonly options: DiffOptions;
-  readonly policy: ComparisonPolicy;
   readonly signal: AbortSignal;
   readonly earlierText?: PageText;
   readonly newerText?: PageText;
@@ -156,13 +143,13 @@ async function pageTextFor(cached: PageText | undefined, document: LoadedPdf, pa
 }
 
 async function compareExistingPage(request: PageComparisonRequest): Promise<ComparisonPage> {
-  const { earlier, newer, earlierPageNumber, newerPageNumber, options, policy, signal, metrics } = request;
-  const rendered = await renderPagePair(earlier, newer, earlierPageNumber, newerPageNumber, { scale: PREVIEW_SCALE, maxPixels: policy.maxPixels, maxDimension: policy.maxDimension, includeAnnotations: true, signal, metrics });
+  const { earlier, newer, earlierPageNumber, newerPageNumber, options, signal, metrics } = request;
+  const rendered = await renderPagePair(earlier, newer, earlierPageNumber, newerPageNumber, { scale: PREVIEW_SCALE, maxPixels: MAX_PIXELS, maxDimension: MAX_DIMENSION, signal, metrics });
   await yieldToBrowser(signal);
   const translation = options.alignment === "translation" ? alignByTranslation(rendered.earlier, rendered.newer, signal, metrics) : { image: rendered.newer, dx: 0, dy: 0 };
   const alignedNewer = translation.image === rendered.newer ? rendered.newer : asRenderedPage(rendered.newer, imageDataFromRaster(translation.image));
   await yieldToBrowser(signal);
-  const result = diffImages(rendered.earlier, alignedNewer, { threshold: comparisonThreshold(options.sensitivity), includeAA: false, unchangedOpacity: 0.24, regionOptions: { minPixels: policy.regionMinPixels, maxRegions: policy.maxRegions, connectivity: 8, readingOrder: true, ...regionMergeGaps(policy, rendered.earlier.height) }, signal, metrics });
+  const result = diffImages(rendered.earlier, alignedNewer, { threshold: comparisonThreshold(options.sensitivity), includeAA: false, unchangedOpacity: 0.24, regionOptions: { minPixels: REGION_MIN_PIXELS, maxRegions: MAX_REGIONS, connectivity: 8, readingOrder: true, ...regionMergeGaps(rendered.earlier.height) }, signal, metrics });
   const [oldText, newText] = await Promise.all([
     pageTextFor(request.earlierText, earlier, earlierPageNumber, signal, metrics),
     pageTextFor(request.newerText, newer, newerPageNumber, signal, metrics),
@@ -197,20 +184,19 @@ interface MissingPageRequest {
   readonly pageNumber: number;
   readonly index: number;
   readonly hasEarlier: boolean;
-  readonly policy: ComparisonPolicy;
   readonly signal: AbortSignal;
   readonly pageText?: PageText;
   readonly metrics?: DiffMetricSink;
 }
 
 async function compareMissingPage(request: MissingPageRequest): Promise<ComparisonPage> {
-  const { document, pageNumber, hasEarlier, policy, signal, metrics } = request;
-  const rendered = await renderPage(document, pageNumber, { scale: PREVIEW_SCALE, maxPixels: policy.maxPixels, maxDimension: policy.maxDimension, signal, metrics });
+  const { document, pageNumber, hasEarlier, signal, metrics } = request;
+  const rendered = await renderPage(document, pageNumber, { scale: PREVIEW_SCALE, maxPixels: MAX_PIXELS, maxDimension: MAX_DIMENSION, signal, metrics });
   await yieldToBrowser(signal);
   const blank = blankImage(rendered.width, rendered.height);
   const oldImage: RasterImage = hasEarlier ? rendered : { width: rendered.width, height: rendered.height, data: blank.data };
   const newImage: RasterImage = hasEarlier ? { width: rendered.width, height: rendered.height, data: blank.data } : rendered;
-  const result = diffImages(oldImage, newImage, { threshold: ADDED_PAGE_THRESHOLD, includeAA: true, regionOptions: { minPixels: policy.regionMinPixels, maxRegions: Math.min(policy.maxRegions, 40), readingOrder: true, ...regionMergeGaps(policy, rendered.height) }, signal, metrics });
+  const result = diffImages(oldImage, newImage, { threshold: ADDED_PAGE_THRESHOLD, includeAA: true, regionOptions: { minPixels: REGION_MIN_PIXELS, maxRegions: Math.min(MAX_REGIONS, 40), readingOrder: true, ...regionMergeGaps(rendered.height) }, signal, metrics });
   const pageText = await pageTextFor(request.pageText, document, pageNumber, signal, metrics);
   const semantic = hasEarlier ? diffSemanticPages(pageText, emptyPageText(pageNumber, rendered), { signal, metrics }) : diffSemanticPages(emptyPageText(pageNumber, rendered), pageText, { signal, metrics });
   return {
@@ -235,30 +221,19 @@ async function compareMissingPage(request: MissingPageRequest): Promise<Comparis
   };
 }
 
-/** Text drives both the page alignment and each page's semantic diff, so read it once. */
-async function extractDocumentText(document: LoadedPdf, signal: AbortSignal, metrics?: DiffMetricSink): Promise<PageText[]> {
-  const pages: PageText[] = [];
-  for (let pageNumber = 1; pageNumber <= document.pageCount; pageNumber += 1) {
-    throwIfAborted(signal);
-    pages.push(await extractPageText(document, pageNumber, { signal, metrics }));
-  }
-  return pages;
-}
-
 function comparePairForAlignment(pair: AlignedPagePair, index: number, context: {
   earlier: LoadedPdf;
   newer: LoadedPdf;
   earlierText: readonly PageText[];
   newerText: readonly PageText[];
   options: DiffOptions;
-  policy: ComparisonPolicy;
   signal: AbortSignal;
   metrics?: DiffMetricSink;
 }): Promise<ComparisonPage> {
-  const { earlier, newer, earlierText, newerText, options, policy, signal, metrics } = context;
+  const { earlier, newer, earlierText, newerText, options, signal, metrics } = context;
   if (pair.earlierPageNumber !== undefined && pair.newerPageNumber !== undefined) {
     return compareExistingPage({
-      earlier, newer, index, options, policy, signal, metrics,
+      earlier, newer, index, options, signal, metrics,
       earlierPageNumber: pair.earlierPageNumber,
       newerPageNumber: pair.newerPageNumber,
       earlierText: earlierText[pair.earlierPageNumber - 1],
@@ -271,7 +246,7 @@ function comparePairForAlignment(pair: AlignedPagePair, index: number, context: 
   const pageNumber = (hasEarlier ? pair.earlierPageNumber : pair.newerPageNumber)!;
   return compareMissingPage({
     document: hasEarlier ? earlier : newer,
-    pageNumber, index, hasEarlier, policy, signal, metrics,
+    pageNumber, index, hasEarlier, signal, metrics,
     pageText: (hasEarlier ? earlierText : newerText)[pageNumber - 1],
   });
 }
@@ -291,13 +266,12 @@ async function comparePdfPair(
   return measureAsync(onMetric, "comparison.total", async () => {
     const startedAt = performance.now();
     const pair = await measureAsync(onMetric, "pdf.load.pair", () => loadPdfPair(earlier, newer, { signal, workerSrc, metrics: onMetric }), sourceAttributes);
-    const policy = comparisonPolicy(options);
     const pages: ComparisonPage[] = [];
 
     try {
       const [earlierText, newerText] = await measureAsync(onMetric, "comparison.text", () => Promise.all([
-        extractDocumentText(pair.earlier, signal, onMetric),
-        extractDocumentText(pair.newer, signal, onMetric),
+        extractDocumentText(pair.earlier, { signal, metrics: onMetric }),
+        extractDocumentText(pair.newer, { signal, metrics: onMetric }),
       ]));
       const alignment = alignPages(
         earlierText.map((page) => fingerprintPage(page.text, page.pageNumber)),
@@ -318,7 +292,7 @@ async function comparePdfPair(
         throwIfAborted(signal);
         const metrics = pageMetricSink(onMetric, aligned.newerPageNumber ?? aligned.earlierPageNumber ?? index + 1);
         const page = await measureAsync(onMetric, "comparison.page", () => comparePairForAlignment(aligned, index, {
-          earlier: pair.earlier, newer: pair.newer, earlierText, newerText, options, policy, signal, metrics,
+          earlier: pair.earlier, newer: pair.newer, earlierText, newerText, options, signal, metrics,
         }), {
           pageIndex: index,
           earlierPageNumber: aligned.earlierPageNumber ?? 0,
@@ -350,7 +324,6 @@ async function comparePdfPagePair(earlier: PdfSource, newer: PdfSource, earlierP
         newerPageNumber,
         index: earlierPageNumber - 1,
         options,
-        policy: comparisonPolicy(options),
         signal,
         metrics: onMetric,
       });

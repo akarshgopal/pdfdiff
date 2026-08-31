@@ -31,11 +31,6 @@ function absoluteMetadata(origin: string | null): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    server: {
-      ...(process.env.CODEX_SANDBOX === "seatbelt"
-        ? { watch: { useFsEvents: false, usePolling: true } }
-        : {}),
-    },
     plugins: [
       tailwindcss(),
       react(),

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { addClassCounts, classifyRegions, zeroClassCounts, type ChangeRegion } from "@pdfdiff/core";
+import { classifyRegions, type ChangeRegion } from "@pdfdiff/core";
 
 function region(id: number, x: number, y: number, width: number, height: number): ChangeRegion {
   return { id, x, y, width, height, pixelCount: width * height, area: width * height };
@@ -102,14 +102,4 @@ test("near-misses within tolerance still attach to their text", () => {
     changedText: [{ x: 140, y: 100, width: 20, height: 10 }],
   });
   assert.equal(far.regions[0]!.changeClass, "graphic");
-});
-
-test("counts accumulate across pages", () => {
-  const first = classifyRegions({ ...NOTHING, regions: [region(1, 0, 0, 5, 5)] }).counts;
-  const second = classifyRegions({
-    ...NOTHING,
-    regions: [region(1, 0, 0, 5, 5)],
-    changedText: [{ x: 0, y: 0, width: 5, height: 5 }],
-  }).counts;
-  assert.deepEqual(addClassCounts(addClassCounts(zeroClassCounts(), first), second), { content: 1, reflow: 0, formatting: 0, graphic: 1 });
 });

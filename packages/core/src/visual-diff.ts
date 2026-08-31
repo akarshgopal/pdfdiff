@@ -3,7 +3,7 @@ import pixelmatch from "pixelmatch";
 import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import { findChangeRegions } from "./regions.js";
-import type { RasterImage, RgbColor, VisualDiffOptions, VisualDiffResult, RenderedPage } from "./types.js";
+import type { RasterImage, RgbColor, VisualDiffOptions, VisualDiffResult } from "./types.js";
 import { clamp, luminance } from "./raster-utils.js";
 
 const DEFAULT_ADDED: RgbColor = [16, 190, 190];
@@ -139,8 +139,4 @@ export function diffImages(earlier: RasterImage, newer: RasterImage, options: Vi
     removedPixels: overlay.removedPixels,
     regions,
   };
-}
-
-export function diffRenderedPages(earlier: RenderedPage, newer: RenderedPage, options: VisualDiffOptions = {}): VisualDiffResult {
-  return diffImages(earlier, newer, options);
 }

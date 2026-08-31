@@ -82,15 +82,6 @@ export function classifyRegions(input: ClassifyRegionsInput): PageClassification
   return { regions, counts, noticeable: counts.content > 0 || counts.graphic > 0 };
 }
 
-export function addClassCounts(total: ChangeClassCounts, page: ChangeClassCounts): ChangeClassCounts {
-  return {
-    content: total.content + page.content,
-    reflow: total.reflow + page.reflow,
-    formatting: total.formatting + page.formatting,
-    graphic: total.graphic + page.graphic,
-  };
-}
-
 export function zeroClassCounts(): ChangeClassCounts {
   return emptyCounts();
 }

@@ -1,4 +1,5 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
 import { isAbsolute, resolve } from "node:path";
 
 const DEFAULT_RUNS = 3;
@@ -8,15 +9,9 @@ const DEFAULT_EARLIER = "examples/pdf-fixtures/contracts/work-order-original.pdf
 const DEFAULT_NEWER = "examples/pdf-fixtures/contracts/work-order-amended.pdf";
 const DEFAULT_OUTPUT = "benchmarks/runs/browser.json";
 
-function argument(name, fallback) {
-  const prefix = "--" + name + "=";
-  const value = process.argv.find((entry) => entry.startsWith(prefix));
-  return value ? value.slice(prefix.length) : fallback;
-}
-
-function numberArgument(name, fallback, minimum = 1) {
-  const value = Number(argument(name, fallback));
-  return Number.isFinite(value) && value >= minimum ? Math.floor(value) : fallback;
+function integerOption(value, fallback, minimum = 1) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= minimum ? Math.floor(parsed) : fallback;
 }
 
 function now() {
@@ -87,14 +82,19 @@ async function runOnce(page, url, earlierPath, newerPath) {
   };
 }
 
-const runs = numberArgument("runs", DEFAULT_RUNS);
-const warmups = numberArgument("warmups", DEFAULT_WARMUPS, 0);
-const url = argument("url", DEFAULT_URL);
-const earlier = argument("earlier", DEFAULT_EARLIER);
-const newer = argument("newer", DEFAULT_NEWER);
+const { values } = parseArgs({ options: {
+  runs: { type: "string" },
+  warmups: { type: "string" },
+  url: { type: "string", default: DEFAULT_URL },
+  earlier: { type: "string", default: DEFAULT_EARLIER },
+  newer: { type: "string", default: DEFAULT_NEWER },
+  output: { type: "string", default: DEFAULT_OUTPUT },
+} });
+const runs = integerOption(values.runs, DEFAULT_RUNS);
+const warmups = integerOption(values.warmups, DEFAULT_WARMUPS, 0);
+const { url, earlier, newer, output } = values;
 const earlierPath = absolutePath(earlier);
 const newerPath = absolutePath(newer);
-const output = argument("output", DEFAULT_OUTPUT);
 const { chromium } = await loadPlaywright();
 await Promise.all([access(earlierPath), access(newerPath)]);
 

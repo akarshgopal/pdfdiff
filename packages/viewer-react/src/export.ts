@@ -1,5 +1,6 @@
 import { buildReport, reportToCsv, reportToJson, reportToText, type ComparisonReport, type ComparisonPage } from "@pdfdiff/core";
 import type { DiffComparison, DiffPage } from "./types.js";
+import { pageStatus } from "./viewer-utils.js";
 
 /**
  * The viewer holds the only copy of a finished comparison. Rebuilding the core
@@ -16,7 +17,7 @@ function asComparisonPage(page: DiffPage): ComparisonPage {
     newerPageNumber: page.newerPageNumber,
     alignment: page.alignment,
     similarity: page.similarity,
-    status: page.status,
+    status: pageStatus(page),
     changedPercent: page.changedPercent,
     changeClasses: page.changeClasses,
     noticeable: page.noticeable,
