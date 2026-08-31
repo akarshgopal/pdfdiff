@@ -132,7 +132,7 @@ export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnav
     <div {...styleProps(styles.toolbar)}>
       <div {...styleProps(styles.modeGroup)} role="toolbar" aria-label="View mode">{viewModes.map((item) => {
         const disabled = item.id === "semantic-text" && textUnavailable;
-        return <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" disabled={disabled} aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={disabled ? "Text comparison unavailable: this PDF has no Unicode mapping" : `${item.label} (${item.shortcut})`} onClick={() => onModeChange(item.id)}><span {...styleProps(styles.desktopOnly)}>{item.label}</span><span {...styleProps(styles.mobileOnly)}>{item.shortcut}</span></button>;
+        return <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" disabled={disabled} aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={disabled ? "Text comparison unavailable: this PDF has no Unicode mapping" : `${item.label} (${item.shortcut})`} onClick={() => onModeChange(item.id)}>{item.label}</button>;
       })}</div>
       <div {...styleProps(styles.toolbarGroup)}>
         <IconButton label="Zoom out" icon={<ZoomOut size={16} />} disabled={zoom <= MIN_ZOOM} onClick={() => onZoomChange(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))} />

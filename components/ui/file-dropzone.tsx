@@ -22,7 +22,7 @@ function DropzonePrompt({ file }: Pick<FileDropzoneProps, "file">) {
 
 function FileDetails({ file }: Pick<FileDropzoneProps, "file">) {
   if (!file) return <><span className="mt-2 text-sm font-semibold text-primary">Drop here or browse</span><span className="mt-1 text-xs text-muted-foreground">PDF · up to 150 MB</span></>;
-  return <><span className="mt-2 max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold tracking-tight text-foreground" title={file.name}>{file.name}</span><span className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.size)}</span></>;
+  return <><span className="mt-2 line-clamp-2 w-full break-all text-base font-semibold tracking-tight text-foreground" title={file.name}>{file.name}</span><span className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.size)}</span></>;
 }
 
 function SelectedFileActions({ file, label, onRemove, onChoose }: Pick<FileDropzoneProps, "file" | "label" | "onRemove" | "onChoose">) {
@@ -42,7 +42,7 @@ export function FileDropzone({
   return (
     <div
       className={cn(
-        "relative flex min-h-[184px] flex-col rounded-xl border border-dashed border-input bg-card p-3 transition-colors duration-150",
+        "relative flex min-h-[184px] min-w-0 flex-col rounded-xl border border-dashed border-input bg-card p-3 transition-colors duration-150",
         "hover:border-foreground/30 hover:bg-background",
         active && "border-primary bg-accent",
         file && "border-solid border-success/60 bg-success/5",
@@ -59,7 +59,7 @@ export function FileDropzone({
     >
       <button
         type="button"
-        className={cn("flex min-h-[160px] flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border-0 bg-transparent px-5 py-6 text-center", ui.focus)}
+        className={cn("flex min-h-[160px] w-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border-0 bg-transparent px-5 py-6 text-center", ui.focus)}
         onClick={onChoose}
       >
         <span className="mb-3 inline-flex size-10 items-center justify-center rounded-full border border-border bg-muted text-primary">
