@@ -29,9 +29,6 @@ importers:
       react-dom:
         specifier: 19.2.6
         version: 19.2.6(react@19.2.6)
-      tailwind-merge:
-        specifier: ^3.6.0
-        version: 3.6.0
     devDependencies:
       '@eslint/js':
         specifier: 9.39.4
@@ -42,9 +39,6 @@ importers:
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
-      '@types/pixelmatch':
-        specifier: ^5.2.6
-        version: 5.2.6
       '@types/react':
         specifier: 19.2.14
         version: 19.2.14
@@ -1103,9 +1097,6 @@ packages:
 
   '@types/node@22.19.19':
     resolution: {integrity: sha512-dyh/xO2Fh5bYrfWaaqGrRQQGkNdmYw6AmaAUvYeUMNTWQtvb796ikLdmTchRmOlOiIJ1TDXfWgVx1QkUlQ6Hew==}
-
-  '@types/pixelmatch@5.2.6':
-    resolution: {integrity: sha512-wC83uexE5KGuUODn6zkm9gMzTwdY5L0chiK+VrKcDfEjzxh1uadlWTvOmAbCpnM9zx/Ww3f8uKlYQVnO/TrqVg==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -3117,10 +3108,6 @@ snapshots:
   '@types/node@22.19.19':
     dependencies:
       undici-types: 6.21.0
-
-  '@types/pixelmatch@5.2.6':
-    dependencies:
-      '@types/node': 22.19.19
 
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:

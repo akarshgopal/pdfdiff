@@ -1,8 +1,7 @@
 import { CloudUpload, FileText, X } from "lucide-react";
 import type { DragEvent } from "react";
 import { Button } from "./button";
-import { ui } from "@pdfdiff/viewer-react";
-import { cn } from "../../lib/utils";
+import { styleProps, ui } from "@pdfdiff/viewer-react";
 import { formatFileSize } from "../../lib/format";
 
 type FileDropzoneProps = {
@@ -27,7 +26,7 @@ function FileDetails({ file }: Pick<FileDropzoneProps, "file">) {
 
 function SelectedFileActions({ file, label, onRemove, onChoose }: Pick<FileDropzoneProps, "file" | "label" | "onRemove" | "onChoose">) {
   if (!file) return null;
-  return <><Button variant="ghost" size="icon" className="absolute right-3 top-3 z-10 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label={`Remove ${label.toLowerCase()} file`} onClick={onRemove}><X className="size-4" aria-hidden="true" /></Button><button type="button" className={cn("absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-sm text-xs font-semibold text-primary hover:underline", ui.focus)} onClick={onChoose}>Replace file</button></>;
+  return <><Button variant="ghost" size="icon" className="absolute right-3 top-3 z-10 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label={`Remove ${label.toLowerCase()} file`} onClick={onRemove}><X className="size-4" aria-hidden="true" /></Button><button type="button" className={styleProps("absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-sm text-xs font-semibold text-primary hover:underline", ui.focus).className} onClick={onChoose}>Replace file</button></>;
 }
 
 export function FileDropzone({
@@ -41,12 +40,12 @@ export function FileDropzone({
 }: FileDropzoneProps) {
   return (
     <div
-      className={cn(
+      className={styleProps(
         "relative flex min-h-[184px] min-w-0 flex-col rounded-xl border border-dashed border-input bg-card p-3 transition-colors duration-150",
         "hover:border-foreground/30 hover:bg-background",
         active && "border-primary bg-accent",
         file && "border-solid border-success/60 bg-success/5",
-      )}
+      ).className}
       role="group"
       aria-label={`${label} PDF${file ? `: ${file.name}` : ""}`}
       onDragEnter={(event) => {
@@ -59,7 +58,7 @@ export function FileDropzone({
     >
       <button
         type="button"
-        className={cn("flex min-h-[160px] w-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border-0 bg-transparent px-5 py-6 text-center", ui.focus)}
+        className={styleProps("flex min-h-[160px] w-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border-0 bg-transparent px-5 py-6 text-center", ui.focus).className}
         onClick={onChoose}
       >
         <span className="mb-3 inline-flex size-10 items-center justify-center rounded-full border border-border bg-muted text-primary">

@@ -1,19 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { diffImages, diffSemanticText, alignByTranslation } from "@pdfdiff/core";
+import { integerOption, metricSummary, now, percentile } from "./benchmark-utils.mjs";
 
 const DEFAULT_RUNS = 5;
 const DEFAULT_WARMUPS = 1;
 const DEFAULT_OUTPUT = "benchmarks/runs/core.json";
-
-function integerOption(value, fallback, minimum = 1) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= minimum ? Math.floor(parsed) : fallback;
-}
-
-function now() {
-  return globalThis.performance?.now() ?? Date.now();
-}
 
 function raster(width, height) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -64,26 +56,6 @@ function shiftedRaster(source, dx, dy) {
     }
   }
   return { width: source.width, height: source.height, data };
-}
-
-function percentile(values, amount) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * amount) - 1)] ?? 0;
-}
-
-function metricSummary(runs) {
-  const names = new Set(runs.flatMap((run) => run.metrics.map((metric) => metric.name)));
-  return [...names].sort().map((name) => {
-    const values = runs.flatMap((run) => run.metrics.filter((metric) => metric.name === name).map((metric) => metric.durationMs));
-    return {
-      name,
-      count: values.length,
-      medianMs: percentile(values, 0.5),
-      p95Ms: percentile(values, 0.95),
-      maxMs: Math.max(...values),
-    };
-  });
 }
 
 function scenario(id, description, operation, validate) {

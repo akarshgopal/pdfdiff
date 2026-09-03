@@ -1,6 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
-import { ui } from "@pdfdiff/viewer-react";
-import { cn } from "../../lib/utils";
+import { styleProps, ui } from "@pdfdiff/viewer-react";
 
 const BASE = `inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50 ${ui.focus} focus-visible:ring-offset-2 focus-visible:ring-offset-background`;
 
@@ -23,5 +22,5 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ className, variant = "default", size = "default", type = "button", ...props }: ButtonProps) {
-  return <button type={type} className={cn(BASE, VARIANTS[variant], SIZES[size], className)} {...props} />;
+  return <button type={type} className={styleProps(BASE, VARIANTS[variant], SIZES[size], className).className} {...props} />;
 }

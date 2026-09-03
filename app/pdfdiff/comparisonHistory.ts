@@ -15,11 +15,6 @@ export interface ComparisonHistorySummary {
   updatedAt: number;
 }
 
-interface StoredComparison extends ComparisonHistorySummary {
-  earlierFile: File;
-  newerFile: File;
-}
-
 export interface SavedComparison extends ComparisonHistorySummary {
   earlierFile: File;
   newerFile: File;
@@ -68,8 +63,8 @@ function writeTransaction(operation: (store: IDBObjectStore) => void, errorMessa
   }));
 }
 
-async function readAll(): Promise<StoredComparison[]> {
-  return readRequest((store) => store.getAll() as IDBRequest<StoredComparison[]>, "Unable to read comparison history.");
+async function readAll(): Promise<SavedComparison[]> {
+  return readRequest((store) => store.getAll() as IDBRequest<SavedComparison[]>, "Unable to read comparison history.");
 }
 
 export async function listComparisonHistory(): Promise<ComparisonHistorySummary[]> {
@@ -89,7 +84,7 @@ export async function listComparisonHistory(): Promise<ComparisonHistorySummary[
 
 export async function loadComparisonHistory(id: string): Promise<SavedComparison> {
   const record = await readRequest(
-    (store) => store.get(id) as IDBRequest<StoredComparison | undefined>,
+    (store) => store.get(id) as IDBRequest<SavedComparison | undefined>,
     "Unable to open the saved comparison.",
   );
   if (!record?.earlierFile || !record.newerFile) throw new Error("The saved PDFs are unavailable.");
@@ -103,7 +98,7 @@ export async function saveComparisonHistory(input: {
   options: DiffOptions;
 }): Promise<string> {
   const id = input.id ?? crypto.randomUUID();
-  const record: StoredComparison = {
+  const record: SavedComparison = {
     id,
     earlierName: input.earlierFile.name,
     earlierSize: input.earlierFile.size,

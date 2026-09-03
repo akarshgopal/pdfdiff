@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
+import { percentile } from "./benchmark-utils.mjs";
 
 function requiredOption(value, name) {
   if (!value) throw new Error(`Missing --${name}=...`);
@@ -9,12 +10,6 @@ function requiredOption(value, name) {
 function numberOption(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
-
-function percentile(values, amount) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * amount) - 1)] ?? 0;
 }
 
 function scenarioMap(report) {

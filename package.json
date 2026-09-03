@@ -28,14 +28,12 @@
     "lucide-react": "^1.34.0",
     "pdfjs-dist": "^6.2.108",
     "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "tailwind-merge": "^3.6.0"
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@eslint/js": "9.39.4",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "22.19.19",
-    "@types/pixelmatch": "^5.2.6",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",

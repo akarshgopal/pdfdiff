@@ -1,6 +1,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { isAbsolute, resolve } from "node:path";
+import { integerOption, metricSummary, now, percentile } from "./benchmark-utils.mjs";
 
 const DEFAULT_RUNS = 3;
 const DEFAULT_WARMUPS = 1;
@@ -8,35 +9,6 @@ const DEFAULT_URL = "http://localhost:3000/";
 const DEFAULT_EARLIER = "examples/pdf-fixtures/contracts/work-order-original.pdf";
 const DEFAULT_NEWER = "examples/pdf-fixtures/contracts/work-order-amended.pdf";
 const DEFAULT_OUTPUT = "benchmarks/runs/browser.json";
-
-function integerOption(value, fallback, minimum = 1) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= minimum ? Math.floor(parsed) : fallback;
-}
-
-function now() {
-  return globalThis.performance?.now() ?? Date.now();
-}
-
-function percentile(values, amount) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * amount) - 1)] ?? 0;
-}
-
-function metricSummary(runs) {
-  const names = new Set(runs.flatMap((run) => run.metrics.map((metric) => metric.name)));
-  return [...names].sort().map((name) => {
-    const values = runs.flatMap((run) => run.metrics.filter((metric) => metric.name === name).map((metric) => metric.durationMs));
-    return {
-      name,
-      count: values.length,
-      medianMs: percentile(values, 0.5),
-      p95Ms: percentile(values, 0.95),
-      maxMs: Math.max(...values),
-    };
-  });
-}
 
 function absolutePath(value) {
   return isAbsolute(value) ? value : resolve(process.cwd(), value);
