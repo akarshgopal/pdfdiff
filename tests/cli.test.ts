@@ -29,6 +29,8 @@ async function cli(...args: readonly string[]): Promise<CliRun> {
 
 const CAD_A = "examples/pdf-fixtures/cad/wheel-hub-rev-a.pdf";
 const CAD_B = "examples/pdf-fixtures/cad/wheel-hub-rev-b.pdf";
+const PCB_A = "examples/pdf-fixtures/pcb/olimexino-stm32-rev-a.pdf";
+const PCB_B = "examples/pdf-fixtures/pcb/olimexino-stm32-rev-b.pdf";
 
 test("the CLI compares two PDFs without a browser or a canvas", async () => {
   const { code, stdout } = await cli(EARLIER, NEWER);
@@ -92,6 +94,14 @@ test("the unreadable count reaches the JSON report", async () => {
   const report = JSON.parse(stdout);
   assert.equal(report.totals.pagesWithUnreadableText, 1);
   assert.equal(report.pages[0].textUnreadable, true);
+});
+
+test("the PCB fixture does not promote text extraction spacing to semantic changes", async () => {
+  const { stdout } = await cli(PCB_A, PCB_B, "--report", "json");
+  const report = JSON.parse(stdout);
+  const changes = report.pages[0].textChanges as Array<{ before: string; after: string }>;
+  assert.ok(changes.length <= 30, `expected at most 30 meaningful changes, got ${changes.length}`);
+  assert.doesNotMatch(changes.map(({ before, after }) => `${before} → ${after}`).join("\n"), /PO W ER|ANALO G|DIG ITAL|T RST|T DI|T DO/);
 });
 
 test("every documented flag is accepted, including --no-detect-moves", async () => {

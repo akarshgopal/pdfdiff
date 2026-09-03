@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
 import { styles, styleProps } from "./styles.js";
 import type { CSSProperties } from "react";
@@ -12,13 +12,16 @@ function ThumbPlaceholder() {
 }
 
 /** The document-level answer belongs beside the document names, not in a bar of its own. */
-export function WorkspaceHeader({ comparison, summary, onNewComparison, headerActions }: { comparison: DiffComparison; summary: ComparisonSummary; onNewComparison?: () => void; headerActions?: ReactNode }) {
+export function WorkspaceHeader({ comparison, summary, processingProgress, onNewComparison, headerActions }: { comparison: DiffComparison; summary: ComparisonSummary; processingProgress?: { completed: number; total: number }; onNewComparison?: () => void; headerActions?: ReactNode }) {
+  const headline = processingProgress
+    ? `Comparing ${processingProgress.completed} of ${processingProgress.total} pages…`
+    : summaryHeadline(summary);
   return (
     <header {...styleProps(styles.workspaceBar)}>
       <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
       <div {...styleProps(styles.documentPair)} aria-label="Compared documents"><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>A</span><span {...styleProps(styles.documentChipName)} title={comparison.earlierName}>{comparison.earlierName}</span></div><span {...styleProps(styles.pairArrow)} aria-hidden="true">↔</span><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>B</span><span {...styleProps(styles.documentChipName)} title={comparison.newerName}>{comparison.newerName}</span></div></div>
       <div {...styleProps(styles.headerSummary)} aria-label="Comparison summary">
-        <strong {...styleProps(styles.headerHeadline)}>{summaryHeadline(summary)}</strong>
+        <strong {...styleProps(styles.headerHeadline)}>{headline}</strong>
         {summary.pagesWithUnreadableText
           ? <span {...styleProps(styles.headerWarning)} title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR.">⚠ Text unavailable</span>
           : summary.pagesWithoutText ? <span {...styleProps(styles.headerWarning)} title="These pages have no selectable text, so only the visual comparison applies.">⚠ No selectable text</span> : null}
@@ -167,16 +170,24 @@ export function SettingsDialog({ overlay, onOverlayChange, settings, onSettingsC
   onMatchPagesChange?: (matchPages: boolean) => void;
   onClose: () => void;
 }) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const update = <Key extends keyof ViewerSettings>(key: Key, value: ViewerSettings[Key]) => onSettingsChange({ ...settings, [key]: value });
+  useEffect(() => closeButtonRef.current?.focus(), []);
+  useEffect(() => {
+    const handleEscape = (event: globalThis.KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
   return (
     <div {...styleProps(styles.dialogBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section {...styleProps(styles.settingsDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-settings-title">
-        <header {...styleProps(styles.helpHeader)}><h2 id="viewer-settings-title" {...styleProps(styles.helpTitle)}>Settings</h2><button {...styleProps(styles.iconButton)} type="button" aria-label="Close settings" onClick={onClose}>×</button></header>
+        <header {...styleProps(styles.helpHeader)}><h2 id="viewer-settings-title" {...styleProps(styles.helpTitle)}>Settings</h2><button ref={closeButtonRef} {...styleProps(styles.iconButton)} type="button" aria-label="Close settings" onClick={onClose}>×</button></header>
         <div {...styleProps(styles.settingsBody)}>
           <section {...styleProps(styles.settingsGroup)}>
             <h3 {...styleProps(styles.settingsGroupTitle)}>Overlay colours</h3>
             <label {...styleProps(styles.settingsRow)}>Newer content<input {...styleProps(styles.overlaySwatch)} type="color" value={overlay.addedColor} aria-label="Colour for newer content" onChange={(event) => onOverlayChange({ ...overlay, addedColor: event.target.value })} /></label>
             <label {...styleProps(styles.settingsRow)}>Earlier content<input {...styleProps(styles.overlaySwatch)} type="color" value={overlay.removedColor} aria-label="Colour for earlier content" onChange={(event) => onOverlayChange({ ...overlay, removedColor: event.target.value })} /></label>
+            <label {...styleProps(styles.settingsRow)}>Modified content<input {...styleProps(styles.overlaySwatch)} type="color" value={overlay.modifiedColor} aria-label="Colour for modified content" onChange={(event) => onOverlayChange({ ...overlay, modifiedColor: event.target.value })} /></label>
             <label {...styleProps(styles.settingsRow)}>Unchanged {Math.round(overlay.unchangedOpacity * 100)}%<input {...styleProps(styles.overlayRange)} style={{ "--range-fill": `${Math.round(overlay.unchangedOpacity * 100)}%` } as CSSProperties} type="range" min={0} max={100} value={Math.round(overlay.unchangedOpacity * 100)} aria-label="How strongly unchanged content shows through" onChange={(event) => onOverlayChange({ ...overlay, unchangedOpacity: Number(event.target.value) / 100 })} /></label>
           </section>
           <section {...styleProps(styles.settingsGroup)}>

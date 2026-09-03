@@ -30,6 +30,7 @@ export interface VisualDiffOptions {
   includeAA?: boolean;
   addedColor?: RgbColor;
   removedColor?: RgbColor;
+  modifiedColor?: RgbColor;
   unchangedOpacity?: number;
   regionOptions?: RegionOptions;
   signal?: AbortSignalLike;
@@ -46,6 +47,7 @@ export interface VisualDiffResult {
   readonly overlay: RasterImage;
   readonly addedPixels: number;
   readonly removedPixels: number;
+  readonly modifiedPixels: number;
   readonly regions: readonly ChangeRegion[];
 }
 
@@ -127,6 +129,7 @@ export type AlignmentMode = "none" | "translation";
 export interface OverlayStyle {
   readonly addedColor: RgbColor;
   readonly removedColor: RgbColor;
+  readonly modifiedColor: RgbColor;
   /** How strongly unchanged content shows through, 0 to 1. */
   readonly unchangedOpacity: number;
 }

@@ -20,7 +20,7 @@ import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
 import type { OverlayStyle } from "./types.js";
 
-export const DEFAULT_OVERLAY_STYLE: OverlayStyle = { addedColor: "#10bebe", removedColor: "#ee4856", unchangedOpacity: 0.24 };
+export const DEFAULT_OVERLAY_STYLE: OverlayStyle = { addedColor: "#10bebe", removedColor: "#ee4856", modifiedColor: "#b87edc", unchangedOpacity: 0.24 };
 
 function getRegionStyle(region: DiffRegion): CSSProperties {
   return {
@@ -217,7 +217,7 @@ function comparedPairUnavailable(mode: DiffViewMode, pending: boolean, error: st
 
 function DiffPreview({ page, source, hasDiff, overlay, showBoundingBoxes, selectedRegion, onRegionClick }: { page: DiffPage; source?: string; hasDiff: boolean; overlay: OverlayStyle; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void }) {
   const regions = showBoundingBoxes ? page.regions ?? [] : [];
-  return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}{!hasDiff && page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)}>Added · Removed</div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
+  return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}{page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)} aria-label="Overlay colours"><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />Added</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />Removed</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />Modified</span></div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
 }
 
 /** The stage's content box: its padding keeps the page clear of the toolbar edges. */
@@ -371,7 +371,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
           <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-start"><h3 id="viewer-help-start" {...styleProps(styles.helpSectionTitle)}>In the workspace</h3><ol {...styleProps(styles.helpSteps)}>{helpSteps.map((step) => <li key={step.number} {...styleProps(styles.helpStep)}><span {...styleProps(styles.helpKey)}>{step.number}</span><h4 {...styleProps(styles.helpStepTitle)}>{step.title}</h4><p {...styleProps(styles.helpStepCopy)}>{step.copy}</p></li>)}</ol></section>
           <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-modes"><h3 id="viewer-help-modes" {...styleProps(styles.helpSectionTitle)}>View modes</h3><div {...styleProps(styles.helpModeList)}>{helpModes.map(([name, copy]) => <p key={name} {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>{name}</strong> — {copy}</p>)}</div></section>
           <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-shortcuts"><h3 id="viewer-help-shortcuts" {...styleProps(styles.helpSectionTitle)}>Shortcuts</h3><div {...styleProps(styles.helpShortcutGrid)}>{helpShortcuts.map(([shortcut, copy]) => <p key={shortcut} {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>{shortcut}</kbd><span>{copy}</span></p>)}</div></section>
-          <p {...styleProps(styles.helpNote)}><strong>Settings apply when a comparison starts.</strong></p>
+          <p {...styleProps(styles.helpNote)}><strong>Colours and view filters apply immediately.</strong> Changing page matching runs the comparison again.</p>
         </div>
         <footer {...styleProps(styles.helpFooter)}><button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>Back to comparison</button></footer>
       </section>
@@ -414,7 +414,7 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
   if (!currentPage || !previewPage) return null;
   return (
     <section {...styleProps(styles.viewerRoot)} aria-label="PDF comparison workspace">
-      <WorkspaceHeader comparison={comparison} summary={summary} onNewComparison={onNewComparison} headerActions={headerActions} />
+      <WorkspaceHeader comparison={comparison} summary={summary} processingProgress={processingProgress} onNewComparison={onNewComparison} headerActions={headerActions} />
       <div {...styleProps(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
         <PageRail onlyChanged={settings.onlyChanged} hideNoise={settings.hideNoise} pages={pages} pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSelectPage={selectPage} onSourcePageChange={goToSourcePage} />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">

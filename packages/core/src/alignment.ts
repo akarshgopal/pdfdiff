@@ -62,7 +62,8 @@ export function alignByTranslation(earlier: RasterImage, newer: RasterImage, sig
 function alignByTranslationUnmeasured(earlier: RasterImage, newer: RasterImage, signal?: AbortSignalLike): TranslationAlignment {
   let bestX = 0;
   let bestY = 0;
-  let bestScore = translationScore(earlier, newer, 0, 0);
+  const initialScore = translationScore(earlier, newer, 0, 0);
+  let bestScore = initialScore;
   const maxShift = Math.max(4, Math.min(18, Math.round(Math.max(earlier.width, earlier.height) / 180)));
   for (let dy = -maxShift; dy <= maxShift; dy += 2) {
     for (let dx = -maxShift; dx <= maxShift; dx += 2) {
@@ -86,5 +87,7 @@ function alignByTranslationUnmeasured(earlier: RasterImage, newer: RasterImage, 
       }
     }
   }
+  const improvement = (initialScore - bestScore) / Math.max(1, initialScore);
+  if (improvement < 0.05) return { image: newer, dx: 0, dy: 0 };
   return { image: shiftImage(newer, bestX, bestY), dx: bestX, dy: bestY };
 }

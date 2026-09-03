@@ -21,7 +21,23 @@ test("core raster comparison works without browser globals", () => {
   assert.equal(result.width, 2);
   assert.equal(result.height, 2);
   assert.equal(result.changedPixels, 1);
+  assert.equal(result.addedPixels, 1);
+  assert.equal(result.removedPixels, 0);
+  assert.equal(result.modifiedPixels, 0);
   assert.equal(result.regions.length, 1);
+});
+
+test("color changes are modified rather than guessed from luminance", () => {
+  const earlier = raster(255);
+  const newer = raster(255);
+  earlier.data.set([0, 0, 255, 255], 0);
+  newer.data.set([255, 0, 0, 255], 0);
+
+  const result = diffImages(earlier, newer, { threshold: 0, regionOptions: { minPixels: 1 } });
+
+  assert.equal(result.addedPixels, 0);
+  assert.equal(result.removedPixels, 0);
+  assert.equal(result.modifiedPixels, 1);
 });
 
 test("core semantic comparison is importable as a package API", () => {

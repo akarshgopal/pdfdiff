@@ -80,15 +80,16 @@ function semanticOverlaysForPage(page: ComparisonPage, side: "earlier" | "newer"
 
 async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
   const layerSources = page.diffLayers;
-  const [beforeSrc, afterSrc, diffSrc, base, added, removed] = await Promise.all([
+  const [beforeSrc, afterSrc, diffSrc, base, added, removed, modified] = await Promise.all([
     page.earlier ? imageUrl(page.earlier) : undefined,
     page.newer ? imageUrl(page.newer) : undefined,
     page.diff ? imageUrl(page.diff, "png") : undefined,
     layerSources ? imageUrl(layerSources.base, "webp") : undefined,
     layerSources ? imageUrl(layerSources.added, "png", true) : undefined,
     layerSources ? imageUrl(layerSources.removed, "png", true) : undefined,
+    layerSources ? imageUrl(layerSources.modified, "png", true) : undefined,
   ]);
-  const layers = base && added && removed ? { base, added, removed } : undefined;
+  const layers = base && added && removed && modified ? { base, added, removed, modified } : undefined;
   const semanticBeforeOverlays = semanticOverlaysForPage(page, "earlier");
   const semanticAfterOverlays = semanticOverlaysForPage(page, "newer");
   return {
@@ -119,7 +120,7 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
 }
 
 function pageUrls(page: DiffPage): string[] {
-  return [page.beforeSrc, page.afterSrc, page.diffSrc, page.layers?.base, page.layers?.added, page.layers?.removed]
+  return [page.beforeSrc, page.afterSrc, page.diffSrc, page.layers?.base, page.layers?.added, page.layers?.removed, page.layers?.modified]
     .filter((url): url is string => Boolean(url));
 }
 

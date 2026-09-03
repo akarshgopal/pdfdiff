@@ -21,6 +21,7 @@ export interface ViewerSettings {
 export interface OverlayStyle {
   addedColor: string;
   removedColor: string;
+  modifiedColor: string;
   unchangedOpacity: number;
 }
 
@@ -64,7 +65,7 @@ export interface DiffPage {
   readonly afterSrc?: string;
   readonly diffSrc?: string;
   /** Recolourable overlay layers; the compositor tints these live. */
-  readonly layers?: { readonly base: string; readonly added: string; readonly removed: string };
+  readonly layers?: { readonly base: string; readonly added: string; readonly removed: string; readonly modified: string };
   readonly changedPixels?: number;
   readonly changedPercent?: number;
   readonly regions?: readonly DiffRegion[];

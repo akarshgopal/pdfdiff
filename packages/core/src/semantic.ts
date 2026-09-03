@@ -398,6 +398,7 @@ function quadsForTextRange(page: PageText, start: number, end: number): TextQuad
 
 interface SpatialTextLine {
   readonly text: string;
+  readonly identity: string;
   readonly canonical: string;
   readonly quads: readonly TextQuad[];
   readonly x: number;
@@ -428,6 +429,23 @@ function canonicalSemanticText(text: string): string {
     .replace(/(\d)\s*-\s*([a-z])\b/gu, "$1$2")
     .replace(/(\d)\s+(v|ma|a|ns|ms|mm|cm|°c)\b/gu, "$1$2")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/gu, " ");
+}
+
+/** Formatting-normalized text that is still strict enough for technical labels. */
+function identitySemanticText(text: string): string {
+  const source = text.normalize("NFKC").replace(/[‐‑‒–—−]/gu, "-");
+  const technical = source === source.toLocaleUpperCase("en") || /[\d/_+#]/u.test(source);
+  const normalized = source
+    .toLocaleLowerCase("en")
+    .replace(/(\d)\s*-\s*([a-z])\b/gu, "$1$2")
+    .replace(/(\d)\s+(v|ma|a|ns|ms|mm|cm|°c)\b/gu, "$1$2");
+  const compact = technical
+    ? normalized.replace(/(?<=\p{L})\s+(?=\p{L})/gu, "")
+    : normalized;
+  return compact
+    .replace(/\s*([,;:/()[\]{}])\s*/gu, "$1")
     .trim()
     .replace(/\s+/gu, " ");
 }
@@ -517,22 +535,44 @@ function groupSpatialColumns(row: readonly SpatialTextItem[], pageWidth: number)
   return groups;
 }
 
+function isHorizontal(item: SpatialTextItem): boolean {
+  const advanceX = item.quad[1].x - item.quad[0].x;
+  const advanceY = item.quad[1].y - item.quad[0].y;
+  return Math.abs(advanceX) >= Math.abs(advanceY);
+}
+
 function spatialLine(group: readonly SpatialTextItem[]): SpatialTextLine | null {
   const text = joinSpatialItems(group);
+  const identity = identitySemanticText(text);
   const canonical = canonicalSemanticText(text);
   if (!canonical) return null;
   const left = Math.min(...group.map((item) => item.bounds.x));
   const top = Math.min(...group.map((item) => item.bounds.y));
   const right = Math.max(...group.map((item) => item.bounds.x + item.bounds.width));
   const bottom = Math.max(...group.map((item) => item.bounds.y + item.bounds.height));
-  return { text, canonical, quads: group.map((item) => item.quad), x: left, y: top, width: right - left, height: bottom - top };
+  return { text, identity, canonical, quads: group.map((item) => item.quad), x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function keepItemsAtomic(items: readonly SpatialTextItem[]): boolean {
+  if (items.length === 0) return false;
+  const short = items.reduce((count, item) => count + (item.str.trim().length <= 12 ? 1 : 0), 0);
+  return short / items.length >= 0.7;
 }
 
 function spatialLines(page: PageText): SpatialTextLine[] {
-  return groupSpatialRows(orderedSpatialItems(page))
+  const items = orderedSpatialItems(page);
+  if (keepItemsAtomic(items)) {
+    return items.map((item) => spatialLine([item])).filter((line): line is SpatialTextLine => line !== null);
+  }
+  const horizontal = items.filter(isHorizontal);
+  const rotated = items.filter((item) => !isHorizontal(item));
+  return [
+    ...groupSpatialRows(horizontal)
     .flatMap((row) => groupSpatialColumns(row, page.width))
     .map(spatialLine)
-    .filter((line): line is SpatialTextLine => line !== null)
+    .filter((line): line is SpatialTextLine => line !== null),
+    ...rotated.map((item) => spatialLine([item])).filter((line): line is SpatialTextLine => line !== null),
+  ]
     .sort((first, second) => first.y - second.y || first.x - second.x);
 }
 
@@ -632,22 +672,22 @@ function closestExactLine(before: SpatialTextLine, sameText: readonly SpatialTex
   return best;
 }
 
-function byCanonicalText(lines: readonly SpatialTextLine[]): Map<string, SpatialTextLine[]> {
+function byIdentityText(lines: readonly SpatialTextLine[]): Map<string, SpatialTextLine[]> {
   const groups = new Map<string, SpatialTextLine[]>();
   for (const line of lines) {
-    const group = groups.get(line.canonical);
+    const group = groups.get(line.identity);
     if (group) group.push(line);
-    else groups.set(line.canonical, [line]);
+    else groups.set(line.identity, [line]);
   }
   return groups;
 }
 
 function exactLineMatches(beforeLines: readonly SpatialTextLine[], afterLines: readonly SpatialTextLine[], beforePage: PageText, afterPage: PageText, matchedBefore: Set<SpatialTextLine>, matchedAfter: Set<SpatialTextLine>, signal?: AbortSignalLike): SpatialLineMatch[] {
   const matches: SpatialLineMatch[] = [];
-  const afterByText = byCanonicalText(afterLines);
+  const afterByText = byIdentityText(afterLines);
   for (const before of beforeLines) {
     throwIfAborted(signal);
-    const after = closestExactLine(before, afterByText.get(before.canonical), matchedAfter, beforePage, afterPage);
+    const after = closestExactLine(before, afterByText.get(before.identity), matchedAfter, beforePage, afterPage);
     if (!after) continue;
     matchedBefore.add(before);
     matchedAfter.add(after);
@@ -800,6 +840,13 @@ function pageDecodable(page: PageText): boolean {
 function spatialPageDiff(beforePage: PageText, afterPage: PageText, options: SemanticDiffOptions): SemanticPageDiff {
   const beforeDecodable = pageDecodable(beforePage);
   const afterDecodable = pageDecodable(afterPage);
+  if (!beforeDecodable || !afterDecodable) {
+    return {
+      before: [], after: [], changes: [], beforeTokenCount: 0, afterTokenCount: 0,
+      hasBeforeText: false, hasAfterText: false, textUndecodable: true,
+      beforeOverlays: [], afterOverlays: [], unchangedLines: [],
+    };
+  }
   const matches = matchSpatialLines(beforePage, afterPage, options.signal);
   const changeMatches = matches.filter((match) => match.kind !== "same").sort(compareSpatialMatches);
   const changeIds = new Map<SpatialLineMatch, string>();

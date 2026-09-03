@@ -37,7 +37,8 @@ async function runOnce(page, url, earlierPath, newerPath) {
   const browserState = await page.evaluate(() => ({
     metrics: globalThis.__PDFDIFF_METRICS__?.slice() ?? [],
     longTasks: globalThis.__PDFDIFF_LONG_TASKS__?.slice() ?? [],
-    pageCount: document.querySelectorAll('aside[aria-label="Pages"] button').length,
+    // The viewer intentionally hides the page rail for a one-page comparison.
+    pageCount: Math.max(1, document.querySelectorAll('aside[aria-label="Pages"] button').length),
   }));
   const comparisonMetric = browserState.metrics.find((metric) => metric.name === "comparison.total");
   return {

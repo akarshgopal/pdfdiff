@@ -85,6 +85,8 @@ test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable 
   assert.match(html, /Next source B page/);
   assert.match(html, /Comparison overlay preview/);
   assert.match(html, /Document canvas\. Scroll to zoom and drag to pan\./);
+  assert.match(html, /aria-label="Overlay colours"/);
+  assert.match(html, />Added<\/span>.*>Removed<\/span>.*>Modified<\/span>/);
 });
 
 test("single-page unreadable comparisons remove duplicate chrome and retain the warning", () => {
@@ -183,6 +185,8 @@ test("viewer renders document counts and progress without treating pending pages
   assert.match(html, /A<\/span><strong>1 \/ 3/);
   assert.match(html, /B<\/span><strong>1 \/ 2/);
   assert.doesNotMatch(html, />Changed <span>/);
+  assert.doesNotMatch(html, /The documents are identical/);
+  assert.match(html, /Comparing 0 of 3 pages…/);
   assert.match(html, /Comparing pages · 0 of 3 complete/);
 });
 
@@ -200,7 +204,7 @@ test("the image export is offered only once a page has a rendered overlay", () =
   assert.equal(canDownloadPageImage(null), false);
   assert.equal(canDownloadPageImage({ index: 0, status: "processing" }), false, "a page still rendering has nothing to save");
   assert.equal(canDownloadPageImage({ index: 0, diffSrc: "blob:diff" }), true);
-  assert.equal(canDownloadPageImage({ index: 0, layers: { base: "b", added: "a", removed: "r" } }), true, "layers alone are enough to compose an export");
+  assert.equal(canDownloadPageImage({ index: 0, layers: { base: "b", added: "a", removed: "r", modified: "m" } }), true, "layers alone are enough to compose an export");
 });
 
 test("keyboard and toolbar zoom stay inside the same bounds", () => {

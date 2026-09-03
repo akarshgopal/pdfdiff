@@ -113,10 +113,11 @@ function tintedMask(mask: HTMLImageElement, color: string, width: number, height
  */
 async function composeOverlay(page: DiffPage, overlay: OverlayStyle): Promise<Blob | null> {
   if (!page.layers) return null;
-  const [base, added, removed] = await Promise.all([
+  const [base, added, removed, modified] = await Promise.all([
     loadImage(page.layers.base),
     loadImage(page.layers.added),
     loadImage(page.layers.removed),
+    loadImage(page.layers.modified),
   ]);
   const width = base.naturalWidth;
   const height = base.naturalHeight;
@@ -132,6 +133,7 @@ async function composeOverlay(page: DiffPage, overlay: OverlayStyle): Promise<Bl
   context.drawImage(base, 0, 0, width, height);
   context.globalAlpha = 1;
   context.drawImage(tintedMask(removed, overlay.removedColor, width, height), 0, 0);
+  context.drawImage(tintedMask(modified, overlay.modifiedColor, width, height), 0, 0);
   context.drawImage(tintedMask(added, overlay.addedColor, width, height), 0, 0);
 
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));

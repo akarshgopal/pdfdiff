@@ -80,10 +80,11 @@ function regionMergeGaps(pageHeight: number): { mergeGapX: number; mergeGapY: nu
 const DEFAULT_UNCHANGED_OPACITY = 0.24;
 
 /** An unset overlay style leaves the core defaults in place. */
-function overlayStyle(options: DiffOptions): { addedColor?: RgbColor; removedColor?: RgbColor; unchangedOpacity: number } {
+function overlayStyle(options: DiffOptions): { addedColor?: RgbColor; removedColor?: RgbColor; modifiedColor?: RgbColor; unchangedOpacity: number } {
   return {
     addedColor: options.overlay?.addedColor,
     removedColor: options.overlay?.removedColor,
+    modifiedColor: options.overlay?.modifiedColor,
     unchangedOpacity: options.overlay?.unchangedOpacity ?? DEFAULT_UNCHANGED_OPACITY,
   };
 }
@@ -114,7 +115,7 @@ function emptyPageText(pageNumber: number, page: RenderedPage): PageText {
 }
 
 function geometryForPage(page: RenderedPage, width: number, height: number, shiftX = 0, shiftY = 0) {
-  return { widthPoints: page.widthPoints, heightPoints: page.heightPoints, scale: page.scale, offsetX: (width - page.width) / 2 + shiftX, offsetY: (height - page.height) / 2 + shiftY };
+  return { widthPoints: page.widthPoints, heightPoints: page.heightPoints, scale: page.scale, offsetX: (width - page.widthPoints * page.scale) / 2 + shiftX, offsetY: (height - page.heightPoints * page.scale) / 2 + shiftY };
 }
 
 function pageMetricSink(sink: DiffMetricSink | undefined, pageNumber: number): DiffMetricSink | undefined {

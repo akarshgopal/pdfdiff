@@ -68,6 +68,7 @@ export const styles = {
   progressLabel: "text-2xs text-muted-foreground",
   progressTrack: "mt-[18px] h-[5px] overflow-hidden rounded-full bg-secondary",
   progressFill: "h-full rounded-full bg-primary transition-[width] duration-200",
+  loadingCancel: "mt-4",
   /** Legal pages: same shell, narrower measure. */
   legalArticle: `${gutter} mx-auto w-full max-w-[800px] flex-1 pb-20 pt-[clamp(48px,7vw,82px)]`,
   legalBack: `${ui.focus} rounded-lg text-sm font-medium text-muted-foreground no-underline hover:text-foreground`,

@@ -32,8 +32,8 @@ test("a malformed colour keeps the previous one rather than painting garbage", (
 test("settings persist across sessions", () => {
   withStorage(null, () => {
     assert.deepEqual(readOverlaySettings(), DEFAULT_OVERLAY, "an empty device gets the defaults");
-    writeOverlaySettings({ addedColor: [1, 2, 3], removedColor: [4, 5, 6], unchangedOpacity: 0.5 });
-    assert.deepEqual(readOverlaySettings(), { addedColor: [1, 2, 3], removedColor: [4, 5, 6], unchangedOpacity: 0.5 });
+    writeOverlaySettings({ addedColor: [1, 2, 3], removedColor: [4, 5, 6], modifiedColor: [7, 8, 9], unchangedOpacity: 0.5 });
+    assert.deepEqual(readOverlaySettings(), { addedColor: [1, 2, 3], removedColor: [4, 5, 6], modifiedColor: [7, 8, 9], unchangedOpacity: 0.5 });
   });
 });
 
@@ -47,6 +47,7 @@ test("a corrupt or out-of-range stored value can never block a comparison", () =
     const overlay = readOverlaySettings();
     assert.deepEqual(overlay.addedColor, [1, 2, 3], "a partial record keeps what it can");
     assert.deepEqual(overlay.removedColor, DEFAULT_OVERLAY.removedColor);
+    assert.deepEqual(overlay.modifiedColor, DEFAULT_OVERLAY.modifiedColor);
   });
 });
 

@@ -126,6 +126,22 @@ function spatialItem(text: string, x: number, y: number, start: number): PageTex
   };
 }
 
+function rotatedItem(text: string, x: number, y: number, start: number): PageText["items"][number] {
+  const item = spatialItem(text, x, y, start);
+  const height = item.bounds.width;
+  return {
+    ...item,
+    width: height,
+    bounds: { x, y, width: 10, height },
+    quad: [
+      { x, y },
+      { x, y: y + height },
+      { x: x + 10, y: y + height },
+      { x: x + 10, y },
+    ],
+  };
+}
+
 test("page semantic diff matches reordered spatial lines before diffing their words", () => {
   const before: PageText = {
     pageNumber: 1,
@@ -167,4 +183,34 @@ test("page semantic diff ignores case, hyphen, and unit-spacing restyling", () =
   assert.equal(result.changes.length, 0);
   assert.equal(result.beforeOverlays.length, 0);
   assert.equal(result.afterOverlays.length, 0);
+});
+
+test("page semantic diff keeps technical punctuation meaningful", () => {
+  const beforeText = "D+";
+  const afterText = "D-";
+  const before: PageText = { pageNumber: 1, width: 200, height: 100, items: [spatialItem(beforeText, 20, 20, 0)], text: beforeText, hasText: true };
+  const after: PageText = { pageNumber: 1, width: 200, height: 100, items: [spatialItem(afterText, 20, 20, 0)], text: afterText, hasText: true };
+
+  const result = diffSemanticPages(before, after);
+  assert.deepEqual(result.changes.map(({ before: oldText, after: newText }) => ({ oldText, newText })), [{ oldText: "+", newText: "-" }]);
+});
+
+test("rotated drawing labels stay separate and ignore embedded glyph spacing", () => {
+  const before: PageText = {
+    pageNumber: 1,
+    width: 200,
+    height: 100,
+    items: [rotatedItem("POWER", 20, 20, 0), spatialItem("R1", 20, 35, 5)],
+    text: "POWER\nR1",
+    hasText: true,
+  };
+  const after: PageText = {
+    ...before,
+    items: [rotatedItem("PO W ER", 25, 20, 0), spatialItem("R1", 20, 35, 7)],
+    text: "PO W ER\nR1",
+  };
+
+  const result = diffSemanticPages(before, after);
+  assert.equal(result.changes.length, 0);
+  assert.equal(result.unchangedLines?.length, 2);
 });

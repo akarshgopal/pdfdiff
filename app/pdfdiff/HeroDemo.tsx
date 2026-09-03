@@ -17,7 +17,7 @@ type Mode = (typeof MODES)[number];
 
 const MODE_LABEL: Record<Mode, string> = { overlay: "Overlay", split: "Split", swipe: "Swipe", text: "Text" };
 const MODE_CAPTION: Record<Mode, string> = {
-  overlay: "Removed content in red, added in teal, unchanged greyed out.",
+  overlay: "Removed content in red, added in teal, modified in purple.",
   split: "Matched pages side by side, changed regions boxed.",
   swipe: "Drag the divider to reveal one revision under the other.",
   text: "Added and removed wording highlighted in place.",

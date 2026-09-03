@@ -8,8 +8,9 @@ import { clamp, luminance } from "./raster-utils.js";
 
 const DEFAULT_ADDED: RgbColor = [16, 190, 190];
 const DEFAULT_REMOVED: RgbColor = [238, 72, 86];
-const DEFAULT_CHANGED: RgbColor = [184, 126, 220];
+const DEFAULT_MODIFIED: RgbColor = [184, 126, 220];
 type ChangeDirection = 1 | 2 | 3;
+const BACKGROUND_DISTANCE = 0.04;
 
 function colorDistance(earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number): number {
   const red = earlier[offset]! - newer[offset]!;
@@ -45,15 +46,18 @@ function writeUnchangedPixel(target: Uint8ClampedArray, source: Uint8ClampedArra
 }
 
 function changeDirection(earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number): ChangeDirection {
-  const oldLuma = luminance(earlier, offset);
-  const newLuma = luminance(newer, offset);
-  if (newLuma < oldLuma) return 1;
-  return newLuma > oldLuma ? 2 : 3;
+  // ponytail: pages are rendered onto white; estimate their background if a
+  // colored-paper fixture ever appears.
+  const oldInk = Math.sqrt(0.299 * (255 - earlier[offset]!) ** 2 + 0.587 * (255 - earlier[offset + 1]!) ** 2 + 0.114 * (255 - earlier[offset + 2]!) ** 2) / 255;
+  const newInk = Math.sqrt(0.299 * (255 - newer[offset]!) ** 2 + 0.587 * (255 - newer[offset + 1]!) ** 2 + 0.114 * (255 - newer[offset + 2]!) ** 2) / 255;
+  if (oldInk <= BACKGROUND_DISTANCE && newInk > BACKGROUND_DISTANCE) return 1;
+  if (newInk <= BACKGROUND_DISTANCE && oldInk > BACKGROUND_DISTANCE) return 2;
+  return 3;
 }
 
-function writeChangedPixel(target: Uint8ClampedArray, earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number, addedColor: RgbColor, removedColor: RgbColor): ChangeDirection {
+function writeChangedPixel(target: Uint8ClampedArray, earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number, addedColor: RgbColor, removedColor: RgbColor, modifiedColor: RgbColor): ChangeDirection {
   const direction = changeDirection(earlier, newer, offset);
-  const color = direction === 1 ? addedColor : direction === 2 ? removedColor : DEFAULT_CHANGED;
+  const color = direction === 1 ? addedColor : direction === 2 ? removedColor : modifiedColor;
   const tinted = tintColor(color, colorDistance(earlier, newer, offset));
   target[offset] = tinted[0]!;
   target[offset + 1] = tinted[1]!;
@@ -68,16 +72,18 @@ function writeChangedPixel(target: Uint8ClampedArray, earlier: Uint8ClampedArray
  * before that same pixel is overwritten, and no pixel reads any other, so the
  * reuse is safe and saves a second full-size RGBA allocation per page.
  */
-function overlayFromDiffMask(earlier: RasterImage, newer: RasterImage, buffer: Uint8ClampedArray, options: VisualDiffOptions): { overlay: RasterImage; changedMask: Uint8Array; changedPixels: number; directionMask: Uint8Array; addedPixels: number; removedPixels: number } {
+function overlayFromDiffMask(earlier: RasterImage, newer: RasterImage, buffer: Uint8ClampedArray, options: VisualDiffOptions): { overlay: RasterImage; changedMask: Uint8Array; changedPixels: number; directionMask: Uint8Array; addedPixels: number; removedPixels: number; modifiedPixels: number } {
   const total = earlier.width * earlier.height;
   const addedColor = validColor(options.addedColor, DEFAULT_ADDED);
   const removedColor = validColor(options.removedColor, DEFAULT_REMOVED);
+  const modifiedColor = validColor(options.modifiedColor, DEFAULT_MODIFIED);
   const unchangedOpacity = clamp(options.unchangedOpacity ?? 0.25, 0, 1);
   const changedMask = new Uint8Array(total);
   const directionMask = new Uint8Array(total);
   let changedPixels = 0;
   let addedPixels = 0;
   let removedPixels = 0;
+  let modifiedPixels = 0;
 
   for (let index = 0; index < total; index += 1) {
     if ((index & 0x3fff) === 0) throwIfAborted(options.signal);
@@ -88,13 +94,14 @@ function overlayFromDiffMask(earlier: RasterImage, newer: RasterImage, buffer: U
     }
     changedMask[index] = 1;
     changedPixels += 1;
-    const direction = writeChangedPixel(buffer, earlier.data, newer.data, offset, addedColor, removedColor);
+    const direction = writeChangedPixel(buffer, earlier.data, newer.data, offset, addedColor, removedColor, modifiedColor);
     directionMask[index] = direction;
     if (direction === 1) addedPixels += 1;
     else if (direction === 2) removedPixels += 1;
+    else modifiedPixels += 1;
   }
 
-  return { overlay: { width: earlier.width, height: earlier.height, data: buffer }, changedMask, changedPixels, directionMask, addedPixels, removedPixels };
+  return { overlay: { width: earlier.width, height: earlier.height, data: buffer }, changedMask, changedPixels, directionMask, addedPixels, removedPixels, modifiedPixels };
 }
 
 /**
@@ -111,6 +118,7 @@ export interface OverlayLayers {
   readonly base: RasterImage;
   readonly added: RasterImage;
   readonly removed: RasterImage;
+  readonly modified: RasterImage;
 }
 
 function layerStrength(earlier: Uint8ClampedArray, newer: Uint8ClampedArray, offset: number): number {
@@ -118,9 +126,7 @@ function layerStrength(earlier: Uint8ClampedArray, newer: Uint8ClampedArray, off
 }
 
 /**
- * One pass producing all three layers. `changed` pixels — equal luminance but a
- * different colour — ride in the added layer, matching how the baked overlay
- * treats them as "something is here now".
+ * One pass producing the base plus added, removed, and modified masks.
  */
 export function overlayLayers(earlier: RasterImage, newer: RasterImage, directionMask: Uint8Array, signal?: VisualDiffOptions["signal"]): OverlayLayers {
   const { width, height } = earlier;
@@ -128,6 +134,7 @@ export function overlayLayers(earlier: RasterImage, newer: RasterImage, directio
   const base = new Uint8ClampedArray(total * 4);
   const added = new Uint8ClampedArray(total * 4);
   const removed = new Uint8ClampedArray(total * 4);
+  const modified = new Uint8ClampedArray(total * 4);
 
   for (let index = 0; index < total; index += 1) {
     if ((index & 0x3fff) === 0) throwIfAborted(signal);
@@ -143,11 +150,11 @@ export function overlayLayers(earlier: RasterImage, newer: RasterImage, directio
     }
     // A changed pixel is carried entirely by its mask, so the base stays clear
     // and the colour underneath never muddies the tint.
-    const target = direction === 2 ? removed : added;
+    const target = direction === 1 ? added : direction === 2 ? removed : modified;
     target[offset + 3] = layerStrength(earlier.data, newer.data, offset);
   }
 
-  return { width, height, base: { width, height, data: base }, added: { width, height, data: added }, removed: { width, height, data: removed } };
+  return { width, height, base: { width, height, data: base }, added: { width, height, data: added }, removed: { width, height, data: removed }, modified: { width, height, data: modified } };
 }
 
 /** Compare two equal-size RGBA images without requiring a DOM or canvas. */
@@ -186,6 +193,7 @@ export function diffImages(earlier: RasterImage, newer: RasterImage, options: Vi
     overlay: overlay.overlay,
     addedPixels: overlay.addedPixels,
     removedPixels: overlay.removedPixels,
+    modifiedPixels: overlay.modifiedPixels,
     regions,
   };
 }

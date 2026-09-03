@@ -4,7 +4,7 @@ import type { OverlayStyle, RgbColor } from "@pdfdiff/core";
  * Overlay colours are baked into each page raster while it is compared, so they
  * are chosen before a run rather than tweaked in the viewer. Keeping the choice
  * on the device means a reviewer sets their palette once — which matters most
- * for anyone the default teal/red pair does not work for.
+ * for anyone the default palette does not work for.
  */
 
 const STORAGE_KEY = "pdfdiff-overlay";
@@ -12,6 +12,7 @@ const STORAGE_KEY = "pdfdiff-overlay";
 export const DEFAULT_OVERLAY: OverlayStyle = {
   addedColor: [16, 190, 190],
   removedColor: [238, 72, 86],
+  modifiedColor: [184, 126, 220],
   unchangedOpacity: 0.24,
 };
 
@@ -35,10 +36,11 @@ export function readOverlaySettings(): OverlayStyle {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!stored || typeof stored !== "object") return DEFAULT_OVERLAY;
-    const { addedColor, removedColor, unchangedOpacity } = stored as Partial<OverlayStyle>;
+    const { addedColor, removedColor, modifiedColor, unchangedOpacity } = stored as Partial<OverlayStyle>;
     return {
       addedColor: isRgb(addedColor) ? addedColor : DEFAULT_OVERLAY.addedColor,
       removedColor: isRgb(removedColor) ? removedColor : DEFAULT_OVERLAY.removedColor,
+      modifiedColor: isRgb(modifiedColor) ? modifiedColor : DEFAULT_OVERLAY.modifiedColor,
       unchangedOpacity: typeof unchangedOpacity === "number" && unchangedOpacity >= 0 && unchangedOpacity <= 1
         ? unchangedOpacity
         : DEFAULT_OVERLAY.unchangedOpacity,
