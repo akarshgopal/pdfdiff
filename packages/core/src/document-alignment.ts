@@ -43,6 +43,15 @@ export interface PageAlignmentOptions {
 }
 
 const WORD = /[\p{L}\p{N}][\p{L}\p{N}'’.\-/]*/gu;
+/**
+ * A run of dots is a table-of-contents leader, not part of the word in front of
+ * it. Left joined, every leader length makes its own token, so two revisions of
+ * one contents page share almost nothing and align as unrelated pages. A single
+ * dot stays word-internal, because "3.3" and "5.1" are words here.
+ */
+const LEADER = /\.{2,}/gu;
+/** Sentence and list punctuation that ends a word without belonging to it. */
+const TRAILING = /[.\-/'’]+$/u;
 
 /**
  * Pages are compared as bags of distinct words. Dropping order and repetition
@@ -51,7 +60,10 @@ const WORD = /[\p{L}\p{N}][\p{L}\p{N}'’.\-/]*/gu;
  */
 export function fingerprintPage(text: string, pageNumber: number): PageFingerprint {
   const tokens = new Set<string>();
-  for (const match of text.toLowerCase().matchAll(WORD)) tokens.add(match[0]);
+  for (const match of text.toLowerCase().replace(LEADER, " ").matchAll(WORD)) {
+    const token = match[0].replace(TRAILING, "");
+    if (token) tokens.add(token);
+  }
   return { pageNumber, tokens, tokenCount: tokens.size };
 }
 

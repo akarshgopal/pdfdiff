@@ -103,3 +103,25 @@ test("sequential pairing ignores content and pairs by position", () => {
     [undefined, 3, "added"],
   ]);
 });
+
+test("dot leaders do not fuse into the word in front of them", () => {
+  // Two revisions of one table of contents: same entries, re-flowed leaders.
+  const earlier = fingerprintPage("1 Features .............. 1  8 Detailed Description ..... 9", 1);
+  const newer = fingerprintPage("1 Features......................1  8 Detailed Description.........8", 1);
+
+  assert.ok(earlier.tokens.has("features"), "the leader must not be part of the word");
+  assert.ok(newer.tokens.has("features"));
+  assert.ok(earlier.tokens.has("description") && newer.tokens.has("description"));
+  // Left fused, these two pages share almost nothing and align as unrelated.
+  assert.ok(pageSimilarity(earlier, newer) > 0.7, "contents pages must still read as the same page");
+});
+
+test("a decimal stays inside its word, and trailing punctuation does not", () => {
+  const tokens = fingerprintPage("Section 5.1 covers 3.3V and SCES131I. See and/or the note-", 1).tokens;
+
+  assert.ok(tokens.has("5.1"));
+  assert.ok(tokens.has("3.3v"));
+  assert.ok(tokens.has("and/or"));
+  assert.ok(tokens.has("sces131i"), "the sentence period is not part of the part number");
+  assert.ok(tokens.has("note"));
+});
