@@ -1,5 +1,11 @@
 import { resultTransfers, runRasterDiffJob, type RasterDiffJob, type RasterDiffJobResult } from "./raster-diff-job.js";
 
+// The worker entry is also the DOM-free door onto the raster diff, so callers
+// that must not pull in PDF.js — the worker bundle, the tests — get everything
+// from here rather than from three subpaths.
+export { rasterImage, resultTransfers, runRasterDiffJob, type RasterDiffJob, type RasterDiffJobResult } from "./raster-diff-job.js";
+export { createRasterDiffClient, type RasterDiffClient, type RasterDiffWorkerFactory } from "./raster-diff-client.js";
+
 export interface RasterDiffRequest extends RasterDiffJob {
   readonly id: number;
 }

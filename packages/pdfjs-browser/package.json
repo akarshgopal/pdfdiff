@@ -28,16 +28,6 @@
       "types": "./dist/raster-diff-worker.d.ts",
       "development": "./src/raster-diff-worker.ts",
       "import": "./dist/raster-diff-worker.js"
-    },
-    "./raster-diff-job": {
-      "types": "./dist/raster-diff-job.d.ts",
-      "development": "./src/raster-diff-job.ts",
-      "import": "./dist/raster-diff-job.js"
-    },
-    "./raster-diff-client": {
-      "types": "./dist/raster-diff-client.d.ts",
-      "development": "./src/raster-diff-client.ts",
-      "import": "./dist/raster-diff-client.js"
     }
   },
   "scripts": {

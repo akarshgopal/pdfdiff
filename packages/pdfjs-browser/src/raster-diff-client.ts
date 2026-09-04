@@ -7,12 +7,6 @@ export type RasterDiffWorkerFactory = () => Worker;
 
 export interface RasterDiffClient {
   run(job: RasterDiffJob, signal: AbortSignal, metrics?: DiffMetricSink): Promise<RasterDiffJobResult>;
-  dispose(): void;
-}
-
-/** Buffers the job hands over; once transferred they are detached on this side. */
-function jobTransfers(job: RasterDiffJob): ArrayBuffer[] {
-  return [...new Set([job.earlier, job.newer])];
 }
 
 function replay(metrics: DiffMetricSink | undefined, result: RasterDiffJobResult): RasterDiffJobResult {
@@ -38,17 +32,8 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
   // memcpy rather than the whole comparison.
   let proven = false;
   let nextId = 1;
+  // The batch pass keeps a page of lookahead, so two jobs can be in flight.
   const pending = new Map<number, { resolve: (result: RasterDiffJobResult) => void; reject: (error: unknown) => void }>();
-
-  const failAll = (error: unknown): void => {
-    for (const entry of pending.values()) entry.reject(error);
-    pending.clear();
-  };
-
-  const teardown = (): void => {
-    worker?.terminate();
-    worker = null;
-  };
 
   const ensureWorker = (): Worker | null => {
     if (unavailable) return null;
@@ -66,8 +51,10 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
         // The worker died mid-flight: every job it held is lost, and the
         // in-process path takes over for the rest of the comparison.
         unavailable = true;
-        teardown();
-        failAll(new Error("The raster diff worker stopped."));
+        worker?.terminate();
+        worker = null;
+        for (const entry of pending.values()) entry.reject(new Error("The raster diff worker stopped."));
+        pending.clear();
       };
       worker = created;
       return worker;
@@ -95,7 +82,7 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
             resolve: (value) => { signal.removeEventListener("abort", onAbort); resolve(value); },
             reject: (error) => { signal.removeEventListener("abort", onAbort); reject(error); },
           });
-          active.postMessage({ id, ...job } satisfies RasterDiffRequest, proven ? jobTransfers(job) : []);
+          active.postMessage({ id, ...job } satisfies RasterDiffRequest, proven ? [job.earlier, job.newer] : []);
         });
         proven = true;
         return replay(metrics, result);
@@ -106,10 +93,6 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
         if (!proven) return replay(metrics, runRasterDiffJob(job));
         throw error;
       }
-    },
-    dispose() {
-      failAll(new PdfDiffAbortError());
-      teardown();
     },
   };
 }

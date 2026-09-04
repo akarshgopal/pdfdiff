@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { alignByTranslation, diffImages, overlayLayers, type RasterImage } from "@pdfdiff/core";
-import { createRasterDiffClient } from "@pdfdiff/pdfjs-browser/raster-diff-client";
-import { runRasterDiffJob, resultTransfers, type RasterDiffJob } from "@pdfdiff/pdfjs-browser/raster-diff-job";
+import { createRasterDiffClient, resultTransfers, runRasterDiffJob, type RasterDiffJob } from "@pdfdiff/pdfjs-browser/raster-diff-worker";
 
 const WIDTH = 40;
 const HEIGHT = 30;
@@ -59,9 +58,6 @@ test("the worker job reproduces an in-process align and diff exactly", () => {
   assert.equal(actual.dy, expectedAlignment.dy);
   assert.equal(actual.changedPixels, expected.changedPixels);
   assert.equal(actual.changedPercent, expected.changedPercent);
-  assert.equal(actual.addedPixels, expected.addedPixels);
-  assert.equal(actual.removedPixels, expected.removedPixels);
-  assert.equal(actual.modifiedPixels, expected.modifiedPixels);
   assert.deepEqual(actual.regions, expected.regions);
   assert.deepEqual(new Uint8ClampedArray(actual.overlay), expected.overlay.data);
   // The rasters come back so the caller can keep using them after transfer.
@@ -125,7 +121,6 @@ test("without a worker the client compares in-process and still reports metrics"
   assert.equal(viaClient.changedPixels, direct.changedPixels);
   assert.deepEqual(new Uint8ClampedArray(viaClient.overlay), new Uint8ClampedArray(direct.overlay));
   assert.ok(collected.includes("core.visual.regions"));
-  client.dispose();
 });
 
 test("an already-aborted comparison never starts the pixel work", async () => {

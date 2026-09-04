@@ -47,20 +47,16 @@ export interface RasterDiffJobResult {
   readonly newer: ArrayBuffer;
   readonly dx: number;
   readonly dy: number;
-  readonly width: number;
-  readonly height: number;
   readonly changedPixels: number;
   readonly changedPercent: number;
-  readonly addedPixels: number;
-  readonly removedPixels: number;
-  readonly modifiedPixels: number;
   readonly overlay: ArrayBuffer;
   readonly regions: readonly ChangeRegion[];
   readonly layers?: { base: ArrayBuffer; added: ArrayBuffer; removed: ArrayBuffer; modified: ArrayBuffer };
   readonly metrics: readonly DiffMetric[];
 }
 
-function raster(width: number, height: number, buffer: ArrayBuffer): RasterImage {
+/** Wrap a transferred buffer back into the shape the core algorithms take. */
+export function rasterImage(width: number, height: number, buffer: ArrayBuffer): RasterImage {
   return { width, height, data: new Uint8ClampedArray(buffer) };
 }
 
@@ -68,17 +64,15 @@ function raster(width: number, height: number, buffer: ArrayBuffer): RasterImage
 export function resultTransfers(result: RasterDiffJobResult): ArrayBuffer[] {
   const buffers = [result.earlier, result.newer, result.overlay];
   if (result.layers) buffers.push(result.layers.base, result.layers.added, result.layers.removed, result.layers.modified);
-  // The newer raster is the same buffer as the earlier one only if a caller
-  // passed the same page twice; transferring a buffer twice throws.
-  return [...new Set(buffers)];
+  return buffers;
 }
 
 export function runRasterDiffJob(job: RasterDiffJob): RasterDiffJobResult {
   const metrics: DiffMetric[] = [];
   const sink: DiffMetricSink | undefined = job.withMetrics ? (metric) => void metrics.push(metric) : undefined;
 
-  const earlier = raster(job.width, job.height, job.earlier);
-  const newer = raster(job.width, job.height, job.newer);
+  const earlier = rasterImage(job.width, job.height, job.earlier);
+  const newer = rasterImage(job.width, job.height, job.newer);
   const translation = job.alignByTranslation
     ? alignByTranslation(earlier, newer, undefined, sink)
     : { image: newer, dx: 0, dy: 0 };
@@ -104,13 +98,8 @@ export function runRasterDiffJob(job: RasterDiffJob): RasterDiffJobResult {
     newer: alignedNewer.data.buffer as ArrayBuffer,
     dx: translation.dx,
     dy: translation.dy,
-    width: result.width,
-    height: result.height,
     changedPixels: result.changedPixels,
     changedPercent: result.changedPercent,
-    addedPixels: result.addedPixels,
-    removedPixels: result.removedPixels,
-    modifiedPixels: result.modifiedPixels,
     overlay: result.overlay.data.buffer as ArrayBuffer,
     regions: result.regions,
     layers: layers && {

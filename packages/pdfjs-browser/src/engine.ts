@@ -17,7 +17,6 @@ import {
   type DiffMetricSink,
   type DiffOptions,
   type PageText,
-  type ChangeRegion,
   type RasterImage,
   type RgbColor,
   type SemanticPageDiff,
@@ -26,6 +25,7 @@ import {
 } from "@pdfdiff/core";
 import { extractDocumentText, extractPageText } from "./text.js";
 import { createRasterDiffClient, type RasterDiffClient, type RasterDiffWorkerFactory } from "./raster-diff-client.js";
+import { rasterImage } from "./raster-diff-job.js";
 import { loadPdfPair } from "./pdf.js";
 import { renderPage, renderPagePair } from "./render.js";
 import type { LoadedPdf, PdfSource, RenderedPage } from "./types.js";
@@ -178,10 +178,6 @@ async function pageTextFor(cached: PageText | undefined, document: LoadedPdf, pa
   return cached ?? await extractPageText(document, pageNumber, { signal, metrics });
 }
 
-function rasterImage(width: number, height: number, buffer: ArrayBuffer): RasterImage {
-  return { width, height, data: new Uint8ClampedArray(buffer) };
-}
-
 async function compareExistingPage(request: PageComparisonRequest): Promise<ComparisonPage> {
   const { earlier, newer, earlierPageNumber, newerPageNumber, options, signal, metrics } = request;
   const rendered = await renderPagePair(earlier, newer, earlierPageNumber, newerPageNumber, { ...RENDER_BUDGETS[request.quality ?? "standard"], signal, metrics });
@@ -201,45 +197,38 @@ async function compareExistingPage(request: PageComparisonRequest): Promise<Comp
     withLayers: Boolean(request.withLayers),
     withMetrics: Boolean(metrics),
   }, signal, metrics);
+  const { width, height } = rendered.earlier;
   const earlierRaster: RenderedPage = { ...rendered.earlier, data: new Uint8ClampedArray(diff.earlier) };
   const alignedNewer: RenderedPage = { ...rendered.newer, data: new Uint8ClampedArray(diff.newer) };
-  const result = {
-    width: diff.width,
-    height: diff.height,
-    changedPixels: diff.changedPixels,
-    changedPercent: diff.changedPercent,
-    overlay: rasterImage(diff.width, diff.height, diff.overlay),
-    regions: diff.regions as readonly ChangeRegion[],
-  };
   const [oldText, newText] = await Promise.all([
     pageTextFor(request.earlierText, earlier, earlierPageNumber, signal, metrics),
     pageTextFor(request.newerText, newer, newerPageNumber, signal, metrics),
   ]);
   const semantic = diffSemanticPages(oldText, newText, { signal, metrics });
-  const visualGeometry = { earlier: geometryForPage(rendered.earlier, result.width, result.height), newer: geometryForPage(rendered.newer, result.width, result.height, diff.dx, diff.dy) };
-  const classification = classifyRegions({ regions: result.regions, ...classificationBoxes(semantic, visualGeometry) });
+  const visualGeometry = { earlier: geometryForPage(rendered.earlier, width, height), newer: geometryForPage(rendered.newer, width, height, diff.dx, diff.dy) };
+  const classification = classifyRegions({ regions: diff.regions, ...classificationBoxes(semantic, visualGeometry) });
   return {
     index: request.index,
     earlierPageNumber,
     newerPageNumber,
     alignment: request.alignment ?? "matched",
     similarity: request.similarity,
-    width: result.width,
-    height: result.height,
-    status: result.changedPixels === 0 && semantic.changes.length === 0 ? "same" : "changed",
+    width,
+    height,
+    status: diff.changedPixels === 0 && semantic.changes.length === 0 ? "same" : "changed",
     earlier: earlierRaster,
     newer: alignedNewer,
-    diff: result.overlay,
+    diff: rasterImage(width, height, diff.overlay),
     diffLayers: diff.layers && {
-      width: result.width,
-      height: result.height,
-      base: rasterImage(result.width, result.height, diff.layers.base),
-      added: rasterImage(result.width, result.height, diff.layers.added),
-      removed: rasterImage(result.width, result.height, diff.layers.removed),
-      modified: rasterImage(result.width, result.height, diff.layers.modified),
+      width,
+      height,
+      base: rasterImage(width, height, diff.layers.base),
+      added: rasterImage(width, height, diff.layers.added),
+      removed: rasterImage(width, height, diff.layers.removed),
+      modified: rasterImage(width, height, diff.layers.modified),
     },
-    changedPixels: result.changedPixels,
-    changedPercent: result.changedPercent,
+    changedPixels: diff.changedPixels,
+    changedPercent: diff.changedPercent,
     regions: limitRegions(classification.regions, MAX_REGIONS),
     changeClasses: classification.counts,
     noticeable: classification.noticeable,
@@ -279,15 +268,8 @@ async function compareMissingPage(request: MissingPageRequest): Promise<Comparis
     withLayers: false,
     withMetrics: Boolean(metrics),
   }, signal, metrics);
+  const { width, height } = rendered;
   const page: RenderedPage = { ...rendered, data: new Uint8ClampedArray(hasEarlier ? diff.earlier : diff.newer) };
-  const result = {
-    width: diff.width,
-    height: diff.height,
-    changedPixels: diff.changedPixels,
-    changedPercent: diff.changedPercent,
-    overlay: rasterImage(diff.width, diff.height, diff.overlay),
-    regions: diff.regions as readonly ChangeRegion[],
-  };
   const pageText = await pageTextFor(request.pageText, document, pageNumber, signal, metrics);
   const semantic = hasEarlier ? diffSemanticPages(pageText, emptyPageText(pageNumber, rendered), { signal, metrics }) : diffSemanticPages(emptyPageText(pageNumber, rendered), pageText, { signal, metrics });
   return {
@@ -296,19 +278,19 @@ async function compareMissingPage(request: MissingPageRequest): Promise<Comparis
     newerPageNumber: hasEarlier ? undefined : pageNumber,
     alignment: hasEarlier ? "removed" : "added",
     similarity: 0,
-    width: result.width,
-    height: result.height,
+    width,
+    height,
     status: hasEarlier ? "removed" : "added",
     earlier: hasEarlier ? page : undefined,
     newer: hasEarlier ? undefined : page,
-    diff: result.overlay,
-    changedPixels: result.changedPixels,
-    changedPercent: result.changedPercent,
-    regions: result.regions.map((region: ChangeRegion) => ({ ...region, changeClass: "content" as const })),
-    changeClasses: { content: result.regions.length, reflow: 0, formatting: 0, graphic: 0 },
+    diff: rasterImage(width, height, diff.overlay),
+    changedPixels: diff.changedPixels,
+    changedPercent: diff.changedPercent,
+    regions: diff.regions.map((region) => ({ ...region, changeClass: "content" as const })),
+    changeClasses: { content: diff.regions.length, reflow: 0, formatting: 0, graphic: 0 },
     noticeable: true,
     semantic,
-    visualGeometry: hasEarlier ? { earlier: geometryForPage(rendered, result.width, result.height) } : { newer: geometryForPage(rendered, result.width, result.height) },
+    visualGeometry: hasEarlier ? { earlier: geometryForPage(rendered, width, height) } : { newer: geometryForPage(rendered, width, height) },
   };
 }
 
