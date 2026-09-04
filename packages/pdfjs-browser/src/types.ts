@@ -12,6 +12,13 @@ export interface PdfLoadOptions {
   signal?: AbortSignal;
   metrics?: DiffMetricSink;
   workerSrc?: string;
+  /**
+   * Base URL for the PDF.js side-car assets (`standard_fonts/`, `cmaps/`,
+   * `wasm/`, `iccs/`). Without them PDF.js silently drops JBIG2/JPX images from
+   * the render and substitutes metrics for non-embedded base-14 fonts, both of
+   * which the raster diff then reports as real changes.
+   */
+  assetBaseUrl?: string;
 }
 
 export interface LoadedPdf {

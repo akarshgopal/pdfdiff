@@ -166,7 +166,8 @@ async function toViewerComparison(result: ComparisonResult, resolveRawPagePair?:
   };
 }
 
-const engine = createPdfJsEngine({ workerSrc: workerUrl });
+/** Vite stages these into `public/pdfjs/`; the site is served from the root. */
+const engine = createPdfJsEngine({ workerSrc: workerUrl, assetBaseUrl: "/pdfjs/" });
 
 export const browserPdfDiffEngine: PdfDiffEngine = {
   async compare(request) {

@@ -4,11 +4,12 @@ Browser adapter for PDF Diff. It owns PDF.js loading, rendering, text
 extraction, and the default comparison engine while delegating comparison
 algorithms to @pdfdiff/core.
 
-The host application must provide the worker URL emitted by its bundler:
+The host application must provide the worker URL emitted by its bundler, and
+should serve PDF.js's side-car assets so images and fonts render faithfully:
 
     import { createPdfJsEngine } from "@pdfdiff/pdfjs-browser";
 
-    const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl });
+    const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl, assetBaseUrl: "/pdfjs/" });
     const result = await engine.compare({
       earlier: fileA,
       newer: fileB,

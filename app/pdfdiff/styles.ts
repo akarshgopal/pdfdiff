@@ -1,6 +1,6 @@
-import { ui } from "@pdfdiff/viewer-react";
+import { ui } from "@pdfdiff/viewer-react/ui";
 
-export { styleProps, type TailwindClass } from "@pdfdiff/viewer-react";
+export { styleProps, type TailwindClass } from "@pdfdiff/viewer-react/ui";
 export { ui };
 
 /** One page gutter and one content width for every screen, marketing or legal. */

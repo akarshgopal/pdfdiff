@@ -29,6 +29,19 @@ function configureWorker(workerSrc?: string): void {
   else if (!getConfiguredWorkerUrl()) throw new Error("Configure a PDF.js worker URL before loading a PDF.");
 }
 
+/** PDF.js resolves these itself, and only fetches them when a document needs them. */
+function assetUrls(assetBaseUrl: string | undefined) {
+  if (!assetBaseUrl) return {};
+  const base = assetBaseUrl.endsWith("/") ? assetBaseUrl : `${assetBaseUrl}/`;
+  return {
+    standardFontDataUrl: `${base}standard_fonts/`,
+    cMapUrl: `${base}cmaps/`,
+    cMapPacked: true,
+    wasmUrl: `${base}wasm/`,
+    iccUrl: `${base}iccs/`,
+  };
+}
+
 function sourceType(source: PdfSource): "file" | "array-buffer" | "uint8-array" {
   if (isFile(source)) return "file";
   return source instanceof ArrayBuffer ? "array-buffer" : "uint8-array";
@@ -53,7 +66,7 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
 
   const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), { sourceType: sourceType(source) });
   throwIfAborted(options.signal);
-  const task = getDocument({ data });
+  const task = getDocument({ data, ...assetUrls(options.assetBaseUrl) });
   const abort = watchAbort(task, options.signal);
 
   try {

@@ -1,7 +1,7 @@
 import { CloudUpload, FileText, X } from "lucide-react";
 import type { DragEvent } from "react";
 import { Button } from "./button";
-import { styleProps, ui } from "@pdfdiff/viewer-react";
+import { styleProps, ui } from "@pdfdiff/viewer-react/ui";
 import { formatFileSize } from "../../lib/format";
 
 type FileDropzoneProps = {

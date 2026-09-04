@@ -7,6 +7,7 @@ import {
   buildPreviewPage,
   canDownloadPageImage,
   clampZoom,
+  defaultViewMode,
   pageImageFileName,
   qualityForZoom,
   modeNeedsComparedPair,
@@ -71,6 +72,20 @@ test("changed-page navigation wraps in either direction and ignores unchanged pa
   assert.equal(adjacentChangedPageIndex([{ index: 0, status: "same" }], 0, 1), 0);
 });
 
+test("the opening view is the one that reads: Text when both sides carry comparable text", () => {
+  const withText = (over: Partial<NonNullable<DiffPage["semantic"]>> = {}) => ({
+    before: [], after: [], changes: [], beforeOverlays: [], afterOverlays: [],
+    beforeTokenCount: 4, afterTokenCount: 5, hasBeforeText: true, hasAfterText: true, ...over,
+  });
+  assert.equal(defaultViewMode([{ index: 0, status: "changed", semantic: withText() }]), "semantic-text");
+  // A scan has pixels and no text, so overlaying the rasters is all there is.
+  assert.equal(defaultViewMode([{ index: 0, status: "changed" }]), "diff");
+  // Glyph codes with no Unicode mapping extract as noise, which is worse than the overlay.
+  assert.equal(defaultViewMode([{ index: 0, status: "changed", semantic: withText({ textUndecodable: true }) }]), "diff");
+  // One side blank means there is nothing to diff against.
+  assert.equal(defaultViewMode([{ index: 0, status: "added", semantic: withText({ hasBeforeText: false }) }]), "diff");
+});
+
 test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable canvas", () => {
   const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
     comparison: {
@@ -111,7 +126,7 @@ test("single-page unreadable comparisons remove duplicate chrome and retain the 
   }));
 
   assert.match(html, />1 page changed<\/strong>/);
-  assert.match(html, />⚠ Text unavailable<\/span>/);
+  assert.match(html, /⚠ Text unavailable on 1 of 1 pages<\/span>/);
   assert.match(html, /disabled=""[^>]+title="Text comparison unavailable:[^"]+"/);
   assert.doesNotMatch(html, />2 visual changes<\/span>/);
   assert.doesNotMatch(html, />Content<\/span><strong>1<\/strong>/);

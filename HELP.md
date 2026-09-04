@@ -64,15 +64,17 @@ setting, and compare again.
 
 ## Keyboard shortcuts
 
-- `←` / `→`, `Page Up` / `Page Down`, `K` / `J`, or `P` / `N`: previous or next
-  comparison page.
+- `N` / `P`: next or previous page that actually changed, skipping the rest.
+- `←` / `→`, `Page Up` / `Page Down`, or `J` / `K`: previous or next comparison
+  page, changed or not.
 - `Shift` + `←` / `→`: previous or next Earlier source page.
 - `Ctrl`/`Cmd` + `←` / `→`: previous or next Newer source page.
-- `1`–`7`: choose Diff, Semantic text, Side by side, Swipe, Blink, Earlier,
-  or Newer.
+- `1`–`4`: choose Overlay, Split, Swipe, or Text.
 - `[` / `]` or `Shift` + `M` / `M`: cycle view modes backward or forward.
 - `Home` / `End`: jump to the first or last page. With `Shift`, target Earlier;
   with `Ctrl`/`Cmd`, target Newer.
+- `+` / `-` / `0`: zoom in, out, or back to 100%. `F` toggles fullscreen.
+- `S`: save the marked-up page as an image. `?`: show this list in the app.
 - `Escape`: close full-page view or clear the selected change.
 - In Swipe mode, focus the divider and use the arrow keys to move it; hold
   `Shift` for larger steps.

@@ -148,6 +148,18 @@ export function clampPageIndex(index: number, pageCount: number): number {
   return Math.min(Math.max(0, index), Math.max(0, pageCount - 1));
 }
 
+/**
+ * Overlaying two rasters is only readable when the pages still line up. A
+ * revision that reflowed shifts every line by a few pixels and the overlay goes
+ * solid red, which says "everything changed" when almost nothing did. Text mode
+ * answers the same question directly, so it leads whenever both sides carry
+ * text worth diffing, and Overlay stays the fallback for scans and drawings.
+ */
+export function defaultViewMode(pages: ReadonlyArray<DiffPage>): DiffViewMode {
+  const comparable = pages.some(({ semantic }) => semantic && !semantic.textUndecodable && semantic.hasBeforeText && semantic.hasAfterText);
+  return comparable ? "semantic-text" : "diff";
+}
+
 export function adjacentChangedPageIndex(pages: ReadonlyArray<DiffPage>, pageIndex: number, direction: 1 | -1): number {
   if (pages.length === 0) return pageIndex;
   for (let offset = 1; offset <= pages.length; offset += 1) {

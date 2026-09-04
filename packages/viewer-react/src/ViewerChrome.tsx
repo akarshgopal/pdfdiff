@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
 import { styles, styleProps } from "./styles.js";
 import type { CSSProperties } from "react";
 import type { DiffComparison, DiffPage, DiffViewMode, OverlayStyle, SourceSide, ViewerSettings } from "./types.js";
@@ -18,13 +18,13 @@ export function WorkspaceHeader({ comparison, summary, processingProgress, onNew
     : summaryHeadline(summary);
   return (
     <header {...styleProps(styles.workspaceBar)}>
-      <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span> pdfdiff</div>
+      <div {...styleProps(styles.logo)}><span {...styleProps(styles.logoMark)} aria-hidden="true">◐</span><span {...styleProps(styles.logoWord)}>pdfdiff</span></div>
       <div {...styleProps(styles.documentPair)} aria-label="Compared documents"><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>A</span><span {...styleProps(styles.documentChipName)} title={comparison.earlierName}>{comparison.earlierName}</span></div><span {...styleProps(styles.pairArrow)} aria-hidden="true">↔</span><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>B</span><span {...styleProps(styles.documentChipName)} title={comparison.newerName}>{comparison.newerName}</span></div></div>
       <div {...styleProps(styles.headerSummary)} aria-label="Comparison summary">
         <strong {...styleProps(styles.headerHeadline)}>{headline}</strong>
         {!processingProgress && summary.pagesWithUnreadableText
-          ? <span {...styleProps(styles.headerWarning)} title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR.">⚠ Text unavailable</span>
-          : !processingProgress && summary.pagesWithoutText ? <span {...styleProps(styles.headerWarning)} title="These pages have no selectable text, so only the visual comparison applies.">⚠ No selectable text</span> : null}
+          ? <span {...styleProps(styles.headerWarning)} title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR.">⚠ Text unavailable on {summary.pagesWithUnreadableText} of {summary.pages} pages</span>
+          : !processingProgress && summary.pagesWithoutText ? <span {...styleProps(styles.headerWarning)} title="These pages have no selectable text, so only the visual comparison applies.">⚠ No text on {summary.pagesWithoutText} of {summary.pages} pages</span> : null}
       </div>
       <div {...styleProps(styles.workspaceActions)}>{headerActions}{onNewComparison ? <button {...styleProps(styles.quietButton)} type="button" onClick={onNewComparison}>New comparison</button> : null}</div>
     </header>
@@ -51,8 +51,8 @@ const exportOptions: ReadonlyArray<readonly [ExportChoice, string]> = [
   ["json", "Full report (.json)"],
 ];
 
-function IconButton({ label, icon, onClick, disabled, active, expanded }: { label: string; icon: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean; expanded?: boolean }) {
-  return <button {...styleProps(styles.iconButton, active && styles.modeButtonCurrent)} type="button" aria-label={label} title={label} disabled={disabled} aria-expanded={expanded} aria-haspopup={expanded === undefined ? undefined : "menu"} onClick={onClick}>{icon}</button>;
+function IconButton({ label, icon, onClick, disabled, active, expanded, desktopOnly }: { label: string; icon: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean; expanded?: boolean; desktopOnly?: boolean }) {
+  return <button {...styleProps(styles.iconButton, active && styles.modeButtonCurrent, desktopOnly && styles.toolbarDesktopOnly)} type="button" aria-label={label} title={label} disabled={disabled} aria-expanded={expanded} aria-haspopup={expanded === undefined ? undefined : "menu"} onClick={onClick}>{icon}</button>;
 }
 
 function UnifiedPageNavigation({ earlierPageIndex, newerPageIndex, earlierPageCount, newerPageCount, onPageChange }: { earlierPageIndex: number; newerPageIndex: number; earlierPageCount: number; newerPageCount: number; onPageChange: (side: SourceSide, index: number) => void }) {
@@ -119,9 +119,11 @@ export function PageRail({ pages, pageIndex, earlierPageIndex, newerPageIndex, e
   );
 }
 
-export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnavailable, isFullscreen, onToggleFullscreen, onSettings, onHelp, onExport, canExportImage }: {
+export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnavailable, isFullscreen, onToggleFullscreen, onSettings, onHelp, onExport, canExportImage, onStepChange, hasChanges }: {
   mode: DiffViewMode;
   onModeChange: (mode: DiffViewMode) => void;
+  onStepChange: (direction: 1 | -1) => void;
+  hasChanges: boolean;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   textUnavailable?: boolean;
@@ -139,13 +141,16 @@ export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnav
         return <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" disabled={disabled} aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={disabled ? "Text comparison unavailable: this PDF has no Unicode mapping" : `${item.label} (${item.shortcut})`} onClick={() => onModeChange(item.id)}>{item.label}</button>;
       })}</div>
       <div {...styleProps(styles.toolbarGroup)}>
+        <IconButton label="Previous change" icon={<ChevronsLeft size={16} />} disabled={!hasChanges} onClick={() => onStepChange(-1)} />
+        <IconButton label="Next change" icon={<ChevronsRight size={16} />} disabled={!hasChanges} onClick={() => onStepChange(1)} />
+        <span {...styleProps(styles.toolbarDivider)} aria-hidden="true" />
         <IconButton label="Zoom out" icon={<ZoomOut size={16} />} disabled={zoom <= MIN_ZOOM} onClick={() => onZoomChange(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))} />
         <span {...styleProps(styles.zoomLabel)}>{zoom}%</span>
         <IconButton label="Zoom in" icon={<ZoomIn size={16} />} disabled={zoom >= MAX_ZOOM} onClick={() => onZoomChange(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))} />
-        <IconButton label="Reset zoom" icon={<RotateCcw size={16} />} disabled={zoom === 100} onClick={() => onZoomChange(100)} />
-        <IconButton label="Fullscreen" icon={isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />} onClick={onToggleFullscreen} />
+        <IconButton desktopOnly label="Reset zoom" icon={<RotateCcw size={16} />} disabled={zoom === 100} onClick={() => onZoomChange(100)} />
+        <IconButton desktopOnly label="Fullscreen" icon={isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />} onClick={onToggleFullscreen} />
         <IconButton label="Settings" icon={<Settings size={16} />} onClick={onSettings} />
-        <IconButton label="Keyboard shortcuts" icon={<Keyboard size={16} />} onClick={onHelp} />
+        <IconButton desktopOnly label="Keyboard shortcuts" icon={<Keyboard size={16} />} onClick={onHelp} />
         {onExport ? <ExportMenu onExport={onExport} canExportImage={canExportImage} /> : null}
       </div>
     </div>

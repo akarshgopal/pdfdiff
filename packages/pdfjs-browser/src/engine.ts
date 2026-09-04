@@ -383,6 +383,8 @@ async function comparePdfPagePair(earlier: PdfSource, newer: PdfSource, earlierP
 export interface PdfJsEngineOptions {
   /** URL for the PDF.js worker emitted by the host bundler. */
   workerSrc: string;
+  /** Base URL the host serves PDF.js's font, cMap, WASM, and ICC assets from. */
+  assetBaseUrl?: string;
 }
 
 export interface PdfJsEngine extends DiffEngine<PdfSource, AbortSignal> {
@@ -398,7 +400,7 @@ export interface PdfJsEngine extends DiffEngine<PdfSource, AbortSignal> {
   }): Promise<ComparisonPage>;
 }
 
-export function createPdfJsEngine({ workerSrc }: PdfJsEngineOptions): PdfJsEngine {
+export function createPdfJsEngine({ workerSrc, assetBaseUrl }: PdfJsEngineOptions): PdfJsEngine {
   /**
    * Picking mismatched A and B pages in the viewer re-parsed both documents
    * every time, which for large files dominates the interaction. The most
@@ -421,7 +423,7 @@ export function createPdfJsEngine({ workerSrc }: PdfJsEngineOptions): PdfJsEngin
   const loadPair = (earlier: PdfSource, newer: PdfSource, signal: AbortSignal, metrics?: DiffMetricSink): Promise<LoadedPair> => {
     if (loaded && loaded.earlier === earlier && loaded.newer === newer) return loaded.pair;
     if (loaded) stale.push(loaded.pair);
-    const pair = loadPdfPair(earlier, newer, { signal, workerSrc, metrics });
+    const pair = loadPdfPair(earlier, newer, { signal, workerSrc, assetBaseUrl, metrics });
     loaded = { earlier, newer, pair };
     return pair;
   };

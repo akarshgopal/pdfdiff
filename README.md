@@ -46,7 +46,7 @@ expects its host bundler to provide the PDF.js worker URL:
 ```ts
 import { createPdfJsEngine } from "@pdfdiff/pdfjs-browser";
 
-const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl });
+const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl, assetBaseUrl: "/pdfjs/" });
 const comparison = await engine.compare({
   earlier: earlierFile,
   newer: newerFile,
@@ -54,6 +54,13 @@ const comparison = await engine.compare({
   signal: new AbortController().signal,
 });
 ```
+
+`assetBaseUrl` points at PDF.js's own side-car assets (`standard_fonts/`,
+`cmaps/`, `wasm/`, `iccs/`, copied from `pdfjs-dist`). It is optional but
+effectively required for accurate results: without it PDF.js drops JBIG2 and
+JPX images from the render and guesses metrics for non-embedded base-14 fonts,
+and the raster diff reports the difference as a real change.
+
 
 ## Useful commands
 

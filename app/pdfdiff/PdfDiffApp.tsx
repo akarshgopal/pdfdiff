@@ -1,13 +1,21 @@
 import {
   type ChangeEvent,
   type DragEvent,
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
 import type { DiffMetricSink, DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
-import { PdfDiffViewer, type DiffComparison } from "@pdfdiff/viewer-react";
+import type { DiffComparison } from "@pdfdiff/viewer-react";
+
+/**
+ * The viewer only exists once there is something to view, and the engine it
+ * needs is already loaded on demand — so the landing page ships neither.
+ */
+const PdfDiffViewer = lazy(async () => ({ default: (await import("@pdfdiff/viewer-react")).PdfDiffViewer }));
 import { ThemeToggle } from "../../components/ui/theme-toggle";
 import { styles, styleProps } from "./styles";
 import { LoadingScreen } from "./LoadingScreen";
@@ -320,7 +328,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   }
 
   if (!comparison) return null;
-  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} defaultOverlay={viewerOverlay(options)} onOverlayChange={setOverlay} matchPages={options.matchPages !== false} onMatchPagesChange={setMatchPages} /></div></main>;
+  return <Suspense fallback={<LoadingScreen onCancel={reset} />}><main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} defaultOverlay={viewerOverlay(options)} onOverlayChange={setOverlay} matchPages={options.matchPages !== false} onMatchPagesChange={setMatchPages} /></div></main></Suspense>;
 }
 
 export { PdfDiffApp };

@@ -9,6 +9,7 @@ interface ViewerKeyboardOptions {
   readonly earlierPageCount: number;
   readonly newerPageCount: number;
   readonly onSelectPage: (index: number) => void;
+  readonly onStepChange: (direction: 1 | -1) => void;
   readonly onStepSourcePage: (side: SourceSide, direction: 1 | -1) => void;
   readonly onGoToSourcePage: (side: SourceSide, index: number) => void;
   readonly onClearSelection: () => void;
@@ -17,6 +18,7 @@ interface ViewerKeyboardOptions {
   readonly zoom: number;
   readonly onZoomChange: (zoom: number) => void;
   readonly onSave?: () => void;
+  readonly onShowHelp: () => void;
 }
 
 const zoomSteps: Record<string, number> = { "+": ZOOM_STEP, "=": ZOOM_STEP, "-": -ZOOM_STEP, _: -ZOOM_STEP };
@@ -35,6 +37,11 @@ function handleViewerAction(event: KeyboardEvent, options: ViewerKeyboardOptions
     options.onZoomChange(100);
     return true;
   }
+  if (event.key === "?") {
+    event.preventDefault();
+    options.onShowHelp();
+    return true;
+  }
   const key = event.key.toLowerCase();
   if (key === "f") {
     event.preventDefault();
@@ -49,8 +56,21 @@ function handleViewerAction(event: KeyboardEvent, options: ViewerKeyboardOptions
   return false;
 }
 
-const forwardKeys = new Set(["arrowright", "pagedown", "j", "n"]);
-const backwardKeys = new Set(["arrowleft", "pageup", "k", "p"]);
+const forwardKeys = new Set(["arrowright", "pagedown", "j"]);
+const backwardKeys = new Set(["arrowleft", "pageup", "k"]);
+
+/**
+ * Stepping one page at a time through a long document to find the handful that
+ * changed is the slow part of a review, so n/p skip straight to them and the
+ * plain page keys stay available for reading around a change.
+ */
+function handleChangeStep(event: KeyboardEvent, options: ViewerKeyboardOptions): boolean {
+  const key = event.key.toLowerCase();
+  if (key !== "n" && key !== "p") return false;
+  event.preventDefault();
+  options.onStepChange(key === "n" ? 1 : -1);
+  return true;
+}
 
 function sourceSideForEvent(event: KeyboardEvent): SourceSide | null {
   return event.shiftKey ? "earlier" : event.ctrlKey || event.metaKey ? "newer" : null;
@@ -111,7 +131,7 @@ function handleBoundary(event: KeyboardEvent, options: ViewerKeyboardOptions): b
 
 function handleKeyDown(event: KeyboardEvent, options: ViewerKeyboardOptions): void {
   if (isEditableTarget(event.target)) return;
-  if (handlePageStep(event, options) || handleModeChange(event, options) || handleBoundary(event, options) || handleViewerAction(event, options)) return;
+  if (handleChangeStep(event, options) || handlePageStep(event, options) || handleModeChange(event, options) || handleBoundary(event, options) || handleViewerAction(event, options)) return;
   if (event.key === "Escape") options.onClearSelection();
 }
 

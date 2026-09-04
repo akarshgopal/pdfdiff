@@ -401,7 +401,7 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
     pages, pageIndex, mode, zoom, swipe, selectedRegion,
     earlierPageIndex, newerPageIndex, showHelp, earlierPageCount,
     newerPageCount, pairComparisonPending, pairError, currentPage, previewPage,
-    selectPage, goToSourcePage, changeMode, setZoom, setSwipe, setSelectedRegion, setShowHelp,
+    selectPage, stepChange, hasChanges, goToSourcePage, changeMode, setZoom, setSwipe, setSelectedRegion, setShowHelp,
   } = viewer;
   useEffect(() => {
     saveRef.current = () => { if (previewPage) void downloadPageImage(comparison, previewPage, overlay); };
@@ -420,7 +420,7 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
       <div {...styleProps(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
         <PageRail onlyChanged={settings.onlyChanged} hideNoise={settings.hideNoise} pages={pages} pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSelectPage={selectPage} onSourcePageChange={goToSourcePage} />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
-          <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} textUnavailable={previewPage.semantic?.textUndecodable} isFullscreen={isFullscreen} onToggleFullscreen={toggleFullscreen} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} canExportImage={canDownloadPageImage(previewPage)} onExport={(choice) => { if (choice === "page-image") void downloadPageImage(comparison, previewPage, overlay); else downloadReport(comparison, choice); }} />
+          <ViewerToolbar mode={mode} onModeChange={changeMode} onStepChange={stepChange} hasChanges={hasChanges} zoom={zoom} onZoomChange={setZoom} textUnavailable={previewPage.semantic?.textUndecodable} isFullscreen={isFullscreen} onToggleFullscreen={toggleFullscreen} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} canExportImage={canDownloadPageImage(previewPage)} onExport={(choice) => { if (choice === "page-image") void downloadPageImage(comparison, previewPage, overlay); else downloadReport(comparison, choice); }} />
           <PanZoomStage zoom={zoom} onZoomChange={setZoom} resetKey={`${mode}:${earlierPageIndex}:${newerPageIndex}`}><PagePreview page={previewPage} mode={mode} swipe={swipe} overlay={overlay} showBoundingBoxes={settings.showBoundingBoxes} showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
           <StatusFooter processingProgress={processingProgress} />
         </section>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { DiffComparison, DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
-import { buildPreviewPage, clampPageIndex, modeNeedsComparedPair, qualityForZoom, sourcePageCount, viewModes } from "./viewer-utils.js";
+import { adjacentChangedPageIndex, buildPreviewPage, clampPageIndex, defaultViewMode, modeNeedsComparedPair, pageStatus, qualityForZoom, sourcePageCount, viewModes } from "./viewer-utils.js";
 import { useViewerKeyboard } from "./useViewerKeyboard.js";
 
 interface PairResolution {
@@ -45,7 +45,8 @@ function comparisonPairState(comparison: DiffComparison, pages: ReadonlyArray<Di
 export function useViewerState({ comparison, onSave }: { comparison: DiffComparison; onSave?: () => void }) {
   const pages = comparison.pages;
   const [pageIndex, setPageIndex] = useState(0);
-  const [mode, setMode] = useState<DiffViewMode>("diff");
+  // Until the reviewer picks a view, the comparison chooses the one that reads.
+  const [chosenMode, setChosenMode] = useState<DiffViewMode | null>(null);
   const [zoom, setZoom] = useState(100);
   const [swipe, setSwipe] = useState(50);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
@@ -55,6 +56,7 @@ export function useViewerState({ comparison, onSave }: { comparison: DiffCompari
   const [quality, setQuality] = useState<RenderQuality>("standard");
   const [pairResolution, setPairResolution] = useState<PairResolution | null>(null);
 
+  const mode = chosenMode ?? defaultViewMode(pages);
   const earlierPageCount = comparison.earlierPageCount ?? sourcePageCount(pages, "earlier");
   const newerPageCount = comparison.newerPageCount ?? sourcePageCount(pages, "newer");
   const currentPage = pageAt(pages, pageIndex);
@@ -87,6 +89,10 @@ export function useViewerState({ comparison, onSave }: { comparison: DiffCompari
     setSelectedRegion(null);
   }, [earlierPageCount, newerPageCount, pages.length]);
 
+  const stepChange = useCallback((direction: 1 | -1) => {
+    selectPage(adjacentChangedPageIndex(pages, pageIndex, direction));
+  }, [pageIndex, pages, selectPage]);
+
   const goToSourcePage = useCallback((side: SourceSide, index: number) => {
     const nextIndex = side === "earlier" ? clampPageIndex(index, earlierPageCount) : clampPageIndex(index, newerPageCount);
     if (side === "earlier") setEarlierPageIndex(nextIndex);
@@ -106,7 +112,7 @@ export function useViewerState({ comparison, onSave }: { comparison: DiffCompari
     setQuality((current) => qualityForZoom(next, current));
   }, []);
 
-  const changeMode = useCallback((nextMode: DiffViewMode) => setMode(nextMode), []);
+  const changeMode = useCallback((nextMode: DiffViewMode) => setChosenMode(nextMode), []);
 
   const cycleMode = useCallback((direction: 1 | -1) => {
     const currentIndex = viewModes.findIndex((item) => item.id === mode);
@@ -129,8 +135,10 @@ export function useViewerState({ comparison, onSave }: { comparison: DiffCompari
     return () => abortController.abort();
   }, [comparison, earlierPageIndex, newerPageIndex, quality, pairKey, upToDate, staleQuality, needsPairComparison, needsOverlayLayers, needsHighQuality]);
 
-  useViewerKeyboard({ enabled: !showHelp, pageIndex, pageCount: pages.length, earlierPageCount, newerPageCount, onSelectPage: selectPage, onStepSourcePage: stepSourcePage, onGoToSourcePage: goToSourcePage, onClearSelection: () => setSelectedRegion(null), onChangeMode: changeMode, onCycleMode: cycleMode, zoom, onZoomChange: changeZoom, onSave });
+  useViewerKeyboard({ enabled: !showHelp, pageIndex, pageCount: pages.length, earlierPageCount, newerPageCount, onSelectPage: selectPage, onStepChange: stepChange, onStepSourcePage: stepSourcePage, onGoToSourcePage: goToSourcePage, onClearSelection: () => setSelectedRegion(null), onChangeMode: changeMode, onCycleMode: cycleMode, zoom, onZoomChange: changeZoom, onSave, onShowHelp: () => setShowHelp(true) });
 
+  // Nothing to jump between when every page matched, so the controls say so.
+  const hasChanges = pages.some((page) => pageStatus(page) !== "same");
   const previewPage = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage });
   const pairComparisonPending = needsPairComparison;
   return {
@@ -152,6 +160,8 @@ export function useViewerState({ comparison, onSave }: { comparison: DiffCompari
     newerPage,
     previewPage,
     selectPage,
+    stepChange,
+    hasChanges,
     goToSourcePage,
     stepSourcePage,
     changeMode,
