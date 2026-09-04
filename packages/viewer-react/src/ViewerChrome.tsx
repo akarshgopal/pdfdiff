@@ -22,9 +22,9 @@ export function WorkspaceHeader({ comparison, summary, processingProgress, onNew
       <div {...styleProps(styles.documentPair)} aria-label="Compared documents"><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>A</span><span {...styleProps(styles.documentChipName)} title={comparison.earlierName}>{comparison.earlierName}</span></div><span {...styleProps(styles.pairArrow)} aria-hidden="true">↔</span><div {...styleProps(styles.documentChip)}><span {...styleProps(styles.documentChipLabel)}>B</span><span {...styleProps(styles.documentChipName)} title={comparison.newerName}>{comparison.newerName}</span></div></div>
       <div {...styleProps(styles.headerSummary)} aria-label="Comparison summary">
         <strong {...styleProps(styles.headerHeadline)}>{headline}</strong>
-        {summary.pagesWithUnreadableText
+        {!processingProgress && summary.pagesWithUnreadableText
           ? <span {...styleProps(styles.headerWarning)} title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR.">⚠ Text unavailable</span>
-          : summary.pagesWithoutText ? <span {...styleProps(styles.headerWarning)} title="These pages have no selectable text, so only the visual comparison applies.">⚠ No selectable text</span> : null}
+          : !processingProgress && summary.pagesWithoutText ? <span {...styleProps(styles.headerWarning)} title="These pages have no selectable text, so only the visual comparison applies.">⚠ No selectable text</span> : null}
       </div>
       <div {...styleProps(styles.workspaceActions)}>{headerActions}{onNewComparison ? <button {...styleProps(styles.quietButton)} type="button" onClick={onNewComparison}>New comparison</button> : null}</div>
     </header>
@@ -87,6 +87,7 @@ function pageThumbnail(page: DiffPage): string | undefined {
 }
 
 function pageStatusStyle(status: NonNullable<DiffPage["status"]>) {
+  if (status === "same") return styles.pageStatusSame;
   if (status === "changed") return styles.pageStatusChanged;
   if (status === "added") return styles.pageStatusAdded;
   return status === "removed" ? styles.pageStatusRemoved : undefined;
@@ -153,7 +154,8 @@ export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnav
 
 export function StatusFooter({ processingProgress }: { processingProgress?: { completed: number; total: number } }) {
   if (!processingProgress) return null;
-  return <div {...styleProps(styles.statusFooter)} aria-live="polite"><span {...styleProps(styles.statusAccent)}>Comparing pages · {processingProgress.completed} of {processingProgress.total} complete</span></div>;
+  const percent = processingProgress.total ? Math.round(processingProgress.completed / processingProgress.total * 100) : 0;
+  return <div {...styleProps(styles.statusFooter)} aria-live="polite"><div {...styleProps(styles.statusProgress)} role="progressbar" aria-label="Comparison progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><div {...styleProps(styles.statusProgressFill)} style={{ width: `${percent}%` }} /></div><span {...styleProps(styles.statusAccent)}>Comparing page {Math.min(processingProgress.completed + 1, processingProgress.total)} of {processingProgress.total}</span><span>{percent}%</span></div>;
 }
 
 function SettingsCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {

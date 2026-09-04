@@ -187,7 +187,10 @@ test("viewer renders document counts and progress without treating pending pages
   assert.doesNotMatch(html, />Changed <span>/);
   assert.doesNotMatch(html, /The documents are identical/);
   assert.match(html, /Comparing 0 of 3 pages…/);
-  assert.match(html, /Comparing pages · 0 of 3 complete/);
+  assert.match(html, /Comparing page 1 of 3/);
+  assert.match(html, /role="progressbar"[^>]+aria-valuenow="0"/);
+  assert.doesNotMatch(html, /<p>Preview is still rendering/);
+  assert.doesNotMatch(html, /No selectable text/);
 });
 
 test("the marked-up page can leave the tab, named after both sources and the pages it pairs", () => {

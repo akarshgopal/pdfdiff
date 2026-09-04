@@ -15,7 +15,7 @@ import { PageRail, SettingsDialog, StatusFooter, ViewerToolbar, WorkspaceHeader 
 import { summarizeComparison } from "./summary.js";
 import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
-import { clampZoom, modeNeedsComparedPair, toggleFullscreen } from "./viewer-utils.js";
+import { clampZoom, toggleFullscreen } from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
 import type { OverlayStyle } from "./types.js";
@@ -32,7 +32,12 @@ function getRegionStyle(region: DiffRegion): CSSProperties {
 }
 
 function PaperFallback({ label }: { label: string }) {
-  return <div {...styleProps(styles.paperEmpty)}><div><span {...styleProps(styles.placeholderTitle)} aria-hidden="true" /><p>{label}</p></div></div>;
+  return <div {...styleProps(styles.paperEmpty)} role="status" aria-label={label}><div {...styleProps(styles.paperSkeleton)} aria-hidden="true"><span {...styleProps(styles.paperSkeletonLine)} /><span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} /><span {...styleProps(styles.paperSkeletonBlock)} /><span {...styleProps(styles.paperSkeletonLine)} /><span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} /></div></div>;
+}
+
+function CanvasNotice({ pending, error }: { pending: boolean; error: string | null }) {
+  if (!pending && !error) return null;
+  return <div {...styleProps(styles.canvasNotice, Boolean(error) && styles.canvasNoticeError)} role="status" aria-live="polite">{error ?? "Comparing…"}</div>;
 }
 
 function PageImage({ source, alt, imageStyle = styles.pageImage }: { source?: string; alt: string; imageStyle?: TailwindClass }) {
@@ -105,16 +110,21 @@ function semanticSummary(semantic: DiffPage["semantic"]): { changes: string; tok
 
 function SemanticPdfPreview({
   page,
+  pending,
+  error,
   selectedRegion,
   showHighlights,
   onSelectChange,
 }: {
   page: DiffPage;
+  pending: boolean;
+  error: string | null;
   selectedRegion: string | null;
   showHighlights: boolean;
   onSelectChange: (id: string) => void;
 }) {
   const summary = semanticSummary(page.semantic);
+  const waiting = pending || Boolean(error);
   const beforeOverlays = page.semanticBeforeOverlays ?? [];
   const afterOverlays = page.semanticAfterOverlays ?? [];
   const previewRef = useRef<HTMLDivElement>(null);
@@ -127,8 +137,8 @@ function SemanticPdfPreview({
 
   return (
     <div ref={previewRef} {...styleProps(styles.paper, styles.paperTwoUp, styles.semanticPaper)}>
-      <div {...styleProps(styles.semanticSummary)}><span>{summary.changes}</span><span>{summary.tokens}</span></div>
-      <div {...styleProps(styles.semanticLegend)}><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />Removed</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />Added</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />Changed</span><span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span></div>
+      <CanvasNotice pending={pending} error={error} />
+      {!waiting ? <><div {...styleProps(styles.semanticSummary)}><span>{summary.changes}</span><span>{summary.tokens}</span></div><div {...styleProps(styles.semanticLegend)}><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />Removed</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />Added</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />Changed</span><span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span></div></> : null}
       <div {...styleProps(styles.semanticGrid)}>
         <SemanticNativePane side="earlier" source={page.beforeSrc} overlays={beforeOverlays} selectedRegion={selectedRegion} showHighlights={showHighlights} onSelectChange={onSelectChange} />
         <SemanticNativePane side="newer" source={page.afterSrc} overlays={afterOverlays} selectedRegion={selectedRegion} showHighlights={showHighlights} onSelectChange={onSelectChange} />
@@ -138,7 +148,7 @@ function SemanticPdfPreview({
   );
 }
 
-function SwipePreview({ before, after, swipe, onSwipeChange }: { before?: string; after?: string; swipe: number; onSwipeChange: (value: number) => void }) {
+function SwipePreview({ before, after, swipe, onSwipeChange, pending, error }: { before?: string; after?: string; swipe: number; onSwipeChange: (value: number) => void; pending: boolean; error: string | null }) {
   const setSwipeFromPointer = (event: PointerEvent<HTMLDivElement>): void => {
     const paper = event.currentTarget.parentElement;
     if (!paper) return;
@@ -167,7 +177,7 @@ function SwipePreview({ before, after, swipe, onSwipeChange }: { before?: string
     onSwipeChange(next);
   };
   const sizingSource = before ?? after;
-  return <div {...styleProps(styles.paper, styles.swipeWrap)}>{sizingSource ? <img {...styleProps(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} /> : <PaperFallback label="Preview is still rendering" />}{before ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}><img {...styleProps(styles.swipeLayerImage)} src={before} alt="Earlier version of this page" draggable={false} /></div> : null}{after ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}><img {...styleProps(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} /></div> : null}<div {...styleProps(styles.swipeHandle)} style={{ left: `${swipe}%` }} role="slider" aria-label="Swipe position" aria-valuemin={0} aria-valuemax={100} aria-valuenow={swipe} aria-valuetext={`${swipe}%`} tabIndex={0} onKeyDown={handleKeyDown} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd}><span {...styleProps(styles.swipeDivider)} aria-hidden="true" /></div></div>;
+  return <div {...styleProps(styles.paper, styles.swipeWrap)}>{sizingSource ? <img {...styleProps(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} /> : <PaperFallback label="Preview is still rendering" />}{before ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}><img {...styleProps(styles.swipeLayerImage)} src={before} alt="Earlier version of this page" draggable={false} /></div> : null}{after ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}><img {...styleProps(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} /></div> : null}<div {...styleProps(styles.swipeHandle)} style={{ left: `${swipe}%` }} role="slider" aria-label="Swipe position" aria-valuemin={0} aria-valuemax={100} aria-valuenow={swipe} aria-valuetext={`${swipe}%`} aria-disabled={pending || Boolean(error)} tabIndex={pending || error ? -1 : 0} onKeyDown={handleKeyDown} onPointerDown={pending || error ? undefined : handlePointerDown} onPointerMove={pending || error ? undefined : handlePointerMove} onPointerUp={pending || error ? undefined : handlePointerEnd} onPointerCancel={pending || error ? undefined : handlePointerEnd}><span {...styleProps(styles.swipeDivider)} aria-hidden="true" /></div><CanvasNotice pending={pending} error={error} /></div>;
 }
 
 function PagePreview({
@@ -200,24 +210,16 @@ function PagePreview({
   const before = page.beforeSrc;
   const after = page.afterSrc;
   const diff = page.diffSrc;
-  const unavailable = comparedPairUnavailable(mode, pairComparisonPending, pairError);
-  if (unavailable) return unavailable;
-  if (mode === "semantic-text") return <SemanticPdfPreview page={page} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
+  if (mode === "semantic-text") return <SemanticPdfPreview page={page} pending={pairComparisonPending} error={pairError} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
 
   if (mode === "side-by-side") return <div {...styleProps(styles.paper, styles.paperTwoUp)}><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" /></div></div></div>;
-  if (mode === "swipe") return <SwipePreview before={before} after={after} swipe={swipe} onSwipeChange={onSwipeChange} />;
-  return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} overlay={overlay} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} />;
+  if (mode === "swipe") return <SwipePreview before={before} after={after} swipe={swipe} onSwipeChange={onSwipeChange} pending={pairComparisonPending} error={pairError} />;
+  return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} overlay={overlay} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} pending={pairComparisonPending} error={pairError} />;
 }
 
-function comparedPairUnavailable(mode: DiffViewMode, pending: boolean, error: string | null) {
-  if (!modeNeedsComparedPair(mode)) return null;
-  if (pending) return <div {...styleProps(styles.paper)}><PaperFallback label="Preparing the selected A and B pages…" /></div>;
-  return error ? <div {...styleProps(styles.paper)}><PaperFallback label={error} /></div> : null;
-}
-
-function DiffPreview({ page, source, hasDiff, overlay, showBoundingBoxes, selectedRegion, onRegionClick }: { page: DiffPage; source?: string; hasDiff: boolean; overlay: OverlayStyle; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void }) {
+function DiffPreview({ page, source, hasDiff, overlay, showBoundingBoxes, selectedRegion, onRegionClick, pending, error }: { page: DiffPage; source?: string; hasDiff: boolean; overlay: OverlayStyle; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void; pending: boolean; error: string | null }) {
   const regions = showBoundingBoxes ? page.regions ?? [] : [];
-  return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}{page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)} aria-label="Overlay colours"><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />Added</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />Removed</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />Modified</span></div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
+  return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}<CanvasNotice pending={pending} error={error} />{page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)} aria-label="Overlay colours"><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />Added</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />Removed</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />Modified</span></div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
 }
 
 /** The stage's content box: its padding keeps the page clear of the toolbar edges. */

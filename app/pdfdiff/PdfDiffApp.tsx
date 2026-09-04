@@ -74,10 +74,6 @@ function viewerOverlay(options: DiffOptions) {
   return { addedColor: toHex(overlay.addedColor), removedColor: toHex(overlay.removedColor), modifiedColor: toHex(overlay.modifiedColor), unchangedOpacity: overlay.unchangedOpacity };
 }
 
-function progressPercent(completed: number, total: number): number {
-  return total > 0 ? Math.round((completed / total) * 100) : 0;
-}
-
 function comparisonErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unable to compare these PDFs.";
 }
@@ -95,7 +91,6 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   const [comparison, setComparison] = useState<DiffComparison | null>(initialComparison ?? null);
   const [phase, setPhase] = useState<"upload" | "loading" | "workspace">(initialComparison ? "workspace" : "upload");
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
   const [pageProgress, setPageProgress] = useState<{ completed: number; total: number } | null>(null);
   const [activeDrop, setActiveDrop] = useState<"earlier" | "newer" | null>(null);
   const [options, setOptions] = useState<DiffOptions>(() => ({ sensitivity: 28, alignment: "translation", matchPages: true, overlay: readOverlaySettings() }));
@@ -198,7 +193,6 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
     abortRef.current = abortController;
     setError(null);
     setPhase("loading");
-    setProgress(0);
     setPageProgress(null);
     try {
       const result = await activeEngine.compare({
@@ -227,7 +221,6 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
         },
         onProgress: ({ completed, total }) => {
           if (abortRef.current !== abortController || abortController.signal.aborted) return;
-          setProgress(progressPercent(completed, total));
           setPageProgress({ completed, total });
         },
         onMetric,
@@ -235,7 +228,6 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
       if (abortController.signal.aborted) return;
       setComparison(result);
       setPhase("workspace");
-      setProgress(100);
       setPageProgress(null);
     } catch (comparisonError) {
       if (abortController.signal.aborted) return;
@@ -293,7 +285,6 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
     setError(null);
     setRememberFiles(false);
     setPhase("upload");
-    setProgress(0);
     setPageProgress(null);
   };
 
@@ -325,7 +316,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   }
 
   if (phase === "loading") {
-    return <LoadingScreen progress={progress} onCancel={reset} />;
+    return <LoadingScreen onCancel={reset} />;
   }
 
   if (!comparison) return null;
