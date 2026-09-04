@@ -33,6 +33,41 @@ logic can be reused independently of the browser app:
   default engine wiring, analytics callbacks, and the in-app help section.
 - `main.tsx` and `index.html` — the static Vite application entry and metadata.
 
+## The raster diff worker
+
+Aligning and diffing two rendered pages is the expensive half of a comparison
+and the only half that never touches PDF.js — roughly 3.9s of a 10s 43-page run
+against 2.5s of canvas rendering. `@pdfdiff/pdfjs-browser` runs it on a Web
+Worker, so page rendering on the main thread and pixel work on the worker
+overlap, and the UI keeps painting throughout.
+
+The host owns the `new Worker(...)` call, because only it knows how its bundler
+emits the module. The worker file is one line:
+
+```ts
+// app/rasterDiffWorker.ts
+import { serveRasterDiffWorker } from "@pdfdiff/pdfjs-browser/raster-diff-worker";
+
+serveRasterDiffWorker();
+```
+
+```ts
+const engine = createPdfJsEngine({
+  workerSrc: pdfWorkerUrl,
+  assetBaseUrl: "/pdfjs/",
+  createRasterDiffWorker: () => new Worker(new URL("./rasterDiffWorker.ts", import.meta.url), { type: "module" }),
+});
+```
+
+`createRasterDiffWorker` is optional. Without it — and whenever the worker
+cannot be constructed — the same code runs in-process, which is why
+`@pdfdiff/node` needs no worker at all.
+
+Page rasters are transferred rather than copied, so handing a page to the
+worker costs no memory. The overlap does: the batch pass keeps one page of
+lookahead, so peak memory is two pages of rasters (~72 MB at the standard
+3 MP budget) rather than one. That bound does not grow with page count.
+
 Build the packages independently with:
 
 ```bash
