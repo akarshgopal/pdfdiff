@@ -4,9 +4,21 @@ import type { ChangeRegion, RegionOptions } from "./types.js";
 
 const DEFAULT_MIN_PIXELS = 4;
 const DEFAULT_MAX_REGIONS = 1000;
-const FOUR_CONNECTED: ReadonlyArray<readonly [number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+const FOUR_CONNECTED: ReadonlyArray<readonly [number, number]> = [
+  [-1, 0],
+  [1, 0],
+  [0, -1],
+  [0, 1],
+];
 const EIGHT_CONNECTED: ReadonlyArray<readonly [number, number]> = [
-  [-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1],
+  [-1, -1],
+  [0, -1],
+  [1, -1],
+  [-1, 0],
+  [1, 0],
+  [-1, 1],
+  [0, 1],
+  [1, 1],
 ];
 
 interface RegionSummary {
@@ -31,7 +43,16 @@ function isUnvisitedChange(index: number, mask: Uint8Array, visited: Uint8Array)
   return index >= 0 && visited[index] === 0 && mask[index] !== 0;
 }
 
-function floodRegion(mask: Uint8Array, width: number, height: number, start: number, visited: Uint8Array, queue: Int32Array, offsets: ReadonlyArray<readonly [number, number]>, signal: RegionOptions["signal"]): RegionSummary {
+function floodRegion(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  start: number,
+  visited: Uint8Array,
+  queue: Int32Array,
+  offsets: ReadonlyArray<readonly [number, number]>,
+  signal: RegionOptions["signal"],
+): RegionSummary {
   let head = 0;
   let tail = 1;
   queue[0] = start;
@@ -94,7 +115,7 @@ function trimRegions(regions: ChangeRegion[], ceiling: number): void {
 function findRoot(parents: Int32Array, index: number): number {
   let root = index;
   while (parents[root] !== root) root = parents[root]!;
-  for (let step = index; parents[step] !== root; ) {
+  for (let step = index; parents[step] !== root;) {
     const next = parents[step]!;
     parents[step] = root;
     step = next;
@@ -115,7 +136,12 @@ function withinGap(a: ChangeRegion, b: ChangeRegion, mergeGapX: number, mergeGap
 }
 
 function mergedRegion(members: readonly ChangeRegion[]): ChangeRegion {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, pixelCount = 0, id = Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity,
+    pixelCount = 0,
+    id = Infinity;
   for (const member of members) {
     minX = Math.min(minX, member.x);
     minY = Math.min(minY, member.y);
@@ -134,7 +160,12 @@ function mergedRegion(members: readonly ChangeRegion[]): ChangeRegion {
  * comparison window small, so this stays near-linear on real pages instead of
  * comparing every pair.
  */
-function mergeNearbyRegions(regions: ChangeRegion[], mergeGapX: number, mergeGapY: number, signal: RegionOptions["signal"]): ChangeRegion[] {
+function mergeNearbyRegions(
+  regions: ChangeRegion[],
+  mergeGapX: number,
+  mergeGapY: number,
+  signal: RegionOptions["signal"],
+): ChangeRegion[] {
   if (regions.length < 2 || (mergeGapX <= 0 && mergeGapY <= 0)) return regions;
   const ordered = [...regions].sort((a, b) => a.x - b.x || a.y - b.y);
   const parents = new Int32Array(ordered.length);
@@ -162,7 +193,7 @@ function mergeNearbyRegions(regions: ChangeRegion[], mergeGapX: number, mergeGap
     if (group) group.push(ordered[index]!);
     else groups.set(root, [ordered[index]!]);
   }
-  return [...groups.values()].map((members) => members.length === 1 ? members[0]! : mergedRegion(members));
+  return [...groups.values()].map((members) => (members.length === 1 ? members[0]! : mergedRegion(members)));
 }
 
 /**
@@ -176,24 +207,46 @@ function readingOrderBand(region: ChangeRegion, bandHeight: number): number {
 
 function sortForReading(regions: ChangeRegion[], height: number): ChangeRegion[] {
   const bandHeight = Math.max(1, Math.round(height * 0.01));
-  return regions.sort((a, b) =>
-    readingOrderBand(a, bandHeight) - readingOrderBand(b, bandHeight) || a.x - b.x || a.y - b.y || a.id - b.id);
+  return regions.sort(
+    (a, b) =>
+      readingOrderBand(a, bandHeight) - readingOrderBand(b, bandHeight) || a.x - b.x || a.y - b.y || a.id - b.id,
+  );
 }
 
 /** Keep the most substantial regions, then present them the way the page reads. */
-function finalizeRegions(regions: ChangeRegion[], maxRegions: number, readingOrder: boolean, height: number): ChangeRegion[] {
+function finalizeRegions(
+  regions: ChangeRegion[],
+  maxRegions: number,
+  readingOrder: boolean,
+  height: number,
+): ChangeRegion[] {
   regions.sort((a, b) => b.pixelCount - a.pixelCount || a.id - b.id);
   if (regions.length > maxRegions) regions.length = maxRegions;
   return readingOrder ? sortForReading(regions, height) : regions;
 }
 
 /** Find connected components in a one-byte changed-pixel mask. */
-export function findChangeRegions(mask: Uint8Array, width: number, height: number, options: RegionOptions = {}): ChangeRegion[] {
+export function findChangeRegions(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  options: RegionOptions = {},
+): ChangeRegion[] {
   const attributes = { width, height, pixels: width * height };
-  return measure(options.metrics, "core.regions", () => findChangeRegionsUnmeasured(mask, width, height, options), attributes);
+  return measure(
+    options.metrics,
+    "core.regions",
+    () => findChangeRegionsUnmeasured(mask, width, height, options),
+    attributes,
+  );
 }
 
-function findChangeRegionsUnmeasured(mask: Uint8Array, width: number, height: number, options: RegionOptions): ChangeRegion[] {
+function findChangeRegionsUnmeasured(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  options: RegionOptions,
+): ChangeRegion[] {
   const total = validateMask(mask, width, height);
   const minPixels = Math.max(1, Math.floor(options.minPixels ?? DEFAULT_MIN_PIXELS));
   const maxRegions = Math.max(1, Math.floor(options.maxRegions ?? DEFAULT_MAX_REGIONS));

@@ -13,7 +13,14 @@ type PdfTextItem = {
 };
 
 function isTextItem(item: unknown): item is PdfTextItem {
-  return typeof item === "object" && item !== null && "str" in item && typeof item.str === "string" && "transform" in item && Array.isArray(item.transform);
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "str" in item &&
+    typeof item.str === "string" &&
+    "transform" in item &&
+    Array.isArray(item.transform)
+  );
 }
 
 function pageNumberError(pageNumber: number, pageCount: number): RangeError {
@@ -21,7 +28,8 @@ function pageNumberError(pageNumber: number, pageCount: number): RangeError {
 }
 
 function validatePageNumber(pageNumber: number, pageCount: number): void {
-  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount) throw pageNumberError(pageNumber, pageCount);
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount)
+    throw pageNumberError(pageNumber, pageCount);
 }
 
 /** 2D affine multiply, inlined so this extractor carries no DOM-bound import. */
@@ -73,7 +81,12 @@ function geometryForTextItem(item: PdfTextItem, pageTransform: number[]): { boun
   };
 }
 
-function positionedTextItem(item: PdfTextItem, pageNumber: number, pageTransform: number[], textStart: number): PositionedTextItem {
+function positionedTextItem(
+  item: PdfTextItem,
+  pageNumber: number,
+  pageTransform: number[],
+  textStart: number,
+): PositionedTextItem {
   const geometry = geometryForTextItem(item, pageTransform);
   return {
     pageNumber,
@@ -104,7 +117,10 @@ function itemsShareLine(previous: PositionedTextItem, current: PositionedTextIte
   const minHeight = Math.max(0.01, Math.min(previous.bounds.height, current.bounds.height));
   const previousCenter = previous.bounds.y + previous.bounds.height / 2;
   const currentCenter = current.bounds.y + current.bounds.height / 2;
-  return overlap >= minHeight * 0.25 || Math.abs(previousCenter - currentCenter) <= Math.max(previous.fontSize, current.fontSize) * 0.55;
+  return (
+    overlap >= minHeight * 0.25 ||
+    Math.abs(previousCenter - currentCenter) <= Math.max(previous.fontSize, current.fontSize) * 0.55
+  );
 }
 
 function averageCharacterWidth(previous: PositionedTextItem, current: PositionedTextItem): number {
@@ -129,17 +145,14 @@ function separatorBetween(previous: PositionedTextItem | undefined, current: Pos
 async function extractPageTextUnmeasured(
   pdf: LoadedPdf,
   pageNumber: number,
-  options: Pick<DocumentTextOptions, "signal" | "disableNormalization" | "includeMarkedContent"> = {},
+  options: Pick<DocumentTextOptions, "signal"> = {},
 ): Promise<PageText> {
   throwIfAborted(options.signal);
   validatePageNumber(pageNumber, pdf.pageCount);
   const page = await pdf.pdf.getPage(pageNumber);
   throwIfAborted(options.signal);
   const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
-  const content = await page.getTextContent({
-    includeMarkedContent: options.includeMarkedContent ?? false,
-    disableNormalization: options.disableNormalization ?? false,
-  });
+  const content = await page.getTextContent({ includeMarkedContent: false, disableNormalization: false });
   throwIfAborted(options.signal);
   const items: PositionedTextItem[] = [];
   let text = "";
@@ -167,17 +180,30 @@ async function extractPageTextUnmeasured(
 export function extractPageText(
   pdf: LoadedPdf,
   pageNumber: number,
-  options: Pick<DocumentTextOptions, "signal" | "disableNormalization" | "includeMarkedContent" | "metrics"> = {},
+  options: Pick<DocumentTextOptions, "signal" | "metrics"> = {},
 ): Promise<PageText> {
-  return measureAsync(options.metrics, "pdf.text.page", () => extractPageTextUnmeasured(pdf, pageNumber, options), { pageNumber });
+  return measureAsync(options.metrics, "pdf.text.page", () => extractPageTextUnmeasured(pdf, pageNumber, options), {
+    pageNumber,
+  });
 }
 
-export async function extractDocumentText(pdf: LoadedPdf, options: DocumentTextOptions = {}): Promise<readonly PageText[]> {
-  const pages: PageText[] = [];
-  for (let pageNumber = 1; pageNumber <= pdf.pageCount; pageNumber += 1) {
-    throwIfAborted(options.signal);
-    pages.push(await extractPageText(pdf, pageNumber, options));
-    options.onProgress?.({ completed: pageNumber, total: pdf.pageCount });
-  }
+const TEXT_CONCURRENCY = 4;
+
+export async function extractDocumentText(
+  pdf: LoadedPdf,
+  options: DocumentTextOptions = {},
+): Promise<readonly PageText[]> {
+  const pages: PageText[] = new Array(pdf.pageCount);
+  let next = 1;
+  let completed = 0;
+  const worker = async (): Promise<void> => {
+    for (let pageNumber = next++; pageNumber <= pdf.pageCount; pageNumber = next++) {
+      throwIfAborted(options.signal);
+      pages[pageNumber - 1] = await extractPageText(pdf, pageNumber, options);
+      completed += 1;
+      options.onProgress?.({ completed, total: pdf.pageCount });
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(TEXT_CONCURRENCY, pdf.pageCount) }, worker));
   return pages;
 }

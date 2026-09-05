@@ -23,14 +23,6 @@ export interface RenderedPage extends RasterImage {
   readonly scale: number;
 }
 
-export interface RenderedPagePair {
-  readonly earlier: RenderedPage;
-  readonly newer: RenderedPage;
-  readonly width: number;
-  readonly height: number;
-  readonly scale: number;
-}
-
 export type RgbColor = readonly [number, number, number];
 
 export interface VisualDiffOptions {
@@ -38,6 +30,7 @@ export interface VisualDiffOptions {
   includeAA?: boolean;
   addedColor?: RgbColor;
   removedColor?: RgbColor;
+  modifiedColor?: RgbColor;
   unchangedOpacity?: number;
   regionOptions?: RegionOptions;
   signal?: AbortSignalLike;
@@ -54,6 +47,7 @@ export interface VisualDiffResult {
   readonly overlay: RasterImage;
   readonly addedPixels: number;
   readonly removedPixels: number;
+  readonly modifiedPixels: number;
   readonly regions: readonly ChangeRegion[];
 }
 
@@ -128,20 +122,24 @@ export type PageStatus = "same" | "changed" | "added" | "removed" | "processing"
 
 export type AlignmentMode = "none" | "translation";
 
+/**
+ * How the overlay is painted. The colours are baked into the raster when a page
+ * is compared, so these belong to the comparison rather than to the viewer.
+ */
+export interface OverlayStyle {
+  readonly addedColor: RgbColor;
+  readonly removedColor: RgbColor;
+  readonly modifiedColor: RgbColor;
+  /** How strongly unchanged content shows through, 0 to 1. */
+  readonly unchangedOpacity: number;
+}
+
 export interface DiffOptions {
   readonly sensitivity: number;
   readonly alignment: AlignmentMode;
-  readonly policy?: DiffPolicy;
-}
-
-/** Optional resource and region limits applied by an adapter during comparison. */
-export interface DiffPolicy {
-  readonly maxPixels?: number;
-  readonly maxDimension?: number;
-  readonly regionMinPixels?: number;
-  readonly maxRegions?: number;
-  readonly regionMergeGapX?: number;
-  readonly regionMergeGapY?: number;
+  /** Pair pages by content; false pairs them by position. Defaults to true. */
+  readonly matchPages?: boolean;
+  readonly overlay?: OverlayStyle;
 }
 
 export interface VisualPageGeometry {
@@ -167,6 +165,8 @@ export interface ComparisonPage {
   readonly earlier?: RasterImage;
   readonly newer?: RasterImage;
   readonly diff?: RasterImage;
+  /** Recolourable overlay layers, when the adapter was asked for them. */
+  readonly diffLayers?: import("./visual-diff.js").OverlayLayers;
   readonly changedPixels?: number;
   readonly changedPercent?: number;
   readonly regions?: readonly ChangeRegion[];

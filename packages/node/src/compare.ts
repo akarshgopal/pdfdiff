@@ -18,7 +18,7 @@ export interface HeadlessCompareOptions {
 const EMPTY_PAGE: PageText = { pageNumber: 0, width: 0, height: 0, items: [], text: "", hasText: false };
 
 function pageTextOrEmpty(document: DocumentText, pageNumber: number | undefined): PageText {
-  return pageNumber ? document.pages[pageNumber - 1] ?? EMPTY_PAGE : EMPTY_PAGE;
+  return pageNumber ? (document.pages[pageNumber - 1] ?? EMPTY_PAGE) : EMPTY_PAGE;
 }
 
 function statusFor(pair: AlignedPagePair, changeCount: number): ComparisonPage["status"] {
@@ -54,7 +54,11 @@ export interface HeadlessComparison {
   readonly alignment: readonly AlignedPagePair[];
 }
 
-export async function comparePdfText(earlierPath: string, newerPath: string, options: HeadlessCompareOptions = {}): Promise<HeadlessComparison> {
+export async function comparePdfText(
+  earlierPath: string,
+  newerPath: string,
+  options: HeadlessCompareOptions = {},
+): Promise<HeadlessComparison> {
   const [earlier, newer] = await Promise.all([readDocumentText(earlierPath), readDocumentText(newerPath)]);
   const alignment = alignPages(earlier.fingerprints, newer.fingerprints, {
     matchThreshold: options.matchThreshold,

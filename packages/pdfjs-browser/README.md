@@ -4,11 +4,23 @@ Browser adapter for PDF Diff. It owns PDF.js loading, rendering, text
 extraction, and the default comparison engine while delegating comparison
 algorithms to @pdfdiff/core.
 
-The host application must provide the worker URL emitted by its bundler:
+Alignment and raster diffing run on a Web Worker when the host supplies one, so
+they overlap with page rendering instead of blocking it. The worker entry lives
+at @pdfdiff/pdfjs-browser/raster-diff-worker and carries only the core
+algorithms, not PDF.js; a host worker file is a single call to
+serveRasterDiffWorker().
+
+The host application must provide the worker URL emitted by its bundler, and
+should serve PDF.js's side-car assets so images and fonts render faithfully:
 
     import { createPdfJsEngine } from "@pdfdiff/pdfjs-browser";
 
-    const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl });
+    const engine = createPdfJsEngine({
+      workerSrc: pdfWorkerUrl,
+      assetBaseUrl: "/pdfjs/",
+      // Optional. Without it the pixel work runs in-process.
+      createRasterDiffWorker: () => new Worker(new URL("./rasterDiffWorker.ts", import.meta.url), { type: "module" }),
+    });
     const result = await engine.compare({
       earlier: fileA,
       newer: fileB,

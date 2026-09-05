@@ -1,6 +1,34 @@
-import { styles, styleProps } from "./styles";
+import { styles, cx } from "./styles";
 import { AppHeader } from "./AppHeader";
+import { Button } from "../../components/ui/button";
 
-export function LoadingScreen({ progress }: { progress: number }) {
-  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><AppHeader /><section {...styleProps(styles.loading)} aria-live="polite" aria-busy="true"><div {...styleProps(styles.loadingCard)}><div {...styleProps(styles.loadingMark)} aria-hidden="true">◐</div><h1 {...styleProps(styles.loadingTitle)}>Comparing your PDFs</h1><p {...styleProps(styles.loadingCopy)}>Rendering pages and finding changes.</p><div {...styleProps(styles.progressTrack)}><div {...styleProps(styles.progressFill)} style={{ width: `${progress}%` }} /></div><p {...styleProps(styles.progressLabel)}>{progress ? `${progress}% complete` : "Preparing pages…"}</p></div></section></div></main>;
+export function LoadingScreen({ onCancel }: { onCancel: () => void }) {
+  return (
+    <main className={styles.root}>
+      <div className={styles.shell}>
+        <AppHeader />
+        <section className={styles.loading} aria-live="polite" aria-busy="true">
+          <div className={styles.loadingCard}>
+            <div className={styles.loadingPreview} aria-hidden="true">
+              <div className={styles.loadingPage}>
+                <span className={styles.loadingLine} />
+                <span className={cx(styles.loadingLine, styles.loadingLineShort)} />
+                <span className={styles.loadingBlock} />
+              </div>
+              <div className={cx(styles.loadingPage, styles.loadingPageAfter)}>
+                <span className={styles.loadingLine} />
+                <span className={cx(styles.loadingLine, styles.loadingLineShort)} />
+                <span className={styles.loadingChange} />
+              </div>
+            </div>
+            <h1 className={styles.loadingTitle}>Opening your PDFs</h1>
+            <p className={styles.loadingCopy}>Reading pages and aligning both documents on this device.</p>
+            <Button variant="ghost" size="sm" className={styles.loadingCancel} onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }

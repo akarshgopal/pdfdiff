@@ -1,26 +1,15 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
+import { percentile } from "./benchmark-utils.mjs";
 
-function argument(name, fallback) {
-  const prefix = `--${name}=`;
-  const value = process.argv.find((entry) => entry.startsWith(prefix));
-  return value ? value.slice(prefix.length) : fallback;
-}
-
-function requiredArgument(name) {
-  const value = argument(name, undefined);
+function requiredOption(value, name) {
   if (!value) throw new Error(`Missing --${name}=...`);
   return value;
 }
 
-function numberArgument(name, fallback) {
-  const value = Number(argument(name, fallback));
-  return Number.isFinite(value) && value >= 0 ? value : fallback;
-}
-
-function percentile(values, amount) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * amount) - 1)] ?? 0;
+function numberOption(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 function scenarioMap(report) {
@@ -28,7 +17,10 @@ function scenarioMap(report) {
 }
 
 function medianDuration(scenario) {
-  return percentile(scenario.runs.map((run) => run.durationMs), 0.5);
+  return percentile(
+    scenario.runs.map((run) => run.durationMs),
+    0.5,
+  );
 }
 
 function relativeChange(baselineMs, currentMs) {
@@ -69,11 +61,20 @@ function compareScenario(baseline, current, thresholdPercent) {
   return regressions;
 }
 
-const baselinePath = requiredArgument("baseline");
-const currentPath = requiredArgument("current");
-const outputPath = argument("output", undefined);
-const thresholdPercent = numberArgument("threshold", 20);
-const failOnRegression = process.argv.includes("--fail-on-regression");
+const { values } = parseArgs({
+  options: {
+    baseline: { type: "string" },
+    current: { type: "string" },
+    output: { type: "string" },
+    threshold: { type: "string" },
+    "fail-on-regression": { type: "boolean", default: false },
+  },
+});
+const baselinePath = requiredOption(values.baseline, "baseline");
+const currentPath = requiredOption(values.current, "current");
+const outputPath = values.output;
+const thresholdPercent = numberOption(values.threshold, 20);
+const failOnRegression = values["fail-on-regression"];
 const [baseline, current] = await Promise.all([
   readFile(baselinePath, "utf8").then(JSON.parse),
   readFile(currentPath, "utf8").then(JSON.parse),
@@ -112,13 +113,15 @@ const report = {
   passed: regressions.length === 0 && missing.length === 0 && qualityFailures.length === 0,
 };
 
-console.table(regressions.map((entry) => ({
-  scenario: entry.scenario,
-  metric: entry.metric,
-  baselineMs: entry.baselineMs.toFixed(2),
-  currentMs: entry.currentMs.toFixed(2),
-  change: `${entry.changePercent.toFixed(1)}%`,
-})));
+console.table(
+  regressions.map((entry) => ({
+    scenario: entry.scenario,
+    metric: entry.metric,
+    baselineMs: entry.baselineMs.toFixed(2),
+    currentMs: entry.currentMs.toFixed(2),
+    change: `${entry.changePercent.toFixed(1)}%`,
+  })),
+);
 console.log(report.passed ? "Benchmark comparison passed." : "Benchmark comparison found issues.");
 
 if (outputPath) {

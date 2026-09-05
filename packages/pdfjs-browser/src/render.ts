@@ -2,6 +2,7 @@ import { AnnotationMode, type PDFPageProxy } from "pdfjs-dist";
 import { measureAsync, PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
 import type { LoadedPdf, RenderOptions, RenderedPage, RenderedPagePair } from "./types.js";
 
+const BACKGROUND = "rgb(255, 255, 255)";
 const DEFAULT_SCALE = 1.5;
 const DEFAULT_MAX_PIXELS = 8_000_000;
 const DEFAULT_MAX_DIMENSION = 4096;
@@ -48,12 +49,17 @@ function boundedRenderSize(widthPoints: number, heightPoints: number, options: R
   };
 }
 
-function beginPageRender(page: PDFPageProxy, canvas: HTMLCanvasElement, scale: number, offsetX: number, offsetY: number, options: RenderOptions) {
+function beginPageRender(
+  page: PDFPageProxy,
+  canvas: HTMLCanvasElement,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+) {
   const viewport = page.getViewport({ scale, rotation: page.rotate });
   const context = createContext(canvas);
-  const background = options.background ?? "rgb(255, 255, 255)";
   context.save();
-  context.fillStyle = background;
+  context.fillStyle = BACKGROUND;
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.restore();
   const renderTask = page.render({
@@ -61,8 +67,8 @@ function beginPageRender(page: PDFPageProxy, canvas: HTMLCanvasElement, scale: n
     canvasContext: context,
     viewport,
     transform: [1, 0, 0, 1, offsetX, offsetY],
-    background,
-    annotationMode: options.includeAnnotations === false ? AnnotationMode.DISABLE : AnnotationMode.ENABLE,
+    background: BACKGROUND,
+    annotationMode: AnnotationMode.ENABLE,
   });
   return { context, renderTask };
 }
@@ -87,19 +93,24 @@ async function renderIntoCanvas(
 ): Promise<RenderedPage> {
   throwIfAborted(options.signal);
   const rotation = page.rotate;
-  const { context, renderTask } = beginPageRender(page, canvas, scale, offsetX, offsetY, options);
+  const { context, renderTask } = beginPageRender(page, canvas, scale, offsetX, offsetY);
   const detachAbort = watchRenderAbort(renderTask, options.signal);
   try {
-    await measureAsync(options.metrics, "pdf.render.canvas", async () => {
-      await renderTask.promise;
-      throwIfAborted(options.signal);
-    }, {
-      pageNumber: page.pageNumber,
-      width: canvas.width,
-      height: canvas.height,
-      pixels: canvas.width * canvas.height,
-      side: side ?? "single",
-    });
+    await measureAsync(
+      options.metrics,
+      "pdf.render.canvas",
+      async () => {
+        await renderTask.promise;
+        throwIfAborted(options.signal);
+      },
+      {
+        pageNumber: page.pageNumber,
+        width: canvas.width,
+        height: canvas.height,
+        pixels: canvas.width * canvas.height,
+        side: side ?? "single",
+      },
+    );
   } catch (error) {
     if (options.signal?.aborted) throw new PdfDiffAbortError();
     throw error;
@@ -108,22 +119,30 @@ async function renderIntoCanvas(
   }
 
   const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const width = canvas.width;
+  const height = canvas.height;
+  // The pixels now live in imageData; releasing the backing store here keeps a
+  // long comparison from holding one full-size canvas per rendered page.
+  canvas.width = 0;
+  canvas.height = 0;
   return {
     pageNumber: page.pageNumber,
-    width: canvas.width,
-    height: canvas.height,
+    width,
+    height,
     data: imageData.data,
     widthPoints,
     heightPoints,
     rotation,
     scale,
-    canvas,
-    imageData,
   };
 }
 
 /** Render one page into a bounded canvas. */
-export async function renderPage(pdf: LoadedPdf, pageNumber: number, options: RenderOptions = {}): Promise<RenderedPage> {
+export async function renderPage(
+  pdf: LoadedPdf,
+  pageNumber: number,
+  options: RenderOptions = {},
+): Promise<RenderedPage> {
   throwIfAborted(options.signal);
   const page = await pageFor(pdf, pageNumber);
   throwIfAborted(options.signal);
@@ -152,8 +171,6 @@ export async function renderPagePair(
   const widthPoints = Math.max(earlierViewport.width, newerViewport.width);
   const heightPoints = Math.max(earlierViewport.height, newerViewport.height);
   const { width, height, scale } = boundedRenderSize(widthPoints, heightPoints, options);
-  const background = options.background ?? "rgb(255, 255, 255)";
-  const renderOptions = { ...options, background };
   const earlierCanvas = createCanvas(width, height);
   const newerCanvas = createCanvas(width, height);
   const earlierOffsetX = (width - earlierViewport.width * scale) / 2;
@@ -161,8 +178,28 @@ export async function renderPagePair(
   const newerOffsetX = (width - newerViewport.width * scale) / 2;
   const newerOffsetY = (height - newerViewport.height * scale) / 2;
   const [earlierRendered, newerRendered] = await Promise.all([
-    renderIntoCanvas(earlierPage, earlierCanvas, earlierViewport.width, earlierViewport.height, scale, earlierOffsetX, earlierOffsetY, renderOptions, "earlier"),
-    renderIntoCanvas(newerPage, newerCanvas, newerViewport.width, newerViewport.height, scale, newerOffsetX, newerOffsetY, renderOptions, "newer"),
+    renderIntoCanvas(
+      earlierPage,
+      earlierCanvas,
+      earlierViewport.width,
+      earlierViewport.height,
+      scale,
+      earlierOffsetX,
+      earlierOffsetY,
+      options,
+      "earlier",
+    ),
+    renderIntoCanvas(
+      newerPage,
+      newerCanvas,
+      newerViewport.width,
+      newerViewport.height,
+      scale,
+      newerOffsetX,
+      newerOffsetY,
+      options,
+      "newer",
+    ),
   ]);
   return { earlier: earlierRendered, newer: newerRendered, width, height, scale };
 }

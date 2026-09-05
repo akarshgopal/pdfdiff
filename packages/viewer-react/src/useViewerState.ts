@@ -1,127 +1,136 @@
 import { useCallback, useEffect, useState } from "react";
-import type { DiffComparison, DiffPage, DiffViewMode, SourceSide } from "./types.js";
-import { buildPreviewPage, clampPageIndex, modeNeedsComparedPair, sourcePageCount, viewModes } from "./viewer-utils.js";
+import type { DiffComparison, DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
+import {
+  clampPageIndex,
+  pagePairNumbers,
+  qualityForZoom,
+  sourcePageCount,
+  viewModes,
+  visiblePageIndexes,
+} from "./viewer-utils.js";
 import { useViewerKeyboard } from "./useViewerKeyboard.js";
 
-interface PairResolution {
+export function useViewerState({
+  comparison,
+  onSave,
+  onlyChanged,
+  modalOpen,
+}: {
   comparison: DiffComparison;
-  key: string;
-  page?: DiffPage;
-  error?: string;
-}
-
-interface ComparisonPairState {
-  page: DiffPage | null;
-  error: string | null;
-}
-
-function pageAt(pages: ReadonlyArray<DiffPage>, index: number): DiffPage | null {
-  return pages[index] ?? null;
-}
-
-function comparisonPairState(comparison: DiffComparison, pages: ReadonlyArray<DiffPage>, earlierPageIndex: number, newerPageIndex: number, resolution: PairResolution | null): ComparisonPairState {
-  if (earlierPageIndex === newerPageIndex) return { page: pageAt(pages, earlierPageIndex), error: null };
-  const key = `${earlierPageIndex}:${newerPageIndex}`;
-  if (resolution?.comparison === comparison && resolution.key === key) {
-    return { page: resolution.page ?? null, error: resolution.error ?? null };
-  }
-  return {
-    page: null,
-    error: comparison.comparePagePair ? null : "This comparison source cannot calculate a diff for independently selected pages.",
-  };
-}
-
-function fullPageState(side: SourceSide | null, earlier: { page: DiffPage | null; index: number; count: number }, newer: { page: DiffPage | null; index: number; count: number }) {
-  return side === "earlier" ? earlier : newer;
-}
-
-export function useViewerState({ comparison, onAnalytics }: { comparison: DiffComparison; onAnalytics?: (event: { name: "view_mode_used"; mode: DiffViewMode }) => void }) {
+  onSave?: () => void;
+  onlyChanged: boolean;
+  modalOpen: boolean;
+}) {
   const pages = comparison.pages;
   const [pageIndex, setPageIndex] = useState(0);
   const [mode, setMode] = useState<DiffViewMode>("diff");
   const [zoom, setZoom] = useState(100);
   const [swipe, setSwipe] = useState(50);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [blinkOn, setBlinkOn] = useState(false);
-  const [fullPageSide, setFullPageSide] = useState<SourceSide | null>(null);
-  const [earlierPageIndex, setEarlierPageIndex] = useState(0);
-  const [newerPageIndex, setNewerPageIndex] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
-  const [pairResolution, setPairResolution] = useState<PairResolution | null>(null);
-
-  const earlierPageCount = comparison.earlierPageCount ?? sourcePageCount(pages, "earlier");
-  const newerPageCount = comparison.newerPageCount ?? sourcePageCount(pages, "newer");
-  const currentPage = pageAt(pages, pageIndex);
-  const earlierPage = pageAt(pages, earlierPageIndex);
-  const newerPage = pageAt(pages, newerPageIndex);
-  const sourcePagesAligned = earlierPageIndex === newerPageIndex;
-  const pairKey = `${earlierPageIndex}:${newerPageIndex}`;
-  const pairComparisonMode = modeNeedsComparedPair(mode);
-  const pair = comparisonPairState(comparison, pages, earlierPageIndex, newerPageIndex, pairResolution);
-  const pairError = pairComparisonMode ? pair.error : null;
-  const comparisonPairPage = pair.page;
-
-  const selectPage = useCallback((index: number) => {
-    const nextIndex = clampPageIndex(index, pages.length);
-    setPageIndex(nextIndex);
-    setEarlierPageIndex(clampPageIndex(nextIndex, earlierPageCount));
-    setNewerPageIndex(clampPageIndex(nextIndex, newerPageCount));
-    setSelectedRegion(null);
-  }, [earlierPageCount, newerPageCount, pages.length]);
-
-  const goToSourcePage = useCallback((side: SourceSide, index: number) => {
-    const nextIndex = side === "earlier" ? clampPageIndex(index, earlierPageCount) : clampPageIndex(index, newerPageCount);
-    if (side === "earlier") setEarlierPageIndex(nextIndex);
-    else setNewerPageIndex(nextIndex);
-    setSelectedRegion(null);
-    if (fullPageSide) setFullPageSide(side);
-  }, [earlierPageCount, fullPageSide, newerPageCount]);
-
-  const stepSourcePage = useCallback((side: SourceSide, direction: 1 | -1) => {
-    const currentIndex = side === "earlier" ? earlierPageIndex : newerPageIndex;
-    goToSourcePage(side, currentIndex + direction);
-  }, [earlierPageIndex, goToSourcePage, newerPageIndex]);
-
-  const changeMode = useCallback((nextMode: DiffViewMode) => {
-    setMode(nextMode);
-    onAnalytics?.({ name: "view_mode_used", mode: nextMode });
-  }, [onAnalytics]);
-
-  const cycleMode = useCallback((direction: 1 | -1) => {
-    const currentIndex = viewModes.findIndex((item) => item.id === mode);
-    changeMode(viewModes[(currentIndex + direction + viewModes.length) % viewModes.length]!.id);
-  }, [changeMode, mode]);
-
-  useEffect(() => {
-    if (mode !== "blink") return;
-    const timer = window.setInterval(() => setBlinkOn((value) => !value), 720);
-    return () => window.clearInterval(timer);
-  }, [mode]);
-
-  useEffect(() => {
-    if (!pairComparisonMode || sourcePagesAligned || pair.page || pair.error || !comparison.comparePagePair) return;
-
-    const abortController = new AbortController();
-    void comparison.comparePagePair({ earlierPageIndex, newerPageIndex, signal: abortController.signal }).then((page) => {
-      if (abortController.signal.aborted) return;
-      setPairResolution({ comparison, key: pairKey, page });
-    }).catch((error: unknown) => {
-      if (abortController.signal.aborted) return;
-      setPairResolution({ comparison, key: pairKey, error: error instanceof Error ? error.message : "Unable to compare the selected pages." });
-    });
-    return () => abortController.abort();
-  }, [comparison, earlierPageIndex, newerPageIndex, pairComparisonMode, pairKey, pair.error, pair.page, sourcePagesAligned]);
-
-  useViewerKeyboard({ enabled: !showHelp, pageIndex, pageCount: pages.length, earlierPageCount, newerPageCount, fullPageSide, onSelectPage: selectPage, onStepSourcePage: stepSourcePage, onGoToSourcePage: goToSourcePage, onCloseFullPage: () => setFullPageSide(null), onClearSelection: () => setSelectedRegion(null), onChangeMode: changeMode, onCycleMode: cycleMode });
-
-  const previewPage = buildPreviewPage({ mode, currentPage, earlierPage, newerPage, comparisonPairPage });
-  const pairComparisonPending = pairComparisonMode && !sourcePagesAligned && !pair.page && !pairError;
-  const fullPage = fullPageState(
-    fullPageSide,
-    { page: earlierPage, index: earlierPageIndex, count: earlierPageCount },
-    { page: newerPage, index: newerPageIndex, count: newerPageCount },
+  const [quality, setQuality] = useState<RenderQuality>("standard");
+  const [manualPair, setManualPair] = useState<{ earlier: number; newer: number } | null>(null);
+  const [resolution, setResolution] = useState<{
+    comparison: DiffComparison;
+    key: string;
+    quality: RenderQuality;
+    page?: DiffPage;
+    error?: string;
+  } | null>(null);
+  const currentPage = pages[pageIndex];
+  const pair = manualPair ?? pagePairNumbers(currentPage);
+  const pairKey = `${pageIndex}:${pair.earlier}:${pair.newer}`;
+  const resolved = resolution?.comparison === comparison && resolution.key === pairKey ? resolution : null;
+  const previewPage =
+    resolved?.page ??
+    (manualPair
+      ? {
+          index: pageIndex,
+          earlierPageNumber: pair.earlier,
+          newerPageNumber: pair.newer,
+          status: "processing" as const,
+        }
+      : currentPage);
+  const canResolve = Boolean(comparison.comparePagePair && pair.earlier && pair.newer);
+  const needsResolution =
+    canResolve &&
+    resolved?.quality !== quality &&
+    (Boolean(manualPair) || quality === "high" || Boolean(resolved) || (mode === "diff" && !currentPage?.layers));
+  const visibleIndexes = visiblePageIndexes(pages, onlyChanged, pageIndex);
+  const position = visibleIndexes.indexOf(pageIndex);
+  const selectPage = useCallback(
+    (index: number) => {
+      setPageIndex(clampPageIndex(index, pages.length));
+      setManualPair(null);
+      setSelectedRegion(null);
+    },
+    [pages.length],
   );
-
+  const stepPage = (direction: 1 | -1) => {
+    const next = visibleIndexes[position + direction];
+    if (next !== undefined) selectPage(next);
+  };
+  const changeZoom = (next: number) => {
+    setZoom(next);
+    setQuality((current) => qualityForZoom(next, current));
+  };
+  const changePair = (earlier: number, newer: number) => {
+    setManualPair({ earlier, newer });
+    setSelectedRegion(null);
+  };
+  const sourceCounts = {
+    earlier: comparison.earlierPageCount ?? sourcePageCount(pages, "earlier"),
+    newer: comparison.newerPageCount ?? sourcePageCount(pages, "newer"),
+  };
+  // Documents drift apart when one side gains a page, so each side can be
+  // walked on its own; the result is the same manual pair the dialog produces.
+  const goToSourcePage = (side: SourceSide, page: number) => {
+    const next = { earlier: pair.earlier ?? 1, newer: pair.newer ?? 1 };
+    next[side] = Math.min(Math.max(1, page), Math.max(1, sourceCounts[side]));
+    changePair(next.earlier, next.newer);
+  };
+  useEffect(() => {
+    if (!needsResolution || !comparison.comparePagePair || !pair.earlier || !pair.newer) return;
+    const controller = new AbortController();
+    void comparison
+      .comparePagePair({
+        earlierPageIndex: pair.earlier - 1,
+        newerPageIndex: pair.newer - 1,
+        quality,
+        signal: controller.signal,
+      })
+      .then((page) => {
+        if (!controller.signal.aborted) setResolution({ comparison, key: pairKey, quality, page });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted)
+          setResolution({
+            comparison,
+            key: pairKey,
+            quality,
+            error: error instanceof Error ? error.message : "Unable to compare these pages.",
+          });
+      });
+    return () => controller.abort();
+  }, [comparison, needsResolution, pair.earlier, pair.newer, pairKey, quality]);
+  useViewerKeyboard({
+    enabled: !showHelp && !modalOpen,
+    onStepPage: stepPage,
+    onStepSourcePage: (side, direction) => goToSourcePage(side, (pair[side] ?? 1) + direction),
+    onSourceBoundary: (side, last) => goToSourcePage(side, last ? sourceCounts[side] : 1),
+    onBoundary: (last) => selectPage(visibleIndexes[last ? visibleIndexes.length - 1 : 0] ?? pageIndex),
+    onClearSelection: () => setSelectedRegion(null),
+    onChangeMode: setMode,
+    onCycleMode: (direction) =>
+      setMode(
+        viewModes[(viewModes.findIndex((item) => item.id === mode) + direction + viewModes.length) % viewModes.length]!
+          .id,
+      ),
+    zoom,
+    onZoomChange: changeZoom,
+    onSave,
+    onShowHelp: () => setShowHelp(true),
+  });
   return {
     pages,
     pageIndex,
@@ -129,30 +138,25 @@ export function useViewerState({ comparison, onAnalytics }: { comparison: DiffCo
     zoom,
     swipe,
     selectedRegion,
-    blinkOn,
-    fullPageSide,
-    earlierPageIndex,
-    newerPageIndex,
     showHelp,
-    earlierPageCount,
-    newerPageCount,
-    pairComparisonPending,
-    pairError,
     currentPage,
-    earlierPage,
-    newerPage,
-    fullPageIndex: fullPage.index,
-    fullPage: fullPage.page,
-    fullPageCount: fullPage.count,
     previewPage,
+    earlierPageCount: sourceCounts.earlier,
+    newerPageCount: sourceCounts.newer,
+    pair,
+    pairKey,
+    manualPair,
+    changePair,
     selectPage,
-    goToSourcePage,
-    stepSourcePage,
-    changeMode,
-    setZoom,
+    stepPage,
+    hasPreviousPage: position > 0,
+    hasNextPage: position < visibleIndexes.length - 1,
+    pairComparisonPending: Boolean(manualPair && !resolved),
+    pairError: resolved?.error ?? previewPage?.error ?? null,
+    changeMode: setMode,
+    setZoom: changeZoom,
     setSwipe,
     setSelectedRegion,
-    setFullPageSide,
     setShowHelp,
   };
 }

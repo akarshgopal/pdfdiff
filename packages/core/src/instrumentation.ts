@@ -13,21 +13,6 @@ export interface DiffMetric {
 
 export type DiffMetricSink = (metric: DiffMetric) => void;
 
-export interface DiffMetricSummary {
-  readonly name: string;
-  readonly count: number;
-  readonly totalMs: number;
-  readonly averageMs: number;
-  readonly maxMs: number;
-}
-
-export interface DiffMetricsCollector {
-  readonly sink: DiffMetricSink;
-  record(metric: DiffMetric): void;
-  snapshot(): readonly DiffMetric[];
-  clear(): void;
-}
-
 interface RuntimePerformance {
   now(): number;
   memory?: { usedJSHeapSize: number };
@@ -90,39 +75,4 @@ export async function measureAsync<T>(
     emitMetric(sink, { name, durationMs: Math.max(0, now() - startedAt), status: "error", attributes });
     throw error;
   }
-}
-
-export function createDiffMetricsCollector(): DiffMetricsCollector {
-  let items: DiffMetric[] = [];
-  const record = (metric: DiffMetric): void => {
-    items.push(metric);
-  };
-  return {
-    sink: record,
-    record,
-    snapshot: () => items.slice(),
-    clear: () => {
-      items = [];
-    },
-  };
-}
-
-export function summarizeDiffMetrics(metrics: readonly DiffMetric[]): readonly DiffMetricSummary[] {
-  const summaries = new Map<string, { count: number; totalMs: number; maxMs: number }>();
-  for (const metric of metrics) {
-    const summary = summaries.get(metric.name) ?? { count: 0, totalMs: 0, maxMs: 0 };
-    summary.count += 1;
-    summary.totalMs += metric.durationMs;
-    summary.maxMs = Math.max(summary.maxMs, metric.durationMs);
-    summaries.set(metric.name, summary);
-  }
-  return [...summaries.entries()]
-    .map(([name, summary]) => ({
-      name,
-      count: summary.count,
-      totalMs: summary.totalMs,
-      averageMs: summary.totalMs / summary.count,
-      maxMs: summary.maxMs,
-    }))
-    .sort((a, b) => b.totalMs - a.totalMs || a.name.localeCompare(b.name));
 }

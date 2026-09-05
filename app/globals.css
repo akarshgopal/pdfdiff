@@ -3,8 +3,6 @@
 @source "./";
 @source "../components";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 * {
   box-sizing: border-box;
 }
@@ -16,17 +14,11 @@ body {
 
 body {
   margin: 0;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-button,
-input,
-select {
-  font: inherit;
 }
 
 button,
@@ -36,6 +28,40 @@ input[type="range"] {
 }
 
 ::selection {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Landing demo: the swipe divider sweeps on its own. */
+.pdfdiff-swipe-top {
+  clip-path: inset(0 50% 0 0);
+  animation: pdfdiff-swipe-clip 5.2s ease-in-out infinite;
+}
+.pdfdiff-swipe-handle {
+  left: 50%;
+  animation: pdfdiff-swipe-handle 5.2s ease-in-out infinite;
+}
+@keyframes pdfdiff-swipe-clip {
+  0%,
+  100% {
+    clip-path: inset(0 78% 0 0);
+  }
+  50% {
+    clip-path: inset(0 22% 0 0);
+  }
+}
+@keyframes pdfdiff-swipe-handle {
+  0%,
+  100% {
+    left: 22%;
+  }
+  50% {
+    left: 78%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdfdiff-swipe-top,
+  .pdfdiff-swipe-handle {
+    animation: none;
+  }
 }

@@ -33,6 +33,41 @@ logic can be reused independently of the browser app:
   default engine wiring, analytics callbacks, and the in-app help section.
 - `main.tsx` and `index.html` — the static Vite application entry and metadata.
 
+## The raster diff worker
+
+Aligning and diffing two rendered pages is the expensive half of a comparison
+and the only half that never touches PDF.js — roughly 3.9s of a 10s 43-page run
+against 2.5s of canvas rendering. `@pdfdiff/pdfjs-browser` runs it on a Web
+Worker, so page rendering on the main thread and pixel work on the worker
+overlap, and the UI keeps painting throughout.
+
+The host owns the `new Worker(...)` call, because only it knows how its bundler
+emits the module. The worker file is one line:
+
+```ts
+// app/rasterDiffWorker.ts
+import { serveRasterDiffWorker } from "@pdfdiff/pdfjs-browser/raster-diff-worker";
+
+serveRasterDiffWorker();
+```
+
+```ts
+const engine = createPdfJsEngine({
+  workerSrc: pdfWorkerUrl,
+  assetBaseUrl: "/pdfjs/",
+  createRasterDiffWorker: () => new Worker(new URL("./rasterDiffWorker.ts", import.meta.url), { type: "module" }),
+});
+```
+
+`createRasterDiffWorker` is optional. Without it — and whenever the worker
+cannot be constructed — the same code runs in-process, which is why
+`@pdfdiff/node` needs no worker at all.
+
+Page rasters are transferred rather than copied, so handing a page to the
+worker costs no memory. The overlap does: the batch pass keeps one page of
+lookahead, so peak memory is two pages of rasters (~72 MB at the standard
+3 MP budget) rather than one. That bound does not grow with page count.
+
 Build the packages independently with:
 
 ```bash
@@ -46,7 +81,7 @@ expects its host bundler to provide the PDF.js worker URL:
 ```ts
 import { createPdfJsEngine } from "@pdfdiff/pdfjs-browser";
 
-const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl });
+const engine = createPdfJsEngine({ workerSrc: pdfWorkerUrl, assetBaseUrl: "/pdfjs/" });
 const comparison = await engine.compare({
   earlier: earlierFile,
   newer: newerFile,
@@ -55,6 +90,12 @@ const comparison = await engine.compare({
 });
 ```
 
+`assetBaseUrl` points at PDF.js's own side-car assets (`standard_fonts/`,
+`cmaps/`, `wasm/`, `iccs/`, copied from `pdfjs-dist`). It is optional but
+effectively required for accurate results: without it PDF.js drops JBIG2 and
+JPX images from the render and guesses metrics for non-embedded base-14 fonts,
+and the raster diff reports the difference as a real change.
+
 ## Useful commands
 
 - `pnpm dev`: start local development
@@ -62,30 +103,12 @@ const comparison = await engine.compare({
 - `pnpm start`: preview the production build locally
 - `pnpm deploy:dry-run`: build and validate the Cloudflare asset deployment
 - `pnpm deploy`: build and deploy the static assets to Cloudflare
-- `pnpm test`: build and run the rendered HTML, core, and semantic tests
+- `pnpm test`: build the packages and run the unit tests
+- `pnpm run test:dist`: build the site and check the shipped `dist/` output
 - `pnpm lint`: run ESLint
 - `pnpm bench:core`: run deterministic core performance and quality scenarios
 - `pnpm bench:browser`: run the app through Playwright and Chromium
-- `pnpm screenshots`: recapture the landing page screenshots in `public/shots`
 - `pnpm run bench:report -- --baseline=... --current=...`: compare benchmark JSON
-
-## Landing page screenshots
-
-The screenshots on the landing page are captured from the real workspace rather
-than mocked up. `tools/capture-screenshots.mjs` drives a built site with
-Playwright, compares a fixture pair from `examples/pdf-fixtures/` for each view,
-and writes light and dark WebP files into `public/shots`. Regenerate them
-whenever the workspace chrome changes:
-
-```bash
-pnpm build && pnpm start &
-pnpm screenshots -- --url=http://localhost:4173/
-```
-
-The encode step needs ImageMagick (`magick`) and `cwebp` on `PATH`; pass
-`--skip-encode` to stop at the PNGs. The captions that describe each shot live
-in `app/pdfdiff/landing-content.ts` and name the fixture pair, so keep the two
-in step.
 
 ## Deployment
 
