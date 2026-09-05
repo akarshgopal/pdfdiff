@@ -132,6 +132,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   };
 
   const acceptFiles = (side: "earlier" | "newer", selectedFiles: File[]) => {
+    if (selectedFiles.length === 0) return;
     if (selectedFiles.length > 2 || selectedFiles.some((file) => !normalizeFile(file))) {
       setError("Choose one or two PDF files.");
       return;
@@ -153,18 +154,14 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
 
   const handleDrop = (side: "earlier" | "newer", event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    // The page is a drop target too; a drop on a card belongs to that card alone.
+    event.stopPropagation();
     setActiveDrop(null);
-    const file = normalizeFile(event.dataTransfer.files?.[0]);
-    if (!file) {
-      setError("Drop a PDF file.");
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      setError("That PDF exceeds the 150 MB limit. Choose a smaller file.");
-      return;
-    }
-    setFile(side, file);
+    acceptFiles(side, Array.from(event.dataTransfer.files ?? []));
   };
+
+  /** A drop anywhere else fills the empty slot, or both when two files arrive. */
+  const dropAnywhere = (files: File[]) => acceptFiles(earlierFile && files.length === 1 ? "newer" : "earlier", files);
 
   /**
    * The viewer tints live in hex; the engine bakes page thumbnails from RGB at
@@ -320,7 +317,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   }, []);
 
   if (phase === "upload") {
-    return <UploadScreen earlierFile={earlierFile} newerFile={newerFile} activeDrop={activeDrop} error={error} history={history} rememberFiles={rememberFiles} onRememberFilesChange={setRememberFiles} onChoose={chooseFile} onRemove={(side) => setFile(side, null)} onActive={(side, active) => setActiveDrop(active ? side : null)} onDrop={handleDrop} onInput={handleInput} onSwap={swapFiles} onCompare={() => void runSelectedComparison()} onRepeat={(id) => void repeatComparison(id)} onClearHistory={() => void clearHistory()} inputEarlier={inputEarlier} inputNewer={inputNewer} />;
+    return <UploadScreen earlierFile={earlierFile} newerFile={newerFile} activeDrop={activeDrop} error={error} history={history} rememberFiles={rememberFiles} onRememberFilesChange={setRememberFiles} onChoose={chooseFile} onRemove={(side) => setFile(side, null)} onActive={(side, active) => setActiveDrop(active ? side : null)} onDrop={handleDrop} onDropAnywhere={dropAnywhere} onInput={handleInput} onSwap={swapFiles} onCompare={() => void runSelectedComparison()} onRepeat={(id) => void repeatComparison(id)} onClearHistory={() => void clearHistory()} inputEarlier={inputEarlier} inputNewer={inputNewer} />;
   }
 
   if (phase === "loading") {

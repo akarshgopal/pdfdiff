@@ -2,10 +2,12 @@ import { CloudUpload, FileText, X } from "lucide-react";
 import type { DragEvent } from "react";
 import { Button } from "./button";
 import { styleProps, ui } from "@pdfdiff/viewer-react/ui";
-import { formatFileSize } from "../../lib/format";
+import { formatFileSize, middleTruncate } from "../../lib/format";
 
 type FileDropzoneProps = {
   label: string;
+  /** The newer file carries the accent, so which side is which reads at a glance. */
+  accent?: boolean;
   file: File | null;
   active: boolean;
   onChoose: () => void;
@@ -21,7 +23,7 @@ function DropzonePrompt({ file }: Pick<FileDropzoneProps, "file">) {
 
 function FileDetails({ file }: Pick<FileDropzoneProps, "file">) {
   if (!file) return <><span className="mt-2 text-sm font-semibold text-primary">Drop here or browse</span><span className="mt-1 text-xs text-muted-foreground">PDF · up to 150 MB</span></>;
-  return <><span className="mt-2 line-clamp-2 w-full break-all text-base font-semibold tracking-tight text-foreground" title={file.name}>{file.name}</span><span className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.size)}</span></>;
+  return <><span className="mt-2 w-full truncate text-base font-semibold tracking-tight text-foreground" title={file.name}>{middleTruncate(file.name)}</span><span className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.size)}</span></>;
 }
 
 function SelectedFileActions({ file, label, onRemove, onChoose }: Pick<FileDropzoneProps, "file" | "label" | "onRemove" | "onChoose">) {
@@ -31,6 +33,7 @@ function SelectedFileActions({ file, label, onRemove, onChoose }: Pick<FileDropz
 
 export function FileDropzone({
   label,
+  accent,
   file,
   active,
   onChoose,
@@ -44,7 +47,7 @@ export function FileDropzone({
         "relative flex min-h-[184px] min-w-0 flex-col rounded-xl border border-dashed border-input bg-card p-3 transition-colors duration-150",
         "hover:border-foreground/30 hover:bg-background",
         active && "border-primary bg-accent",
-        file && "border-solid border-success/60 bg-success/5",
+        file && (accent ? "border-solid border-primary/60 bg-primary/5" : "border-solid border-border bg-card"),
       ).className}
       role="group"
       aria-label={`${label} PDF${file ? `: ${file.name}` : ""}`}
@@ -64,7 +67,7 @@ export function FileDropzone({
         <span className="mb-3 inline-flex size-10 items-center justify-center rounded-full border border-border bg-muted text-primary">
           <DropzonePrompt file={file} />
         </span>
-        <span className={ui.caps}>{label}</span>
+        <span className={styleProps(ui.caps, accent && "text-primary").className}>{label}</span>
         <FileDetails file={file} />
       </button>
       <SelectedFileActions file={file} label={label} onRemove={onRemove} onChoose={onChoose} />
