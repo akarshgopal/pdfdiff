@@ -8,7 +8,7 @@ import type { DiffComparison } from "@pdfdiff/viewer-react";
  */
 const PdfDiffViewer = lazy(async () => ({ default: (await import("@pdfdiff/viewer-react")).PdfDiffViewer }));
 import { ThemeToggle } from "../../components/ui/theme-toggle";
-import { styles, styleProps } from "./styles";
+import { styles, cx } from "./styles";
 import { LoadingScreen } from "./LoadingScreen";
 import { UploadScreen } from "./UploadScreen";
 import {
@@ -370,8 +370,8 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   if (!comparison) return null;
   return (
     <Suspense fallback={<LoadingScreen onCancel={reset} />}>
-      <main {...styleProps(styles.root)}>
-        <div {...styleProps(styles.shell)}>
+      <main className={cx(styles.root)}>
+        <div className={cx(styles.shell)}>
           <PdfDiffViewer
             comparison={comparison}
             processingProgress={pageProgress ?? undefined}

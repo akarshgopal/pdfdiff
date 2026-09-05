@@ -12,7 +12,7 @@ settings controls, keyboard shortcuts, and the help dialog.
     }
 
 The package exports PdfDiffViewer, its comparison/viewer types, and the
-styles/styleProps helpers used by the default Tailwind-based presentation.
+styles/cx helpers used by the default Tailwind-based presentation.
 
 ## Workspace model
 

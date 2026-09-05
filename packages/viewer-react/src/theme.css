@@ -1,72 +1,82 @@
 /* Import this file from a Tailwind v4 stylesheet to provide the viewer theme. */
 @source "./";
 
+/* Theme is a class on the root, not a media query, so the toggle can win. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light;
   /* Neutral surfaces so diff colors carry all the meaning. */
-  --background: 0 0% 100%;
-  --foreground: 240 10% 4%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 4%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 4%;
-  --primary: 221 83% 53%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 5% 96%;
-  --secondary-foreground: 240 6% 10%;
-  --muted: 240 5% 96%;
-  --muted-foreground: 240 4% 46%;
-  --accent: 221 83% 96%;
-  --accent-foreground: 221 70% 40%;
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(240 10% 4%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(240 10% 4%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(240 10% 4%);
+  --primary: hsl(221 83% 53%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(240 5% 96%);
+  --secondary-foreground: hsl(240 6% 10%);
+  --muted: hsl(240 5% 96%);
+  --muted-foreground: hsl(240 4% 46%);
+  --accent: hsl(221 83% 96%);
+  --accent-foreground: hsl(221 70% 40%);
   /* Removed, added, and changed are deliberately distinct semantic roles. */
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 240 6% 90%;
-  --input: 240 6% 90%;
-  --ring: 221 83% 53%;
-  --success: 142 71% 36%;
-  --success-foreground: 0 0% 100%;
-  --success-ink: 142 64% 24%;
-  --sidebar: 240 5% 98%;
-  --sidebar-foreground: 240 4% 46%;
-  --sidebar-border: 240 6% 90%;
-  --stage: 240 5% 96%;
-  --stage-dot: 240 5% 93%;
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(240 6% 90%);
+  --input: hsl(240 6% 90%);
+  --ring: hsl(221 83% 53%);
+  --success: hsl(142 71% 36%);
+  --success-foreground: hsl(0 0% 100%);
+  --success-ink: hsl(142 64% 24%);
+  --sidebar: hsl(240 5% 98%);
+  --sidebar-foreground: hsl(240 4% 46%);
+  --sidebar-border: hsl(240 6% 90%);
+  --stage: hsl(240 5% 96%);
+  --stage-dot: hsl(240 5% 93%);
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
 }
 
 .dark {
   color-scheme: dark;
-  --background: 240 10% 4%;
-  --foreground: 0 0% 98%;
-  --card: 240 6% 7%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 6% 8%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 217 91% 60%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 4% 14%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 4% 14%;
-  --muted-foreground: 240 5% 65%;
-  --accent: 222 47% 18%;
-  --accent-foreground: 213 94% 78%;
-  --destructive: 0 72% 58%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 240 4% 16%;
-  --input: 240 4% 20%;
-  --ring: 217 91% 60%;
-  --success: 142 65% 45%;
-  --success-foreground: 240 10% 4%;
-  --success-ink: 141 70% 70%;
-  --sidebar: 240 8% 6%;
-  --sidebar-foreground: 240 5% 65%;
-  --sidebar-border: 240 4% 16%;
-  --stage: 240 6% 10%;
-  --stage-dot: 240 6% 12%;
+  --background: hsl(240 10% 4%);
+  --foreground: hsl(0 0% 98%);
+  --card: hsl(240 6% 7%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(240 6% 8%);
+  --popover-foreground: hsl(0 0% 98%);
+  --primary: hsl(217 91% 60%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(240 4% 14%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(240 4% 14%);
+  --muted-foreground: hsl(240 5% 65%);
+  --accent: hsl(222 47% 18%);
+  --accent-foreground: hsl(213 94% 78%);
+  --destructive: hsl(0 72% 58%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(240 4% 16%);
+  --input: hsl(240 4% 20%);
+  --ring: hsl(217 91% 60%);
+  --success: hsl(142 65% 45%);
+  --success-foreground: hsl(240 10% 4%);
+  --success-ink: hsl(141 70% 70%);
+  --sidebar: hsl(240 8% 6%);
+  --sidebar-foreground: hsl(240 5% 65%);
+  --sidebar-border: hsl(240 4% 16%);
+  --stage: hsl(240 6% 10%);
+  --stage-dot: hsl(240 6% 12%);
 }
 @theme inline {
+  /* Breakpoints are min-width and the styles are mobile-first: the narrow
+     layout is the base, and these widen it. Five steps, no others. */
+  --breakpoint-sm: 35rem; /* 560px */
+  --breakpoint-md: 42.5rem; /* 680px */
+  --breakpoint-lg: 51.25rem; /* 820px */
+  --breakpoint-xl: 61.25rem; /* 980px */
+  --breakpoint-2xl: 75rem; /* 1200px */
   /* Type scale: two steps below Tailwind's xs, then its defaults. Nothing else. */
   --text-3xs: 0.625rem;
   --text-3xs--line-height: 1.4;
@@ -76,39 +86,41 @@
   --tracking-tight: -0.01em;
   --tracking-tighter: -0.025em;
   --tracking-caps: 0.12em;
+  /* One display leading; every other line height is a Tailwind utility. */
+  --leading-display: 1.05;
   /* Radius: lg for controls, xl for cards and dialogs, full for pills. */
   --radius-sm: 2px;
   --radius-md: 4px;
   --radius-lg: 6px;
   --radius-xl: 8px;
   --radius-2xl: 10px;
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-success: hsl(var(--success));
-  --color-success-foreground: hsl(var(--success-foreground));
-  --color-success-ink: hsl(var(--success-ink));
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-stage: hsl(var(--stage));
-  --color-stage-dot: hsl(var(--stage-dot));
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-ink: var(--success-ink);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-stage: var(--stage);
+  --color-stage-dot: var(--stage-dot);
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
 }
@@ -119,20 +131,20 @@
   inline-size: 2.75rem;
   block-size: 1.5rem;
   padding: 2px;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: hsl(var(--background));
+  background: var(--background);
   cursor: pointer;
   transition:
     border-color 120ms,
     box-shadow 120ms;
 }
 .pdfdiff-swatch:hover {
-  border-color: hsl(var(--foreground) / 0.35);
+  border-color: color-mix(in srgb, var(--foreground) 35%, transparent);
 }
 .pdfdiff-swatch:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 50%, transparent);
 }
 .pdfdiff-swatch::-webkit-color-swatch-wrapper {
   padding: 0;
@@ -155,21 +167,21 @@
 .pdfdiff-range::-webkit-slider-runnable-track {
   block-size: 4px;
   border-radius: 999px;
-  background: linear-gradient(to right, hsl(var(--primary)) var(--range-fill), hsl(var(--input)) var(--range-fill));
+  background: linear-gradient(to right, var(--primary) var(--range-fill), var(--input) var(--range-fill));
 }
 .pdfdiff-range::-moz-range-track {
   block-size: 4px;
   border-radius: 999px;
-  background: linear-gradient(to right, hsl(var(--primary)) var(--range-fill), hsl(var(--input)) var(--range-fill));
+  background: linear-gradient(to right, var(--primary) var(--range-fill), var(--input) var(--range-fill));
 }
 .pdfdiff-range::-webkit-slider-thumb {
   appearance: none;
   margin-block-start: -5px;
   inline-size: 14px;
   block-size: 14px;
-  border: 2px solid hsl(var(--primary));
+  border: 2px solid var(--primary);
   border-radius: 999px;
-  background: hsl(var(--background));
+  background: var(--background);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
   transition:
     scale 120ms,
@@ -178,9 +190,9 @@
 .pdfdiff-range::-moz-range-thumb {
   inline-size: 14px;
   block-size: 14px;
-  border: 2px solid hsl(var(--primary));
+  border: 2px solid var(--primary);
   border-radius: 999px;
-  background: hsl(var(--background));
+  background: var(--background);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
 }
 .pdfdiff-range:hover::-webkit-slider-thumb {
@@ -190,10 +202,10 @@
   outline: none;
 }
 .pdfdiff-range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.3);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ring) 30%, transparent);
 }
 .pdfdiff-range:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.3);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ring) 30%, transparent);
 }
 
 .pdfdiff-switch {
@@ -203,7 +215,7 @@
   inline-size: 2.125rem;
   block-size: 1.25rem;
   border-radius: 999px;
-  background: hsl(var(--input));
+  background: var(--input);
   cursor: pointer;
   transition: background-color 150ms;
 }
@@ -220,7 +232,7 @@
   transition: translate 150ms;
 }
 .pdfdiff-switch:checked {
-  background: hsl(var(--primary));
+  background: var(--primary);
 }
 .pdfdiff-switch:checked::after {
   translate: 0.875rem 0;
@@ -228,6 +240,6 @@
 .pdfdiff-switch:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px hsl(var(--card)),
-    0 0 0 4px hsl(var(--ring) / 0.6);
+    0 0 0 2px var(--card),
+    0 0 0 4px color-mix(in srgb, var(--ring) 60%, transparent);
 }

@@ -21,11 +21,11 @@ export const ui = {
 export const styles = {
   viewerRoot: "flex h-screen min-h-0 flex-none flex-col",
   workspaceBar:
-    "flex h-13 min-h-13 shrink-0 items-center justify-between gap-4 max-[820px]:gap-2 border-b border-border bg-card px-5 max-[820px]:px-3.5",
+    "flex h-13 min-h-13 shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3.5 lg:gap-4 lg:px-5",
   logo: "inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold tracking-tight",
-  logoWord: "max-[560px]:sr-only",
+  logoWord: "sr-only sm:not-sr-only",
   logoMark: "grid size-6 place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground",
-  documentPair: "flex min-w-0 items-center gap-2 max-[820px]:hidden",
+  documentPair: "hidden min-w-0 items-center gap-2 lg:flex",
   documentChip:
     "flex min-w-0 max-w-[220px] items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium",
   documentChipLabel: `${ui.caps} text-accent-foreground`,
@@ -33,25 +33,25 @@ export const styles = {
   pairArrow: "text-base font-bold text-primary/80",
   headerSummary: "ml-auto flex min-w-0 items-center gap-2 text-2xs",
   headerHeadline: "truncate text-2xs font-medium text-foreground",
-  headerWarning: "shrink-0 rounded-lg bg-primary/10 px-2 py-1 text-2xs font-medium text-primary max-[560px]:hidden",
+  headerWarning: "hidden shrink-0 rounded-lg bg-primary/10 px-2 py-1 text-2xs font-medium text-primary sm:block",
   workspaceActions: "flex items-center gap-1.5",
   quietButton: `${ui.control} ${ui.focus} min-h-8 px-2.5 hover:bg-secondary`,
   helpButton: `${ui.control} ${ui.focus} min-h-8 px-2.5 hover:bg-secondary`,
   helpButtonMark:
     "grid size-4 place-items-center rounded-full border border-current text-3xs font-semibold leading-none",
   workspaceMain:
-    "grid min-h-0 flex-1 grid-cols-[170px_minmax(0,1fr)] max-[980px]:grid-cols-[150px_minmax(0,1fr)] max-[820px]:grid-cols-1 max-[820px]:grid-rows-[minmax(0,1fr)_auto]",
-  workspaceMainSinglePage: "grid-cols-1",
+    "grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[150px_minmax(0,1fr)] lg:grid-rows-none xl:grid-cols-[170px_minmax(0,1fr)]",
+  workspaceMainSinglePage: "grid-cols-1 lg:grid-cols-1 xl:grid-cols-1",
   pageRail:
-    "min-h-0 overflow-y-auto overflow-x-hidden border-r border-sidebar-border bg-sidebar px-2.5 py-4 max-[820px]:order-2 max-[820px]:flex max-[820px]:items-center max-[820px]:gap-2 max-[820px]:overflow-x-auto max-[820px]:overflow-y-hidden max-[820px]:border-r-0 max-[820px]:border-t max-[820px]:px-2 max-[820px]:py-2",
-  railHeader: "mb-3 flex flex-col gap-2 max-[820px]:mb-0 max-[820px]:shrink-0",
-  railHeading: `${ui.caps} m-0 px-0.5 text-sidebar-foreground max-[820px]:hidden`,
-  pageButton: `${ui.focus} mb-2 w-full max-[820px]:mb-0 max-[820px]:w-[72px] max-[820px]:shrink-0 cursor-pointer rounded-xl border border-transparent bg-transparent p-1.5 text-left text-sidebar-foreground transition-colors hover:bg-card/75`,
+    "order-2 flex min-h-0 items-center gap-2 overflow-x-auto overflow-y-hidden border-t border-sidebar-border bg-sidebar px-2 py-2 lg:order-none lg:block lg:overflow-x-hidden lg:overflow-y-auto lg:border-t-0 lg:border-r lg:px-2.5 lg:py-4",
+  railHeader: "flex shrink-0 flex-col gap-2 lg:mb-3",
+  railHeading: `${ui.caps} m-0 hidden px-0.5 text-sidebar-foreground lg:block`,
+  pageButton: `${ui.focus} w-[72px] shrink-0 cursor-pointer rounded-xl border border-transparent bg-transparent p-1.5 text-left text-sidebar-foreground transition-colors hover:bg-card/75 lg:mb-2 lg:w-full`,
   pageButtonCurrent: "border-primary/60 bg-accent",
   exportWrap: "relative",
   exportMenu: `${ui.card} absolute right-0 top-full z-20 mt-1 flex w-56 flex-col overflow-hidden bg-popover shadow-lg`,
   exportItem: `${ui.focus} cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-2xs font-medium text-foreground transition-colors hover:bg-accent focus-visible:bg-accent`,
-  railNote: "px-1 py-2 text-center text-3xs text-muted-foreground max-[820px]:shrink-0",
+  railNote: "shrink-0 px-1 py-2 text-center text-3xs text-muted-foreground",
   filterChip: `${ui.control} ${ui.focus} min-h-7 bg-background px-2.5 hover:bg-accent`,
   filterChipOn: "border-primary/60 bg-accent text-foreground",
   pageBadge:
@@ -68,19 +68,18 @@ export const styles = {
   pageStatusChanged: "text-primary",
   pageStatusAdded: "text-success",
   pageStatusRemoved: "text-destructive",
-  canvasColumn: "flex min-h-0 min-w-0 flex-col bg-stage max-[820px]:order-1",
+  canvasColumn: "order-1 flex min-h-0 min-w-0 flex-col bg-stage lg:order-none",
   toolbar:
-    "flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-4 py-1.5 max-[560px]:px-2.5",
+    "flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-2.5 py-1.5 sm:px-4",
   toolbarGroup: "flex flex-wrap items-center gap-1.5",
   toolbarNavigation:
-    "flex min-w-0 flex-1 items-center justify-center gap-2 max-[1200px]:order-3 max-[1200px]:basis-full",
+    "order-3 flex min-w-0 flex-1 basis-full items-center justify-center gap-2 2xl:order-none 2xl:basis-auto",
   modeGroup: "flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border border-border bg-muted p-0.5",
   modeButton: `${ui.control} ${ui.focus} min-h-8 border-transparent bg-transparent px-2 disabled:opacity-35`,
   modeButtonCurrent: "border-border bg-card text-foreground",
   iconButton: `${ui.control} ${ui.focus} size-8 p-0 text-sm`,
-  toolbarDivider: "mx-1 h-5 w-px bg-border max-[560px]:hidden",
   /** Fullscreen, reset-zoom, and a shortcut list have no job on a touch screen. */
-  toolbarDesktopOnly: "max-[560px]:hidden",
+  toolbarDesktopOnly: "hidden sm:inline-flex",
   zoomLabel: "min-w-[45px] text-center text-2xs tabular-nums text-muted-foreground",
   stage:
     "relative min-h-[300px] flex-1 touch-none cursor-grab overflow-hidden bg-stage p-[clamp(12px,2vw,28px)] select-none",
@@ -129,8 +128,8 @@ export const styles = {
   semanticLegendAdded: "bg-success",
   semanticLegendRemoved: "bg-destructive",
   semanticLegendChanged: "bg-primary",
-  semanticLegendNote: "ml-auto max-[700px]:basis-full",
-  semanticGrid: "grid min-h-[min(470px,45vh)] grid-cols-2 gap-px bg-stage max-[700px]:grid-cols-1",
+  semanticLegendNote: "ml-auto basis-full md:basis-auto",
+  semanticGrid: "grid min-h-[min(470px,45vh)] grid-cols-1 gap-px bg-stage md:grid-cols-2",
   semanticColumn: "min-w-0 bg-background",
   semanticHeader: `${ui.caps} border-b border-border bg-card px-5 py-3`,
   semanticViewport: "relative w-full overflow-hidden bg-white",
@@ -152,7 +151,7 @@ export const styles = {
   statusAccent: "text-foreground",
   statusProgress: "absolute inset-x-0 top-0 h-0.5 bg-secondary",
   statusProgressFill: "h-full bg-primary transition-[width] duration-200",
-  dialogBackdrop: "fixed inset-0 z-50 grid place-items-center bg-foreground/50 p-4 backdrop-blur-sm max-[520px]:p-0",
+  dialogBackdrop: "fixed inset-0 z-50 grid place-items-center bg-foreground/50 p-0 backdrop-blur-sm sm:p-4",
   settingsDialog: `${ui.dialog} max-h-[min(88vh,640px)] w-[min(92vw,420px)]`,
   settingsBody: "min-h-0 overflow-y-auto px-5 py-5",
   settingsGroup: "not-first:mt-6",
@@ -160,27 +159,31 @@ export const styles = {
   settingsRow: "mt-3 flex items-center justify-between gap-3 text-xs font-medium text-foreground",
   settingsNote: "mt-2 text-2xs leading-relaxed text-muted-foreground",
   settingsCheckbox: `${ui.focus} pdfdiff-switch`,
-  helpDialog: `${ui.dialog} max-h-[min(88vh,780px)] w-[min(92vw,820px)] max-[520px]:h-full max-[520px]:max-h-full max-[520px]:w-full max-[520px]:rounded-none`,
-  helpHeader:
-    "flex shrink-0 items-start justify-between gap-5 border-b border-border bg-card px-6 py-5 max-[520px]:px-4",
+  helpDialog: `${ui.dialog} h-full max-h-full w-full rounded-none sm:h-auto sm:max-h-[min(88vh,780px)] sm:w-[min(92vw,820px)] sm:rounded-xl`,
+  helpHeader: "flex shrink-0 items-start justify-between gap-5 border-b border-border bg-card px-4 py-5 sm:px-6",
   helpTitle: "m-0 text-xl font-semibold tracking-tight",
-  helpBody: "min-h-0 overflow-y-auto px-6 py-6 max-[520px]:px-4",
+  helpBody: "min-h-0 overflow-y-auto px-4 py-6 sm:px-6",
   helpSection: "not-first:mt-7",
   helpSectionTitle: `${ui.caps} m-0`,
-  helpSteps: "mt-3 grid grid-cols-3 gap-3 max-[680px]:grid-cols-1",
+  helpSteps: "mt-3 grid grid-cols-1 gap-3 md:grid-cols-3",
   helpStep: "rounded-xl border border-border bg-background p-3.5",
   helpStepTitle: "mt-3 text-sm font-semibold tracking-tight",
-  helpStepCopy: "mt-1.5 text-xs leading-[1.5] text-muted-foreground",
-  helpModeList: "mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-xs max-[620px]:grid-cols-1",
-  helpMode: "leading-[1.45] text-muted-foreground",
+  helpStepCopy: "mt-1.5 text-xs leading-normal text-muted-foreground",
+  helpModeList: "mt-3 grid grid-cols-1 gap-x-5 gap-y-2 text-xs md:grid-cols-2",
+  helpMode: "leading-normal text-muted-foreground",
   helpModeName: "font-semibold text-foreground",
-  helpShortcutGrid: "mt-3 grid grid-cols-2 gap-x-5 gap-y-2 max-[620px]:grid-cols-1",
-  helpShortcut: "flex items-start gap-2 text-2xs leading-[1.45] text-muted-foreground",
+  helpShortcutGrid: "mt-3 grid grid-cols-1 gap-x-5 gap-y-2 md:grid-cols-2",
+  helpShortcut: "flex items-start gap-2 text-2xs leading-normal text-muted-foreground",
   helpKey:
     "shrink-0 rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-3xs font-semibold text-foreground",
-  helpNote: "mt-6 rounded-xl border border-success/25 bg-success/5 px-3.5 py-3 text-xs leading-[1.5] text-success-ink",
-  helpFooter: "flex shrink-0 items-center justify-end border-t border-border bg-secondary px-6 py-3 max-[520px]:px-4",
+  helpNote: "mt-6 rounded-xl border border-success/25 bg-success/5 px-3.5 py-3 text-xs leading-normal text-success-ink",
+  helpFooter: "flex shrink-0 items-center justify-end border-t border-border bg-secondary px-4 py-3 sm:px-6",
 } as const;
 
 export type TailwindClass = string | false | null | undefined;
-export const styleProps = (...values: TailwindClass[]) => ({ className: twMerge(values.filter(Boolean).join(" ")) });
+/**
+ * Compose classes. Later arguments win, and conflicts inside a single string
+ * are resolved too — several styles below layer `ui.control` under their own
+ * background, and rely on that.
+ */
+export const cx = (...values: TailwindClass[]) => twMerge(values.filter(Boolean).join(" "));

@@ -1,7 +1,7 @@
 import { CloudUpload, FileText, X } from "lucide-react";
 import type { DragEvent } from "react";
 import { Button } from "./button";
-import { styleProps, ui } from "@pdfdiff/viewer-react/ui";
+import { cx, ui } from "@pdfdiff/viewer-react/ui";
 import { formatFileSize, middleTruncate } from "../../lib/format";
 
 type FileDropzoneProps = {
@@ -62,7 +62,7 @@ function SelectedFileActions({
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-3 top-3 z-10 text-muted-foreground hover:bg-secondary hover:text-foreground"
+        className="absolute top-3 right-3 z-10 text-muted-foreground hover:bg-secondary hover:text-foreground"
         aria-label={`Remove ${label.toLowerCase()} file`}
         onClick={onRemove}
       >
@@ -70,12 +70,10 @@ function SelectedFileActions({
       </Button>
       <button
         type="button"
-        className={
-          styleProps(
-            "absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-sm text-xs font-semibold text-primary hover:underline",
-            ui.focus,
-          ).className
-        }
+        className={cx(
+          "absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-sm text-xs font-semibold text-primary hover:underline",
+          ui.focus,
+        )}
         onClick={onChoose}
       >
         Replace file
@@ -87,14 +85,12 @@ function SelectedFileActions({
 export function FileDropzone({ label, accent, file, active, onChoose, onRemove, onDrop, onActive }: FileDropzoneProps) {
   return (
     <div
-      className={
-        styleProps(
-          "relative flex min-h-[184px] min-w-0 flex-col rounded-xl border border-dashed border-input bg-card p-3 transition-colors duration-150",
-          "hover:border-foreground/30 hover:bg-background",
-          active && "border-primary bg-accent",
-          file && (accent ? "border-solid border-primary/60 bg-primary/5" : "border-solid border-border bg-card"),
-        ).className
-      }
+      className={cx(
+        "relative flex min-h-[184px] min-w-0 flex-col rounded-xl border border-dashed border-input bg-card p-3 transition-colors duration-150",
+        "hover:border-foreground/30 hover:bg-background",
+        active && "border-primary bg-accent",
+        file && (accent ? "border-solid border-primary/60 bg-primary/5" : "border-solid border-border bg-card"),
+      )}
       role="group"
       aria-label={`${label} PDF${file ? `: ${file.name}` : ""}`}
       onDragEnter={(event) => {
@@ -107,18 +103,16 @@ export function FileDropzone({ label, accent, file, active, onChoose, onRemove, 
     >
       <button
         type="button"
-        className={
-          styleProps(
-            "flex min-h-[160px] w-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border-0 bg-transparent px-5 py-6 text-center",
-            ui.focus,
-          ).className
-        }
+        className={cx(
+          "flex min-h-[160px] w-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-center rounded-lg border-0 bg-transparent px-5 py-6 text-center",
+          ui.focus,
+        )}
         onClick={onChoose}
       >
         <span className="mb-3 inline-flex size-10 items-center justify-center rounded-full border border-border bg-muted text-primary">
           <DropzonePrompt file={file} />
         </span>
-        <span className={styleProps(ui.caps, accent && "text-primary").className}>{label}</span>
+        <span className={cx(ui.caps, accent && "text-primary")}>{label}</span>
         <FileDetails file={file} />
       </button>
       <SelectedFileActions file={file} label={label} onRemove={onRemove} onChoose={onChoose} />

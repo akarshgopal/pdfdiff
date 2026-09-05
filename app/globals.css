@@ -3,8 +3,6 @@
 @source "./";
 @source "../components";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 * {
   box-sizing: border-box;
 }
@@ -16,8 +14,8 @@ body {
 
 body {
   margin: 0;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -30,8 +28,8 @@ input[type="range"] {
 }
 
 ::selection {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 /* Landing demo: the swipe divider sweeps on its own. */

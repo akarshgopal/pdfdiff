@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { styles, styleProps, ui, type TailwindClass } from "./styles.js";
+import { styles, cx, ui, type TailwindClass } from "./styles.js";
 import type {
   DiffPage,
   DiffRegion,
@@ -52,15 +52,15 @@ function getRegionStyle(region: DiffRegion): CSSProperties {
 }
 
 function PaperFallback({ label }: { label: string }) {
-  if (label.startsWith("No ")) return <div {...styleProps(styles.paperEmpty)}>{label}</div>;
+  if (label.startsWith("No ")) return <div className={cx(styles.paperEmpty)}>{label}</div>;
   return (
-    <div {...styleProps(styles.paperEmpty)} role="status" aria-label={label}>
-      <div {...styleProps(styles.paperSkeleton)} aria-hidden="true">
-        <span {...styleProps(styles.paperSkeletonLine)} />
-        <span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} />
-        <span {...styleProps(styles.paperSkeletonBlock)} />
-        <span {...styleProps(styles.paperSkeletonLine)} />
-        <span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} />
+    <div className={cx(styles.paperEmpty)} role="status" aria-label={label}>
+      <div className={cx(styles.paperSkeleton)} aria-hidden="true">
+        <span className={cx(styles.paperSkeletonLine)} />
+        <span className={cx(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} />
+        <span className={cx(styles.paperSkeletonBlock)} />
+        <span className={cx(styles.paperSkeletonLine)} />
+        <span className={cx(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} />
       </div>
     </div>
   );
@@ -70,7 +70,7 @@ function CanvasNotice({ pending, error }: { pending: boolean; error: string | nu
   if (!pending && !error) return null;
   return (
     <div
-      {...styleProps(styles.canvasNotice, Boolean(error) && styles.canvasNoticeError)}
+      className={cx(styles.canvasNotice, Boolean(error) && styles.canvasNoticeError)}
       role="status"
       aria-live="polite"
     >
@@ -91,7 +91,7 @@ function PageImage({
   missingLabel?: string;
 }) {
   return source ? (
-    <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} />
+    <img className={cx(imageStyle)} src={source} alt={alt} draggable={false} />
   ) : (
     <PaperFallback label={missingLabel} />
   );
@@ -118,14 +118,14 @@ function SemanticNativePane({
 }) {
   const label = side === "earlier" ? "Earlier" : "Newer";
   return (
-    <article {...styleProps(styles.semanticColumn)} aria-label={`${label} native PDF page`}>
-      <header {...styleProps(styles.semanticHeader)}>
+    <article className={cx(styles.semanticColumn)} aria-label={`${label} native PDF page`}>
+      <header className={cx(styles.semanticHeader)}>
         <span>{label}</span>
       </header>
-      <div {...styleProps(styles.semanticViewport)}>
+      <div className={cx(styles.semanticViewport)}>
         {source ? (
           <img
-            {...styleProps(styles.semanticPageImage)}
+            className={cx(styles.semanticPageImage)}
             src={source}
             alt={`${label} version of this page`}
             draggable={false}
@@ -135,7 +135,7 @@ function SemanticNativePane({
         )}
         {source && showHighlights && overlays.length ? (
           <svg
-            {...styleProps(styles.semanticOverlay)}
+            className={cx(styles.semanticOverlay)}
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
             aria-label={`${label} semantic text changes`}
@@ -144,7 +144,7 @@ function SemanticNativePane({
               overlay.quads.map((quad, index) => (
                 <polygon
                   key={`${overlay.id}-${index}`}
-                  {...styleProps(
+                  className={cx(
                     styles.semanticOverlayPolygon,
                     overlay.kind === "added" && styles.semanticOverlayAdded,
                     overlay.kind === "removed" && styles.semanticOverlayRemoved,
@@ -235,32 +235,32 @@ function SemanticPdfPreview({
   }, [selectedRegion, showHighlights]);
 
   return (
-    <div ref={previewRef} {...styleProps(styles.paper, styles.paperTwoUp, styles.semanticPaper)}>
+    <div ref={previewRef} className={cx(styles.paper, styles.paperTwoUp, styles.semanticPaper)}>
       <CanvasNotice pending={pending} error={error} />
       {!waiting ? (
         <>
-          <div {...styleProps(styles.semanticSummary)}>
+          <div className={cx(styles.semanticSummary)}>
             <span>{summary.changes}</span>
             <span>{summary.tokens}</span>
           </div>
-          <div {...styleProps(styles.semanticLegend)}>
+          <div className={cx(styles.semanticLegend)}>
             <span>
-              <i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />
+              <i className={cx(styles.semanticLegendDot, styles.semanticLegendRemoved)} />
               Removed
             </span>
             <span>
-              <i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />
+              <i className={cx(styles.semanticLegendDot, styles.semanticLegendAdded)} />
               Added
             </span>
             <span>
-              <i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />
+              <i className={cx(styles.semanticLegendDot, styles.semanticLegendChanged)} />
               Changed
             </span>
-            <span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span>
+            <span className={cx(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span>
           </div>
         </>
       ) : null}
-      <div {...styleProps(styles.semanticGrid)}>
+      <div className={cx(styles.semanticGrid)}>
         <SemanticNativePane
           side="earlier"
           source={page.beforeSrc}
@@ -279,7 +279,7 @@ function SemanticPdfPreview({
         />
       </div>
       {summary.missingText && !summary.undecodable ? (
-        <div {...styleProps(styles.semanticNoText)}>
+        <div className={cx(styles.semanticNoText)}>
           <strong>No selectable text found</strong>
           <span>Run OCR to calculate semantic text changes.</span>
         </div>
@@ -342,16 +342,16 @@ function SwipePreview({
   };
   const sizingSource = before ?? after;
   return (
-    <div {...styleProps(styles.paper, styles.swipeWrap)}>
+    <div className={cx(styles.paper, styles.swipeWrap)}>
       {sizingSource ? (
-        <img {...styleProps(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} />
+        <img className={cx(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} />
       ) : (
         <PaperFallback label="Preview is still rendering" />
       )}
       {before ? (
-        <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}>
+        <div className={cx(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}>
           <img
-            {...styleProps(styles.swipeLayerImage)}
+            className={cx(styles.swipeLayerImage)}
             src={before}
             alt="Earlier version of this page"
             draggable={false}
@@ -359,12 +359,12 @@ function SwipePreview({
         </div>
       ) : null}
       {after ? (
-        <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}>
-          <img {...styleProps(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} />
+        <div className={cx(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}>
+          <img className={cx(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} />
         </div>
       ) : null}
       <div
-        {...styleProps(styles.swipeHandle)}
+        className={cx(styles.swipeHandle)}
         style={{ left: `${swipe}%` }}
         role="slider"
         aria-label="Swipe position"
@@ -380,7 +380,7 @@ function SwipePreview({
         onPointerUp={pending || error ? undefined : handlePointerEnd}
         onPointerCancel={pending || error ? undefined : handlePointerEnd}
       >
-        <span {...styleProps(styles.swipeDivider)} aria-hidden="true" />
+        <span className={cx(styles.swipeDivider)} aria-hidden="true" />
       </div>
       <CanvasNotice pending={pending} error={error} />
     </div>
@@ -431,17 +431,17 @@ function PagePreview({
 
   if (mode === "side-by-side")
     return (
-      <div {...styleProps(styles.paper, styles.paperTwoUp)}>
+      <div className={cx(styles.paper, styles.paperTwoUp)}>
         <CanvasNotice pending={pairComparisonPending} error={pairError} />
-        <div {...styleProps(styles.sideBySide)}>
-          <div {...styleProps(styles.sidePanel)}>
+        <div className={cx(styles.sideBySide)}>
+          <div className={cx(styles.sidePanel)}>
             <PageImage
               source={before}
               alt="Earlier version of this page"
               missingLabel={page.status === "added" ? "No earlier page — added page" : undefined}
             />
           </div>
-          <div {...styleProps(styles.sidePanel)}>
+          <div className={cx(styles.sidePanel)}>
             <PageImage
               source={after}
               alt="Newer version of this page"
@@ -500,7 +500,7 @@ function DiffPreview({
 }) {
   const regions = (page.regions ?? []).filter((region) => showBoundingBoxes || region.id === selectedRegion);
   return (
-    <div {...styleProps(styles.paper)}>
+    <div className={cx(styles.paper)}>
       {page.layers ? (
         <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" />
       ) : (
@@ -512,17 +512,17 @@ function DiffPreview({
       )}
       <CanvasNotice pending={pending} error={error} />
       {page.status === "changed" ? (
-        <div {...styleProps(styles.changeOverlayLegend)} aria-label="Overlay colours">
-          <span {...styleProps(styles.changeOverlayKey)}>
-            <i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />
+        <div className={cx(styles.changeOverlayLegend)} aria-label="Overlay colours">
+          <span className={cx(styles.changeOverlayKey)}>
+            <i className={cx(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />
             Added
           </span>
-          <span {...styleProps(styles.changeOverlayKey)}>
-            <i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />
+          <span className={cx(styles.changeOverlayKey)}>
+            <i className={cx(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />
             Removed
           </span>
-          <span {...styleProps(styles.changeOverlayKey)}>
-            <i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />
+          <span className={cx(styles.changeOverlayKey)}>
+            <i className={cx(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />
             Modified
           </span>
         </div>
@@ -533,7 +533,7 @@ function DiffPreview({
           type="button"
           aria-label={region.label ?? `${region.kind ?? "changed"} region`}
           title={region.label}
-          {...styleProps(
+          className={cx(
             styles.changeOverlay,
             region.kind === "added" && styles.changeOverlayAdded,
             region.kind === "removed" && styles.changeOverlayRemoved,
@@ -694,15 +694,15 @@ function PanZoomStage({
   return (
     <div
       ref={stageRef}
-      {...styleProps(styles.stage, panning && styles.stagePanning)}
+      className={cx(styles.stage, panning && styles.stagePanning)}
       aria-label="Document canvas. Scroll to pan, pinch or Ctrl-scroll to zoom."
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={stopPanning}
       onPointerCancel={stopPanning}
     >
-      <div {...styleProps(styles.stageCenter)}>
-        <div ref={contentRef} {...styleProps(styles.stageContent)}>
+      <div className={cx(styles.stageCenter)}>
+        <div ref={contentRef} className={cx(styles.stageContent)}>
           {children}
         </div>
       </div>
@@ -725,20 +725,20 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   }, [onClose]);
   return (
     <div
-      {...styleProps(styles.dialogBackdrop)}
+      className={cx(styles.dialogBackdrop)}
       role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section {...styleProps(styles.helpDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-help-title">
-        <header {...styleProps(styles.helpHeader)}>
-          <h2 id="viewer-help-title" {...styleProps(styles.helpTitle)}>
+      <section className={cx(styles.helpDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-help-title">
+        <header className={cx(styles.helpHeader)}>
+          <h2 id="viewer-help-title" className={cx(styles.helpTitle)}>
             How to compare PDFs
           </h2>
           <button
             ref={closeButtonRef}
-            {...styleProps(styles.iconButton)}
+            className={cx(styles.iconButton)}
             type="button"
             aria-label="Close help"
             onClick={onClose}
@@ -746,53 +746,53 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
             ×
           </button>
         </header>
-        <div {...styleProps(styles.helpBody)}>
-          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-start">
-            <h3 id="viewer-help-start" {...styleProps(styles.helpSectionTitle)}>
+        <div className={cx(styles.helpBody)}>
+          <section className={cx(styles.helpSection)} aria-labelledby="viewer-help-start">
+            <h3 id="viewer-help-start" className={cx(styles.helpSectionTitle)}>
               In the workspace
             </h3>
-            <ol {...styleProps(styles.helpSteps)}>
+            <ol className={cx(styles.helpSteps)}>
               {helpSteps.map((step) => (
-                <li key={step.number} {...styleProps(styles.helpStep)}>
-                  <span {...styleProps(styles.helpKey)}>{step.number}</span>
-                  <h4 {...styleProps(styles.helpStepTitle)}>{step.title}</h4>
-                  <p {...styleProps(styles.helpStepCopy)}>{step.copy}</p>
+                <li key={step.number} className={cx(styles.helpStep)}>
+                  <span className={cx(styles.helpKey)}>{step.number}</span>
+                  <h4 className={cx(styles.helpStepTitle)}>{step.title}</h4>
+                  <p className={cx(styles.helpStepCopy)}>{step.copy}</p>
                 </li>
               ))}
             </ol>
           </section>
-          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-modes">
-            <h3 id="viewer-help-modes" {...styleProps(styles.helpSectionTitle)}>
+          <section className={cx(styles.helpSection)} aria-labelledby="viewer-help-modes">
+            <h3 id="viewer-help-modes" className={cx(styles.helpSectionTitle)}>
               View modes
             </h3>
-            <div {...styleProps(styles.helpModeList)}>
+            <div className={cx(styles.helpModeList)}>
               {helpModes.map(([name, copy]) => (
-                <p key={name} {...styleProps(styles.helpMode)}>
-                  <strong {...styleProps(styles.helpModeName)}>{name}</strong> — {copy}
+                <p key={name} className={cx(styles.helpMode)}>
+                  <strong className={cx(styles.helpModeName)}>{name}</strong> — {copy}
                 </p>
               ))}
             </div>
           </section>
-          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-shortcuts">
-            <h3 id="viewer-help-shortcuts" {...styleProps(styles.helpSectionTitle)}>
+          <section className={cx(styles.helpSection)} aria-labelledby="viewer-help-shortcuts">
+            <h3 id="viewer-help-shortcuts" className={cx(styles.helpSectionTitle)}>
               Shortcuts
             </h3>
-            <div {...styleProps(styles.helpShortcutGrid)}>
+            <div className={cx(styles.helpShortcutGrid)}>
               {helpShortcuts.map(([shortcut, copy]) => (
-                <p key={shortcut} {...styleProps(styles.helpShortcut)}>
-                  <kbd {...styleProps(styles.helpKey)}>{shortcut}</kbd>
+                <p key={shortcut} className={cx(styles.helpShortcut)}>
+                  <kbd className={cx(styles.helpKey)}>{shortcut}</kbd>
                   <span>{copy}</span>
                 </p>
               ))}
             </div>
           </section>
-          <p {...styleProps(styles.helpNote)}>
+          <p className={cx(styles.helpNote)}>
             <strong>Colours and view filters apply immediately.</strong> Changing page matching runs the comparison
             again.
           </p>
         </div>
-        <footer {...styleProps(styles.helpFooter)}>
-          <button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>
+        <footer className={cx(styles.helpFooter)}>
+          <button className={cx(styles.quietButton)} type="button" onClick={onClose}>
             Back to comparison
           </button>
         </footer>
@@ -824,7 +824,7 @@ function ChangeInspector({
     <section className="shrink-0 border-t border-border bg-card px-4 py-2" aria-label="Changed areas">
       <div className="flex items-center gap-3 text-xs">
         <button
-          {...styleProps(styles.quietButton)}
+          className={cx(styles.quietButton)}
           disabled={index <= 0}
           onClick={() => onSelect(regions[index - 1]!.id)}
         >
@@ -836,14 +836,14 @@ function ChangeInspector({
             : `${regions.length} changed areas on this page`}
         </span>
         <button
-          {...styleProps(styles.quietButton)}
+          className={cx(styles.quietButton)}
           disabled={index >= regions.length - 1}
           onClick={() => onSelect(regions[index + 1]!.id)}
         >
           {region ? "Next area" : "Inspect changes"}
         </button>
         {region ? (
-          <button {...styleProps(styles.quietButton)} onClick={() => onSelect(null)}>
+          <button className={cx(styles.quietButton)} onClick={() => onSelect(null)}>
             Close inspection
           </button>
         ) : null}
@@ -952,7 +952,7 @@ export function PdfDiffViewer({
   }, []);
   if (!currentPage || !previewPage) return null;
   return (
-    <section {...styleProps(styles.viewerRoot)} aria-label="PDF comparison workspace">
+    <section className={cx(styles.viewerRoot)} aria-label="PDF comparison workspace">
       <WorkspaceHeader
         comparison={comparison}
         summary={summary}
@@ -960,7 +960,7 @@ export function PdfDiffViewer({
         onNewComparison={onNewComparison}
         headerActions={headerActions}
       />
-      <div {...styleProps(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
+      <div className={cx(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
         <PageRail
           onlyChanged={settings.onlyChanged}
           pages={pages}
@@ -968,7 +968,7 @@ export function PdfDiffViewer({
           onSelectPage={selectPage}
           onOnlyChanged={(onlyChanged) => setSettings((current) => ({ ...current, onlyChanged }))}
         />
-        <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
+        <section className={cx(styles.canvasColumn)} aria-label="PDF comparison">
           <ViewerToolbar
             mode={mode}
             onModeChange={changeMode}
@@ -985,8 +985,8 @@ export function PdfDiffViewer({
               else downloadReport(comparison, choice);
             }}
             navigation={
-              <div {...styleProps(styles.toolbarNavigation)} aria-label="Page navigation">
-                <button {...styleProps(styles.quietButton)} disabled={!hasPreviousPage} onClick={() => stepPage(-1)}>
+              <div className={cx(styles.toolbarNavigation)} aria-label="Page navigation">
+                <button className={cx(styles.quietButton)} disabled={!hasPreviousPage} onClick={() => stepPage(-1)}>
                   ← Previous page
                 </button>
                 <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
@@ -995,17 +995,17 @@ export function PdfDiffViewer({
                     {pagePairLabel(previewPage, pageIndex)}
                   </span>
                   {comparison.comparePagePair ? (
-                    <button {...styleProps(styles.quietButton)} onClick={() => setShowPairing(true)}>
+                    <button className={cx(styles.quietButton)} onClick={() => setShowPairing(true)}>
                       Change pairing
                     </button>
                   ) : null}
                   {manualPair ? (
-                    <button {...styleProps(styles.quietButton)} onClick={() => selectPage(pageIndex)}>
+                    <button className={cx(styles.quietButton)} onClick={() => selectPage(pageIndex)}>
                       Return to document
                     </button>
                   ) : null}
                 </div>
-                <button {...styleProps(styles.quietButton)} disabled={!hasNextPage} onClick={() => stepPage(1)}>
+                <button className={cx(styles.quietButton)} disabled={!hasNextPage} onClick={() => stepPage(1)}>
                   Next page →
                 </button>
               </div>

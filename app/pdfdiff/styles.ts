@@ -1,10 +1,10 @@
 import { ui } from "@pdfdiff/viewer-react/ui";
 
-export { styleProps, type TailwindClass } from "@pdfdiff/viewer-react/ui";
+export { cx, type TailwindClass } from "@pdfdiff/viewer-react/ui";
 export { ui };
 
 /** One page gutter and one content width for every screen, marketing or legal. */
-const gutter = "px-8 max-[820px]:px-5";
+const gutter = "px-5 lg:px-8";
 const container = "mx-auto w-full max-w-[1120px]";
 
 export const styles = {
@@ -13,46 +13,45 @@ export const styles = {
   topbar: `${gutter} flex min-h-[56px] items-center justify-between gap-5 border-b border-border bg-card`,
   logo: "inline-flex items-center gap-2.5 whitespace-nowrap text-base font-semibold tracking-tight text-foreground no-underline",
   logoMark: "grid size-[26px] place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground",
-  intro: `${gutter} ${container} grid grid-cols-[minmax(0,460px)_minmax(0,1fr)] items-center gap-x-14 gap-y-10 pb-16 pt-[clamp(36px,4.5vw,60px)] max-[980px]:grid-cols-1 max-[980px]:text-center max-[820px]:pb-12 max-[820px]:pt-10`,
-  introMain: "flex flex-col items-start max-[980px]:items-center",
+  intro: `${gutter} ${container} grid grid-cols-1 items-center gap-x-14 gap-y-10 pb-12 pt-10 text-center lg:pb-16 lg:pt-[clamp(36px,4.5vw,60px)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:text-left`,
+  introMain: "flex flex-col items-center xl:items-start",
   eyebrow: `${ui.caps} m-0 text-primary`,
-  headline: "text-[clamp(32px,4vw,48px)] font-semibold leading-[1.05] tracking-tighter",
+  headline: "text-[clamp(32px,4vw,48px)] font-semibold leading-display tracking-tighter",
   headlineAccent: "not-italic text-primary",
   /** With both PDFs chosen the pitch has landed; the action takes the room back. */
   headlineCompact: "text-[clamp(24px,2.6vw,30px)]",
-  uploadGrid: "mt-8 grid w-full grid-cols-[1fr_auto_1fr] gap-3.5 max-[820px]:grid-cols-1",
-  swapUpload: `${ui.control} ${ui.focus} z-[1] size-[42px] self-center rounded-full bg-background text-lg font-bold text-primary transition-transform duration-150 hover:rotate-180 hover:bg-accent hover:text-primary max-[820px]:mx-auto max-[820px]:-my-1`,
+  uploadGrid: "mt-8 grid w-full grid-cols-1 gap-3.5 lg:grid-cols-[1fr_auto_1fr]",
+  swapUpload: `${ui.control} ${ui.focus} z-[1] -my-1 mx-auto size-[42px] self-center rounded-full bg-background text-lg font-bold text-primary transition-transform duration-150 hover:rotate-180 hover:bg-accent hover:text-primary lg:mx-0 lg:my-0`,
   rememberOption: `${ui.focus} flex cursor-pointer items-center gap-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground`,
   rememberCheckbox: `${ui.focus} pdfdiff-switch`,
-  introActions: "mt-5 flex w-full flex-col items-start gap-3 max-[980px]:items-center",
+  introActions: "mt-5 flex w-full flex-col items-center gap-3 xl:items-start",
   compareButton: "min-h-12 px-6",
   compareButtonReady: "w-full",
   privacyNote: "inline-flex items-center gap-2 text-xs leading-relaxed text-muted-foreground",
   privacyDot: "size-1.5 shrink-0 rounded-full bg-success",
   errorBox:
-    "mt-4 w-full rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left text-xs leading-[1.5] text-destructive",
+    "mt-4 w-full rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left text-xs leading-normal text-destructive",
   pageDropActive: "outline-dashed outline-2 -outline-offset-4 outline-primary",
-  facts: `${gutter} ${container} mb-16 grid grid-cols-3 gap-x-10 gap-y-6 border-t border-border pt-8 text-xs leading-[1.6] text-muted-foreground max-[820px]:grid-cols-1`,
+  facts: `${gutter} ${container} mb-16 grid grid-cols-1 gap-x-10 gap-y-6 border-t border-border pt-8 text-xs leading-relaxed text-muted-foreground lg:grid-cols-3`,
   factTitle: "mb-1 block text-sm font-medium tracking-tight text-foreground",
   history: `${gutter} ${container} mb-16 w-full text-left`,
   historyHeader: "flex items-end justify-between gap-4",
   historyTitle: "m-0 text-[clamp(19px,2.2vw,24px)] font-semibold leading-tight tracking-tight",
   historyList: "mt-5 grid gap-2.5",
-  historyCard: `${ui.card} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 px-4 py-3.5 max-[650px]:grid-cols-1`,
+  historyCard: `${ui.card} grid grid-cols-1 items-center gap-x-5 gap-y-2 px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_auto]`,
   historyFiles: "flex min-w-0 items-center gap-2 text-sm",
   historyFileName: "min-w-0 truncate font-medium",
   historyArrow: "shrink-0 text-primary",
   historyMeta: "flex flex-wrap gap-x-4 gap-y-1 text-2xs text-muted-foreground",
-  historyResume:
-    "col-start-2 row-span-2 row-start-1 max-[650px]:col-start-1 max-[650px]:row-span-1 max-[650px]:row-start-auto max-[650px]:justify-self-start",
+  historyResume: "justify-self-start md:col-start-2 md:row-span-2 md:row-start-1 md:justify-self-auto",
   historyNote: "mt-3 text-xs leading-relaxed text-muted-foreground",
   demo: `${ui.card} w-full overflow-hidden text-left`,
   demoBar: "flex items-center gap-2 border-b border-border bg-card px-3 py-2.5 text-2xs",
   demoChip: "min-w-0 truncate rounded-lg border border-border bg-background px-2 py-1 font-medium",
   demoArrow: "shrink-0 text-primary",
-  demoCount: "ml-auto shrink-0 rounded-lg bg-primary/10 px-2 py-1 font-medium text-primary max-[560px]:hidden",
+  demoCount: "ml-auto shrink-0 rounded-lg bg-primary/10 px-2 py-1 hidden font-medium text-primary sm:inline",
   /** One stage height for every mode, so switching view never moves the page. */
-  demoStage: "grid h-[444px] place-items-center bg-stage p-[clamp(10px,2vw,22px)] max-[560px]:h-[360px]",
+  demoStage: "grid h-[360px] place-items-center bg-stage p-[clamp(10px,2vw,22px)] sm:h-[444px]",
   demoPage: "block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm",
   demoSplit: "grid h-full w-full grid-cols-2 place-items-center gap-2",
   demoSwipe: "relative w-full max-w-[300px]",
@@ -63,7 +62,7 @@ export const styles = {
   demoTab: `${ui.control} ${ui.focus} min-h-7 border-transparent bg-transparent px-2.5 text-2xs`,
   demoTabCurrent: "border-border bg-background text-foreground",
   /** Two lines are reserved so a longer caption cannot resize the card. */
-  demoCaption: "min-h-[2lh] min-w-0 flex-1 text-2xs leading-[1.5] text-muted-foreground max-[560px]:basis-full",
+  demoCaption: "min-h-[2lh] min-w-0 flex-1 basis-full text-2xs leading-normal text-muted-foreground sm:basis-auto",
   footer: `${gutter} mt-auto border-t border-border bg-card`,
   footerInner: `${container} flex min-h-16 items-center justify-end`,
   footerLinks: "flex flex-wrap items-center gap-x-5 gap-y-2",
@@ -78,13 +77,13 @@ export const styles = {
   loadingBlock: "mt-auto h-7 rounded-lg bg-secondary",
   loadingChange: "mt-auto h-7 rounded-lg border border-border bg-primary/10",
   loadingTitle: "mt-4 text-lg font-semibold tracking-tight",
-  loadingCopy: "mt-2 text-xs leading-[1.5] text-muted-foreground",
+  loadingCopy: "mt-2 text-xs leading-normal text-muted-foreground",
   loadingCancel: "mt-4",
   /** Legal pages: same shell, narrower measure. */
   legalArticle: `${gutter} mx-auto w-full max-w-[800px] flex-1 pb-20 pt-[clamp(48px,7vw,82px)]`,
   legalBack: `${ui.focus} rounded-lg text-sm font-medium text-muted-foreground no-underline hover:text-foreground`,
   legalHeader: "mt-8 border-b border-border pb-10",
-  legalTitle: "mt-3 text-[clamp(34px,5vw,52px)] font-semibold leading-[1.05] tracking-tighter",
+  legalTitle: "mt-3 text-[clamp(34px,5vw,52px)] font-semibold leading-display tracking-tighter",
   legalUpdated: "mt-4 text-sm text-muted-foreground",
   legalBody: "mt-10 grid gap-9",
   legalSection: "border-t border-border pt-8 first:border-0 first:pt-0",

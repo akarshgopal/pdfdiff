@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent, DragEvent, RefObject } from "react";
 import { Button } from "../../components/ui/button";
 import { FileDropzone } from "../../components/ui/file-dropzone";
-import { styles, styleProps } from "./styles";
+import { styles, cx } from "./styles";
 import { AppHeader } from "./AppHeader";
 import { AppFooter } from "./AppFooter";
 import { HeroDemo } from "./HeroDemo";
@@ -74,7 +74,7 @@ export function UploadScreen({
   useEnterToCompare(ready, onCompare);
   return (
     <main
-      {...styleProps(styles.root, pageDrag && styles.pageDropActive)}
+      className={cx(styles.root, pageDrag && styles.pageDropActive)}
       onDragEnter={(event) => {
         if (event.dataTransfer.types.includes("Files")) setPageDrag(true);
       }}
@@ -88,16 +88,16 @@ export function UploadScreen({
         onDropAnywhere(Array.from(event.dataTransfer.files ?? []));
       }}
     >
-      <div {...styleProps(styles.shell)}>
+      <div className={cx(styles.shell)}>
         <AppHeader />
-        <section {...styleProps(styles.intro)} aria-labelledby="upload-heading">
-          <div {...styleProps(styles.introMain)}>
-            <h1 id="upload-heading" {...styleProps(styles.headline, ready && styles.headlineCompact)}>
+        <section className={cx(styles.intro)} aria-labelledby="upload-heading">
+          <div className={cx(styles.introMain)}>
+            <h1 id="upload-heading" className={cx(styles.headline, ready && styles.headlineCompact)}>
               Compare PDFs.
               <br />
-              <em {...styleProps(styles.headlineAccent)}>See what changed.</em>
+              <em className={cx(styles.headlineAccent)}>See what changed.</em>
             </h1>
-            <div {...styleProps(styles.uploadGrid)}>
+            <div className={cx(styles.uploadGrid)}>
               <FileDropzone
                 label="Earlier"
                 file={earlierFile}
@@ -108,7 +108,7 @@ export function UploadScreen({
                 onDrop={(event) => onDrop("earlier", event)}
               />
               <button
-                {...styleProps(styles.swapUpload)}
+                className={cx(styles.swapUpload)}
                 type="button"
                 aria-label="Swap earlier and newer files"
                 onClick={onSwap}
@@ -128,7 +128,7 @@ export function UploadScreen({
             </div>
             <input
               ref={inputEarlier}
-              {...styleProps("sr-only")}
+              className={cx("sr-only")}
               type="file"
               multiple
               accept="application/pdf,.pdf"
@@ -137,29 +137,29 @@ export function UploadScreen({
             />
             <input
               ref={inputNewer}
-              {...styleProps("sr-only")}
+              className={cx("sr-only")}
               type="file"
               multiple
               accept="application/pdf,.pdf"
               aria-label="Choose one or two PDFs for newer and earlier"
               onChange={(event) => onInput("newer", event)}
             />
-            <div {...styleProps(styles.introActions)}>
+            <div className={cx(styles.introActions)}>
               <Button
                 size="lg"
-                className={styleProps(styles.compareButton, ready && styles.compareButtonReady).className}
+                className={cx(styles.compareButton, ready && styles.compareButtonReady)}
                 disabled={!ready}
                 onClick={onCompare}
               >
                 Compare <span aria-hidden="true">→</span>
               </Button>
-              <p {...styleProps(styles.privacyNote)}>
-                <span {...styleProps(styles.privacyDot)} aria-hidden="true" />
+              <p className={cx(styles.privacyNote)}>
+                <span className={cx(styles.privacyDot)} aria-hidden="true" />
                 Files are compared in this browser and never uploaded.
               </p>
-              <label {...styleProps(styles.rememberOption)}>
+              <label className={cx(styles.rememberOption)}>
                 <input
-                  {...styleProps(styles.rememberCheckbox)}
+                  className={cx(styles.rememberCheckbox)}
                   type="checkbox"
                   checked={rememberFiles}
                   onChange={(event) => onRememberFilesChange(event.target.checked)}
@@ -168,7 +168,7 @@ export function UploadScreen({
               </label>
             </div>
             {error ? (
-              <div {...styleProps(styles.errorBox)} role="alert">
+              <div className={cx(styles.errorBox)} role="alert">
                 {error}
               </div>
             ) : null}
@@ -187,18 +187,18 @@ export function UploadScreen({
 
 function Facts() {
   return (
-    <section {...styleProps(styles.facts)} aria-label="What pdfdiff does">
+    <section className={cx(styles.facts)} aria-label="What pdfdiff does">
       <p>
-        <strong {...styleProps(styles.factTitle)}>What it catches</strong>Text edits, moved content, images and vector
+        <strong className={cx(styles.factTitle)}>What it catches</strong>Text edits, moved content, images and vector
         artwork, and pages added or removed — matched up even when a change shifts everything after it.
       </p>
       <p>
-        <strong {...styleProps(styles.factTitle)}>Any PDF up to 150 MB</strong>Drawings, scans, and exports from any
+        <strong className={cx(styles.factTitle)}>Any PDF up to 150 MB</strong>Drawings, scans, and exports from any
         tool. Drop both files anywhere on this page, or drop two at once to fill both slots.
       </p>
       <p>
-        <strong {...styleProps(styles.factTitle)}>Nothing leaves this device</strong>The comparison runs in your
-        browser. Saved comparisons stay in this browser&rsquo;s storage and clearing history deletes them.
+        <strong className={cx(styles.factTitle)}>Nothing leaves this device</strong>The comparison runs in your browser.
+        Saved comparisons stay in this browser&rsquo;s storage and clearing history deletes them.
       </p>
     </section>
   );
@@ -214,30 +214,30 @@ function ComparisonHistory({
   onClear: () => void;
 }) {
   return (
-    <section {...styleProps(styles.history)} aria-labelledby="history-heading">
-      <div {...styleProps(styles.historyHeader)}>
-        <h2 id="history-heading" {...styleProps(styles.historyTitle)}>
+    <section className={cx(styles.history)} aria-labelledby="history-heading">
+      <div className={cx(styles.historyHeader)}>
+        <h2 id="history-heading" className={cx(styles.historyTitle)}>
           Saved comparisons
         </h2>
         <Button variant="ghost" size="sm" onClick={onClear}>
           Clear history
         </Button>
       </div>
-      <div {...styleProps(styles.historyList)}>
+      <div className={cx(styles.historyList)}>
         {history.map((item) => (
-          <article key={item.id} {...styleProps(styles.historyCard)}>
-            <div {...styleProps(styles.historyFiles)}>
-              <strong {...styleProps(styles.historyFileName)} title={item.earlierName}>
+          <article key={item.id} className={cx(styles.historyCard)}>
+            <div className={cx(styles.historyFiles)}>
+              <strong className={cx(styles.historyFileName)} title={item.earlierName}>
                 {item.earlierName}
               </strong>
-              <span {...styleProps(styles.historyArrow)} aria-hidden="true">
+              <span className={cx(styles.historyArrow)} aria-hidden="true">
                 →
               </span>
-              <strong {...styleProps(styles.historyFileName)} title={item.newerName}>
+              <strong className={cx(styles.historyFileName)} title={item.newerName}>
                 {item.newerName}
               </strong>
             </div>
-            <div {...styleProps(styles.historyMeta)}>
+            <div className={cx(styles.historyMeta)}>
               <span>{formatFileSize(item.earlierSize + item.newerSize)}</span>
               <span>Saved {new Date(item.updatedAt).toLocaleDateString()}</span>
             </div>
@@ -247,7 +247,7 @@ function ComparisonHistory({
           </article>
         ))}
       </div>
-      <p {...styleProps(styles.historyNote)}>Clearing history deletes every saved copy.</p>
+      <p className={cx(styles.historyNote)}>Clearing history deletes every saved copy.</p>
     </section>
   );
 }
