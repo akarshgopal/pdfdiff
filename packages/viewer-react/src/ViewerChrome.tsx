@@ -1,10 +1,10 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronsLeft, ChevronsRight, Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
-import { styles, styleProps } from "./styles.js";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
+import { styles, styleProps, ui } from "./styles.js";
 import type { CSSProperties } from "react";
-import type { DiffComparison, DiffPage, DiffViewMode, OverlayStyle, SourceSide, ViewerSettings } from "./types.js";
-import { MAX_ZOOM, MIN_ZOOM, pagePairDescription, pagePairLabel, pageStatus, statusSymbol, viewModes, ZOOM_STEP } from "./viewer-utils.js";
-import { isNoisePage, summaryHeadline, type ComparisonSummary } from "./summary.js";
+import type { DiffComparison, DiffPage, DiffViewMode, OverlayStyle, ViewerSettings } from "./types.js";
+import { MAX_ZOOM, MIN_ZOOM, pagePairDescription, pagePairLabel, pageStatus, statusSymbol, viewModes, visiblePageIndexes, ZOOM_STEP } from "./viewer-utils.js";
+import { summaryHeadline, type ComparisonSummary } from "./summary.js";
 import type { ExportChoice } from "./export.js";
 
 function ThumbPlaceholder() {
@@ -55,33 +55,6 @@ function IconButton({ label, icon, onClick, disabled, active, expanded, desktopO
   return <button {...styleProps(styles.iconButton, active && styles.modeButtonCurrent, desktopOnly && styles.toolbarDesktopOnly)} type="button" aria-label={label} title={label} disabled={disabled} aria-expanded={expanded} aria-haspopup={expanded === undefined ? undefined : "menu"} onClick={onClick}>{icon}</button>;
 }
 
-function UnifiedPageNavigation({ earlierPageIndex, newerPageIndex, earlierPageCount, newerPageCount, onPageChange }: { earlierPageIndex: number; newerPageIndex: number; earlierPageCount: number; newerPageCount: number; onPageChange: (side: SourceSide, index: number) => void }) {
-  const pageRow = (side: SourceSide, pageIndex: number, pageCount: number) => {
-    const shortLabel = side === "earlier" ? "A" : "B";
-    const sourceLabel = side === "earlier" ? "source A" : "source B";
-    return <div {...styleProps(styles.unifiedPageRow)}><button {...styleProps(styles.railPageButton)} type="button" aria-label={`Previous ${sourceLabel} page`} disabled={pageIndex === 0} onClick={() => onPageChange(side, pageIndex - 1)}>←</button><span {...styleProps(styles.unifiedPagePosition)} aria-live="polite"><span {...styleProps(styles.unifiedPageLabel)}>{shortLabel}</span><strong>{pageCount ? `${pageIndex + 1} / ${pageCount}` : "—"}</strong></span><button {...styleProps(styles.railPageButton)} type="button" aria-label={`Next ${sourceLabel} page`} disabled={pageIndex >= pageCount - 1} onClick={() => onPageChange(side, pageIndex + 1)}>→</button></div>;
-  };
-  return <div {...styleProps(styles.unifiedPageNavigation)} role="group" aria-label="Independent PDF page navigation">{pageRow("earlier", earlierPageIndex, earlierPageCount)}{pageRow("newer", newerPageIndex, newerPageCount)}</div>;
-}
-
-interface RailFilters {
-  readonly onlyChanged?: boolean;
-  readonly hideNoise?: boolean;
-  readonly pageIndex: number;
-}
-
-/** The selected page always stays in the rail so a filter never strips the view out from under it. */
-function railPageVisible(page: DiffPage, index: number, filters: RailFilters): boolean {
-  if (index === filters.pageIndex) return true;
-  const status = pageStatus(page);
-  if (filters.hideNoise && isNoisePage(page)) return false;
-  return !filters.onlyChanged || status !== "same";
-}
-
-function visiblePages(pages: ReadonlyArray<DiffPage>, filters: RailFilters): Array<{ page: DiffPage; index: number }> {
-  return pages.map((page, index) => ({ page, index })).filter(({ page, index }) => railPageVisible(page, index, filters));
-}
-
 function pageThumbnail(page: DiffPage): string | undefined {
   return page.diffSrc ?? page.afterSrc ?? page.beforeSrc;
 }
@@ -96,34 +69,43 @@ function pageStatusStyle(status: NonNullable<DiffPage["status"]>) {
 function PageRailItem({ page, index, selected, onSelect }: { page: DiffPage; index: number; selected: boolean; onSelect: (index: number) => void }) {
   const state = pageStatus(page);
   const thumbnail = pageThumbnail(page);
-  const status = page.changedPercent ? `${page.changedPercent.toFixed(1)}%` : statusSymbol(state);
+  const status = statusSymbol(state);
   return <button {...styleProps(styles.pageButton, selected && styles.pageButtonCurrent)} type="button" aria-label={pagePairDescription(page, index, state)} aria-current={selected ? "page" : undefined} onClick={() => onSelect(index)}><div {...styleProps(styles.pageThumb)}>{thumbnail ? <img {...styleProps(styles.pageThumbImage)} src={thumbnail} alt="Comparison overlay preview" loading="lazy" decoding="async" draggable={false} /> : <ThumbPlaceholder />}{page.alignment === "moved" ? <span {...styleProps(styles.pageBadge)}>moved</span> : null}</div><div {...styleProps(styles.pageNumber)}><span>{pagePairLabel(page, index)}</span><span {...styleProps(styles.pageStatus, pageStatusStyle(state))}>{status}</span></div></button>;
 }
 
-export function PageRail({ pages, pageIndex, earlierPageIndex, newerPageIndex, earlierPageCount, newerPageCount, onSelectPage, onSourcePageChange, onlyChanged, hideNoise }: { pages: ReadonlyArray<DiffPage>; onlyChanged?: boolean; hideNoise?: boolean; pageIndex: number; earlierPageIndex: number; newerPageIndex: number; earlierPageCount: number; newerPageCount: number; onSelectPage: (index: number) => void; onSourcePageChange: (side: SourceSide, index: number) => void }) {
-  const visible = useMemo(
-    () => visiblePages(pages, { onlyChanged, hideNoise, pageIndex }),
-    [pages, onlyChanged, hideNoise, pageIndex],
-  );
+export function PageRail({ pages, pageIndex, onSelectPage, onlyChanged, onOnlyChanged }: { pages: ReadonlyArray<DiffPage>; onlyChanged: boolean; pageIndex: number; onSelectPage: (index: number) => void; onOnlyChanged: (value: boolean) => void }) {
+  const visible = visiblePageIndexes(pages, onlyChanged, pageIndex);
   if (pages.length <= 1) return null;
-  const hidden = pages.length - visible.length;
-  return (
-    <aside {...styleProps(styles.pageRail)} aria-label="Pages">
-      <div {...styleProps(styles.railHeader)}>
-        <h2 {...styleProps(styles.railHeading)}>Pages</h2>
-        <UnifiedPageNavigation earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onPageChange={onSourcePageChange} />
-      </div>
-      {visible.map(({ page, index }) => <PageRailItem key={page.index} page={page} index={index} selected={index === pageIndex} onSelect={onSelectPage} />)}
-      {hidden ? <p {...styleProps(styles.railNote)}>{hidden} pages hidden by filters</p> : null}
-    </aside>
-  );
+  return <aside {...styleProps(styles.pageRail)} aria-label="Pages">
+    <div {...styleProps(styles.railHeader)}><h2 {...styleProps(styles.railHeading)}>Pages</h2>
+      <label className="flex items-center gap-2 text-2xs text-muted-foreground"><input className={`${ui.focus} pdfdiff-switch`} type="checkbox" checked={onlyChanged} onChange={(event) => onOnlyChanged(event.target.checked)} />Only changed</label>
+    </div>
+    {visible.map((index) => <PageRailItem key={pages[index]!.index} page={pages[index]!} index={index} selected={index === pageIndex} onSelect={onSelectPage} />)}
+  </aside>;
 }
 
-export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnavailable, isFullscreen, onToggleFullscreen, onSettings, onHelp, onExport, canExportImage, onStepChange, hasChanges }: {
+export function PairingDialog({ earlier, newer, earlierCount, newerCount, onApply, onClose }: { earlier?: number; newer?: number; earlierCount: number; newerCount: number; onApply: (earlier: number, newer: number) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { ref.current?.showModal(); }, []);
+  return <dialog ref={ref} className={`${ui.dialog} m-auto w-80 p-5 text-foreground backdrop:bg-foreground/50`} onCancel={onClose} onClose={onClose} aria-labelledby="pairing-title">
+    <form className="flex flex-col gap-4" onSubmit={(event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const a = Number(data.get("earlier")), b = Number(data.get("newer"));
+      if (!Number.isInteger(a) || a < 1 || a > earlierCount || !Number.isInteger(b) || b < 1 || b > newerCount) return;
+      onApply(a, b); onClose();
+    }}>
+      <h2 id="pairing-title" className="text-lg font-semibold tracking-tight">Change pairing</h2>
+      <p className="text-xs text-muted-foreground">Compare these pages temporarily. Select a page in the sidebar to return to the document comparison.</p>
+      {([["earlier", earlier, earlierCount], ["newer", newer, newerCount]] as const).map(([side, value, count]) => <label key={side} className="flex items-center justify-between gap-3 text-sm">{side === "earlier" ? "Earlier page" : "Newer page"}<input className={`${ui.focus} w-20 rounded-lg border border-border bg-card p-2 text-foreground`} type="number" name={side} required min={1} max={count} defaultValue={value ?? 1} /></label>)}
+      <div className="flex justify-end gap-2"><button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>Cancel</button><button {...styleProps(styles.quietButton)} type="submit">Compare these pages</button></div>
+    </form>
+  </dialog>;
+}
+
+export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnavailable, isFullscreen, onToggleFullscreen, onSettings, onHelp, onExport, canExportImage, navigation }: {
   mode: DiffViewMode;
   onModeChange: (mode: DiffViewMode) => void;
-  onStepChange: (direction: 1 | -1) => void;
-  hasChanges: boolean;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   textUnavailable?: boolean;
@@ -133,6 +115,7 @@ export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnav
   onHelp: () => void;
   onExport?: (choice: ExportChoice) => void;
   canExportImage: boolean;
+  navigation?: ReactNode;
 }) {
   return (
     <div {...styleProps(styles.toolbar)}>
@@ -140,10 +123,8 @@ export function ViewerToolbar({ mode, onModeChange, zoom, onZoomChange, textUnav
         const disabled = item.id === "semantic-text" && textUnavailable;
         return <button key={item.id} {...styleProps(styles.modeButton, mode === item.id && styles.modeButtonCurrent)} type="button" disabled={disabled} aria-pressed={mode === item.id} aria-keyshortcuts={item.shortcut} title={disabled ? "Text comparison unavailable: this PDF has no Unicode mapping" : `${item.label} (${item.shortcut})`} onClick={() => onModeChange(item.id)}>{item.label}</button>;
       })}</div>
+      {navigation}
       <div {...styleProps(styles.toolbarGroup)}>
-        <IconButton label="Previous change" icon={<ChevronsLeft size={16} />} disabled={!hasChanges} onClick={() => onStepChange(-1)} />
-        <IconButton label="Next change" icon={<ChevronsRight size={16} />} disabled={!hasChanges} onClick={() => onStepChange(1)} />
-        <span {...styleProps(styles.toolbarDivider)} aria-hidden="true" />
         <IconButton label="Zoom out" icon={<ZoomOut size={16} />} disabled={zoom <= MIN_ZOOM} onClick={() => onZoomChange(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))} />
         <span {...styleProps(styles.zoomLabel)}>{zoom}%</span>
         <IconButton label="Zoom in" icon={<ZoomIn size={16} />} disabled={zoom >= MAX_ZOOM} onClick={() => onZoomChange(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))} />
@@ -200,8 +181,6 @@ export function SettingsDialog({ overlay, onOverlayChange, settings, onSettingsC
           <section {...styleProps(styles.settingsGroup)}>
             <h3 {...styleProps(styles.settingsGroupTitle)}>View</h3>
             <SettingsCheckbox label="Outline changed regions" checked={settings.showBoundingBoxes} onChange={(value) => update("showBoundingBoxes", value)} />
-            <SettingsCheckbox label="Hide reflow noise" checked={settings.hideNoise} onChange={(value) => update("hideNoise", value)} />
-            <SettingsCheckbox label="Only changed pages" checked={settings.onlyChanged} onChange={(value) => update("onlyChanged", value)} />
           </section>
           {onMatchPagesChange ? (
             <section {...styleProps(styles.settingsGroup)}>

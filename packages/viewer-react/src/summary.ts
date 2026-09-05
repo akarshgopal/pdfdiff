@@ -1,6 +1,5 @@
 import type { ReportTotals } from "@pdfdiff/core";
-import type { DiffComparison, DiffPage } from "./types.js";
-import { pageStatus } from "./viewer-utils.js";
+import type { DiffComparison } from "./types.js";
 import { reportForComparison } from "./export.js";
 
 /**
@@ -12,18 +11,13 @@ import { reportForComparison } from "./export.js";
 
 export type ComparisonSummary = ReportTotals;
 
-/** A page that changed only through reflow or formatting is noise, not an edit. */
-export function isNoisePage(page: DiffPage): boolean {
-  return pageStatus(page) === "changed" && page.noticeable === false;
-}
-
 export function summarizeComparison(comparison: DiffComparison): ComparisonSummary {
   return reportForComparison(comparison).totals;
 }
 
 export function summaryHeadline(summary: ComparisonSummary): string {
-  if (summary.changedPages + summary.addedPages + summary.removedPages === 0) {
-    return summary.noisePages > 0 ? "No substantive changes" : "The documents are identical";
+  if (summary.changedPages + summary.addedPages + summary.removedPages + summary.movedPages === 0) {
+    return "No differences detected at current settings";
   }
   if (summary.pages === 1 && summary.changedPages === 1 && !summary.addedPages && !summary.removedPages) return "1 page changed";
   const parts = [`${summary.changedPages} changed`];
@@ -31,8 +25,4 @@ export function summaryHeadline(summary: ComparisonSummary): string {
   if (summary.removedPages) parts.push(`${summary.removedPages} removed`);
   if (summary.movedPages) parts.push(`${summary.movedPages} moved`);
   return `${parts.join(" · ")} of ${summary.pages} pages`;
-}
-
-export function noiseCount(summary: ComparisonSummary): number {
-  return summary.classes.reflow + summary.classes.formatting;
 }

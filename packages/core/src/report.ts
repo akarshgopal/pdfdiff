@@ -100,8 +100,8 @@ function totalsFor(pages: readonly ReportPage[]): ReportTotals {
     if (page.status === "added") addedPages += 1;
     else if (page.status === "removed") removedPages += 1;
     else if (page.status === "changed") {
-      if (page.noticeable) changedPages += 1;
-      else noisePages += 1;
+      changedPages += 1;
+      if (!page.noticeable) noisePages += 1;
     }
     textChanges += page.textChanges.length;
     if (!page.hasText) pagesWithoutText += 1;
@@ -133,10 +133,10 @@ export function hasUnreadableText(report: ComparisonReport): boolean {
   return report.totals.pagesWithUnreadableText > 0;
 }
 
-/** True when the report contains a change a reader would notice. */
+/** True when the report contains a detected change, including page movement. */
 export function hasSubstantiveChanges(report: ComparisonReport): boolean {
-  const { changedPages, addedPages, removedPages } = report.totals;
-  return changedPages + addedPages + removedPages > 0;
+  const { changedPages, addedPages, removedPages, movedPages } = report.totals;
+  return changedPages + addedPages + removedPages + movedPages > 0;
 }
 
 function csvField(value: string | number | undefined): string {
@@ -152,7 +152,7 @@ export function reportToCsv(report: ComparisonReport): string {
   const rows = [CSV_HEADER.join(",")];
   for (const page of report.pages) {
     if (page.textChanges.length === 0) {
-      if (page.status === "same" || !page.noticeable) continue;
+      if (page.status === "same" && page.alignment !== "moved") continue;
       rows.push([page.earlierPage, page.newerPage, page.alignment, page.status, "visual", "", ""].map(csvField).join(","));
       continue;
     }
@@ -183,21 +183,21 @@ function changeLine(change: ReportTextChange): string {
 const CLASS_ORDER: readonly ChangeClass[] = ["content", "graphic", "reflow", "formatting"];
 
 /** Human-readable summary for a terminal or a redline appendix. */
-export function reportToText(report: ComparisonReport, options: { readonly includeNoise?: boolean } = {}): string {
+export function reportToText(report: ComparisonReport, _options: { readonly includeNoise?: boolean } = {}): string {
+  void _options; // Legacy includeNoise callers now receive every detected change.
   const { totals } = report;
   const lines = [
     `${report.earlierName} → ${report.newerName}`,
     `${totals.changedPages} changed · ${totals.addedPages} added · ${totals.removedPages} removed · ${totals.movedPages} moved of ${totals.pages} pages`,
     `${totals.textChanges} text changes · ${CLASS_ORDER.map((name) => `${totals.classes[name]} ${name}`).join(" · ")}`,
   ];
-  if (totals.noisePages) lines.push(`${totals.noisePages} pages changed only through reflow or formatting`);
+  if (totals.noisePages) lines.push(`${totals.noisePages} pages may include reflow or formatting`);
   if (totals.pagesWithUnreadableText) lines.push(`WARNING: ${totals.pagesWithUnreadableText} pages embed fonts with no Unicode mapping. Their text extracts as glyph codes, so no text change on those pages can be detected.`);
   else if (totals.pagesWithoutText) lines.push(`${totals.pagesWithoutText} pages have no selectable text; those compared visually only`);
   lines.push("");
 
   for (const page of report.pages) {
-    if (page.status === "same") continue;
-    if (!page.noticeable && !options.includeNoise) continue;
+    if (page.status === "same" && page.alignment !== "moved") continue;
     lines.push(pageLabel(page));
     for (const change of page.textChanges) lines.push(changeLine(change));
     if (page.textChanges.length === 0) lines.push("  (visual change only)");

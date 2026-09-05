@@ -31,8 +31,6 @@ export function clampZoom(zoom: number): number {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom)));
 }
 
-const normalizedPairModes = new Set<DiffViewMode>(["diff", "semantic-text", "swipe"]);
-
 const statusSymbols: Record<NonNullable<DiffPage["status"]>, string> = {
   same: "✓",
   added: "+",
@@ -50,55 +48,6 @@ const statusLabels: Record<NonNullable<DiffPage["status"]>, string> = {
   processing: "Processing",
   error: "Error",
 };
-
-export function modeNeedsComparedPair(mode: DiffViewMode): boolean {
-  return normalizedPairModes.has(mode);
-}
-
-function previewSources(comparisonPairPage: DiffPage | null, earlierPage: DiffPage | null, newerPage: DiffPage | null): Pick<DiffPage, "beforeSrc" | "afterSrc"> {
-  // The resolved pair is the same two source pages, rendered together, so its
-  // images win whenever it exists — including the re-render at high quality.
-  if (comparisonPairPage) {
-    return { beforeSrc: comparisonPairPage.beforeSrc, afterSrc: comparisonPairPage.afterSrc };
-  }
-  return {
-    beforeSrc: earlierPage ? earlierPage.beforeSrc : undefined,
-    afterSrc: newerPage ? newerPage.afterSrc : undefined,
-  };
-}
-
-function comparisonDetails(page: DiffPage | null): Partial<DiffPage> {
-  if (!page) return {
-    diffSrc: undefined,
-    status: "processing",
-    changedPixels: undefined,
-    changedPercent: undefined,
-    regions: [],
-    textChanges: [],
-    textChangeCount: 0,
-    semantic: undefined,
-    semanticBeforeOverlays: undefined,
-    semanticAfterOverlays: undefined,
-    error: undefined,
-  };
-  const { diffSrc, status, changedPixels, changedPercent, regions, textChanges, textChangeCount, semantic, semanticBeforeOverlays, semanticAfterOverlays, error } = page;
-  return { diffSrc, status, changedPixels, changedPercent, regions: regions ?? [], textChanges: textChanges ?? [], textChangeCount: textChangeCount ?? 0, semantic, semanticBeforeOverlays, semanticAfterOverlays, error };
-}
-
-export function buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage }: {
-  currentPage: DiffPage | null;
-  earlierPage: DiffPage | null;
-  newerPage: DiffPage | null;
-  comparisonPairPage: DiffPage | null;
-}): DiffPage | null {
-  const previewBase = comparisonPairPage ?? currentPage ?? earlierPage ?? newerPage;
-  if (!previewBase) return null;
-  return {
-    ...previewBase,
-    ...previewSources(comparisonPairPage, earlierPage, newerPage),
-    ...comparisonDetails(comparisonPairPage),
-  };
-}
 
 /** Name a rail row by the source pages it actually pairs, not by its position. */
 export function pagePairLabel(page: DiffPage, index: number): string {
@@ -141,30 +90,21 @@ export function sourceForSide(page: DiffPage | null | undefined, side: SourceSid
 }
 
 export function sourcePageCount(pages: ReadonlyArray<DiffPage>, side: SourceSide): number {
-  return pages.reduce((lastPage, page, index) => sourceForSide(page, side) ? index + 1 : lastPage, 0);
+  return pages.reduce((count, page) => Math.max(count, pagePairNumbers(page)[side] ?? 0), 0);
 }
 
 export function clampPageIndex(index: number, pageCount: number): number {
   return Math.min(Math.max(0, index), Math.max(0, pageCount - 1));
 }
 
-/**
- * Overlaying two rasters is only readable when the pages still line up. A
- * revision that reflowed shifts every line by a few pixels and the overlay goes
- * solid red, which says "everything changed" when almost nothing did. Text mode
- * answers the same question directly, so it leads whenever both sides carry
- * text worth diffing, and Overlay stays the fallback for scans and drawings.
- */
-export function defaultViewMode(pages: ReadonlyArray<DiffPage>): DiffViewMode {
-  const comparable = pages.some(({ semantic }) => semantic && !semantic.textUndecodable && semantic.hasBeforeText && semantic.hasAfterText);
-  return comparable ? "semantic-text" : "diff";
+export function pagePairNumbers(page: DiffPage | undefined): { earlier?: number; newer?: number } {
+  if (!page) return {};
+  if (page.earlierPageNumber !== undefined || page.newerPageNumber !== undefined) {
+    return { earlier: page.earlierPageNumber, newer: page.newerPageNumber };
+  }
+  return { earlier: page.beforeSrc ? page.index + 1 : undefined, newer: page.afterSrc ? page.index + 1 : undefined };
 }
 
-export function adjacentChangedPageIndex(pages: ReadonlyArray<DiffPage>, pageIndex: number, direction: 1 | -1): number {
-  if (pages.length === 0) return pageIndex;
-  for (let offset = 1; offset <= pages.length; offset += 1) {
-    const candidate = (pageIndex + direction * offset + pages.length) % pages.length;
-    if (pageStatus(pages[candidate]!) !== "same") return candidate;
-  }
-  return pageIndex;
+export function visiblePageIndexes(pages: readonly DiffPage[], onlyChanged: boolean, selected: number): number[] {
+  return pages.flatMap((page, index) => !onlyChanged || index === selected || pageStatus(page) !== "same" || page.alignment === "moved" ? [index] : []);
 }

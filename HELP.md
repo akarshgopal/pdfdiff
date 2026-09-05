@@ -1,91 +1,62 @@
 # PDF Diff Help
 
-PDF Diff compares two PDF revisions in your browser so you can review what
-changed page by page. The first file is the **Earlier** version (the original)
-and the second file is the **Newer** version (the revision).
+Choose an Earlier PDF and a Newer PDF, then select **Compare**. Files are
+processed in your browser and never uploaded. Each file can be up to 150 MB.
 
-## Quick start
+## Review pages
 
-1. Add the original PDF to **Earlier** by dropping it on the card or choosing
-   **browse**.
-2. Add the revision to **Newer**. You can also choose both PDFs from either
-   file picker; the first selected file fills the card you opened and the
-   second fills the other card.
-3. Use the swap button if the versions are in the wrong order.
-4. Select **Compare**. PDF Diff renders the pages, compares their pixels,
-   and checks their extracted text.
+The viewer opens in **Overlay**. Select a thumbnail or use **Previous page**
+and **Next page** to browse the compared pairs. **Only changed** filters both
+the sidebar and page navigation; the selected page stays visible.
 
-PDF files must be smaller than 150 MB. A file can be replaced from its card or
-removed with the × button before starting the comparison.
+Each row names the actual source pages, such as A 3 ↔ B 4. Added and removed
+pages have an empty opposite side. **Change pairing** lets you temporarily
+compare two different page numbers. Select a sidebar row or **Return to
+document** to restore the document's pairing. Temporary pairs do not change
+the document summary or report; image export saves the displayed pair.
 
-## How to read a comparison
+## Inspect changes
 
-- The page rail on the left lists every page and its status. A check mark means
-  **No changes**; a dot means **Changes found**; `+` and `−` mark added and
-  removed pages.
-- The center canvas shows the selected page. In **Diff** mode, changed areas
-  are highlighted and can be selected directly.
-- The **Change inspector** shows the changed area percentage for the current
-  page, detected regions, and available text changes.
-- Turn **Show bounding boxes** off when you want an unobstructed view of the
-  diff.
+**Inspect changes** shows the same area of the Earlier and Newer pages in two
+crops. Use **Previous area** and **Next area** to inspect the detected regions.
+The selected region is outlined on the overlay. **Close inspection** returns
+space to the page. Settings can outline every detected region.
 
-## View modes
+All detected changes count, including possible reflow and formatting. Text
+matching provides additional highlights but does not hide visually changed
+pages. No differences detected means no differences at the current settings,
+not byte-for-byte identical files.
 
-Use the view mode buttons above the canvas to switch between:
+## Views and controls
 
-- **Diff** — the visual change overlay.
-- **Semantic text** — compare extracted text and inspect anchored native-PDF
-  highlights for additions, removals, and replacements.
-- **Side by side** — the Earlier and Newer pages next to each other.
-- **Swipe** — drag the divider across the page to reveal the Newer version.
-- **Blink** — alternates between the two versions automatically.
-- **Earlier** and **Newer** — inspect one source version on its own.
+- **Overlay**: colored pixel differences.
+- **Split**: original pages side by side.
+- **Swipe**: reveal either page with a draggable divider.
+- **Text**: extracted-text highlights on the original pages.
 
-You can zoom from 50% to 200% with the − and + controls. The Pages rail shows
-paired Earlier/Newer previews and has independent A and B page controls that
-work in every view mode. The open-page buttons launch the selected source page
-in a larger full-page view. Diff and Semantic text calculate their results for
-the currently selected A/B page pair, even when the page numbers differ.
+Scroll or drag to pan. Pinch or Ctrl-scroll to zoom. The zoom buttons range
+from 25% to 400%; 100% fits the page. Higher zoom requests a sharper render.
 
-## Comparison settings
+Settings control overlay colors, unchanged-content opacity, region outlines,
+and automatic page matching. Changing page matching compares the files again.
 
-Open **Comparison settings** in the inspector before starting a comparison.
-
-- **Sensitivity** controls how much pixel-level variation is treated as a
-  change. Increase it to ignore more small differences; lower it to surface
-  more subtle differences.
-- **Alignment: Translation only** compensates for small horizontal or vertical
-  shifts before comparing the pages.
-
-Settings are used when the comparison starts. To apply a new setting to an
-existing pair, choose **New comparison**, keep the files selected, adjust the
-setting, and compare again.
+Export saves the displayed diff image or a document report in text, CSV, or
+JSON. The app does not edit or merge PDFs.
 
 ## Keyboard shortcuts
 
-- `N` / `P`: next or previous page that actually changed, skipping the rest.
-- `←` / `→`, `Page Up` / `Page Down`, or `J` / `K`: previous or next comparison
-  page, changed or not.
-- `Shift` + `←` / `→`: previous or next Earlier source page.
-- `Ctrl`/`Cmd` + `←` / `→`: previous or next Newer source page.
-- `1`–`4`: choose Overlay, Split, Swipe, or Text.
-- `[` / `]` or `Shift` + `M` / `M`: cycle view modes backward or forward.
-- `Home` / `End`: jump to the first or last page. With `Shift`, target Earlier;
-  with `Ctrl`/`Cmd`, target Newer.
-- `+` / `-` / `0`: zoom in, out, or back to 100%. `F` toggles fullscreen.
-- `S`: save the marked-up page as an image. `?`: show this list in the app.
-- `Escape`: close full-page view or clear the selected change.
-- In Swipe mode, focus the divider and use the arrow keys to move it; hold
-  `Shift` for larger steps.
+- Arrow keys, Page Up / Page Down, J / K: previous or next visible pair.
+- Home / End: first or last visible pair.
+- 1–4: Overlay, Split, Swipe, Text.
+- Brackets or M / Shift+M: cycle views.
+- + / − / 0: zoom in, out, or fit the page.
+- F: fullscreen. S: save the displayed diff image. ?: help.
+- Escape: close a dialog or clear the selected area.
 
-## Privacy and limits
+In Swipe mode, focus the divider and use arrow keys; Shift makes larger steps.
 
-PDF Diff processes files locally in the browser. The PDFs are not uploaded to
-an application server. Recent comparison history contains only filenames, file
-sizes, dates, and comparison settings; PDFs must be selected again for another
-comparison. The app accepts PDF files up to 150 MB each and needs a browser
-with a working canvas for rendering and comparison.
+## Saved comparisons
 
-PDF Diff shows the detected visual and text differences to help with review;
-it does not edit, merge, or export PDF files.
+**Remember these PDFs on this device** optionally stores local copies in this
+browser. Open a saved comparison from the upload screen. Clearing history
+deletes those saved copies.

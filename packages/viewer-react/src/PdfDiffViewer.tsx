@@ -9,13 +9,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { styles, styleProps, type TailwindClass } from "./styles.js";
+import { styles, styleProps, ui, type TailwindClass } from "./styles.js";
 import type { DiffPage, DiffRegion, DiffSemanticOverlay, DiffViewMode, PdfDiffViewerProps, SourceSide, ViewerSettings } from "./types.js";
-import { PageRail, SettingsDialog, StatusFooter, ViewerToolbar, WorkspaceHeader } from "./ViewerChrome.js";
+import { PageRail, PairingDialog, SettingsDialog, StatusFooter, ViewerToolbar, WorkspaceHeader } from "./ViewerChrome.js";
 import { summarizeComparison } from "./summary.js";
 import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
-import { clampZoom, toggleFullscreen } from "./viewer-utils.js";
+import { clampZoom, toggleFullscreen, pagePairLabel } from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
 import type { OverlayStyle } from "./types.js";
@@ -32,6 +32,7 @@ function getRegionStyle(region: DiffRegion): CSSProperties {
 }
 
 function PaperFallback({ label }: { label: string }) {
+  if (label.startsWith("No ")) return <div {...styleProps(styles.paperEmpty)}>{label}</div>;
   return <div {...styleProps(styles.paperEmpty)} role="status" aria-label={label}><div {...styleProps(styles.paperSkeleton)} aria-hidden="true"><span {...styleProps(styles.paperSkeletonLine)} /><span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} /><span {...styleProps(styles.paperSkeletonBlock)} /><span {...styleProps(styles.paperSkeletonLine)} /><span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} /></div></div>;
 }
 
@@ -40,8 +41,8 @@ function CanvasNotice({ pending, error }: { pending: boolean; error: string | nu
   return <div {...styleProps(styles.canvasNotice, Boolean(error) && styles.canvasNoticeError)} role="status" aria-live="polite">{error ?? "Comparing…"}</div>;
 }
 
-function PageImage({ source, alt, imageStyle = styles.pageImage }: { source?: string; alt: string; imageStyle?: TailwindClass }) {
-  return source ? <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} /> : <PaperFallback label="Preview is still rendering" />;
+function PageImage({ source, alt, imageStyle = styles.pageImage, missingLabel = "Preview is still rendering" }: { source?: string; alt: string; imageStyle?: TailwindClass; missingLabel?: string }) {
+  return source ? <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} /> : <PaperFallback label={missingLabel} />;
 }
 
 function semanticPolygonPoints(quad: ReadonlyArray<{ x: number; y: number }>): string {
@@ -212,13 +213,13 @@ function PagePreview({
   const diff = page.diffSrc;
   if (mode === "semantic-text") return <SemanticPdfPreview page={page} pending={pairComparisonPending} error={pairError} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
 
-  if (mode === "side-by-side") return <div {...styleProps(styles.paper, styles.paperTwoUp)}><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" /></div></div></div>;
+  if (mode === "side-by-side") return <div {...styleProps(styles.paper, styles.paperTwoUp)}><CanvasNotice pending={pairComparisonPending} error={pairError} /><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" missingLabel={page.status === "added" ? "No earlier page — added page" : undefined} /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" missingLabel={page.status === "removed" ? "No newer page — removed page" : undefined} /></div></div></div>;
   if (mode === "swipe") return <SwipePreview before={before} after={after} swipe={swipe} onSwipeChange={onSwipeChange} pending={pairComparisonPending} error={pairError} />;
   return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} overlay={overlay} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} pending={pairComparisonPending} error={pairError} />;
 }
 
 function DiffPreview({ page, source, hasDiff, overlay, showBoundingBoxes, selectedRegion, onRegionClick, pending, error }: { page: DiffPage; source?: string; hasDiff: boolean; overlay: OverlayStyle; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void; pending: boolean; error: string | null }) {
-  const regions = showBoundingBoxes ? page.regions ?? [] : [];
+  const regions = (page.regions ?? []).filter((region) => showBoundingBoxes || region.id === selectedRegion);
   return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}<CanvasNotice pending={pending} error={error} />{page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)} aria-label="Overlay colours"><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />Added</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />Removed</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />Modified</span></div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
 }
 
@@ -286,6 +287,12 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
   const handleWheel = (event: globalThis.WheelEvent) => {
     const content = contentRef.current;
     if (!content) return;
+    if (!event.ctrlKey && !event.metaKey) {
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? stageRef.current?.clientHeight ?? 1 : 1;
+      panRef.current = { x: panRef.current.x - event.deltaX * unit, y: panRef.current.y - event.deltaY * unit };
+      applyTransform(zoom);
+      return;
+    }
     const nextZoom = clampZoom(Math.round(zoom * Math.exp(-event.deltaY * 0.0015) / 5) * 5);
     if (nextZoom === zoom) return;
     // Hold the point under the cursor still. The shift is its distance from
@@ -346,7 +353,7 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
     <div
       ref={stageRef}
       {...styleProps(styles.stage, panning && styles.stagePanning)}
-      aria-label="Document canvas. Scroll to zoom and drag to pan."
+      aria-label="Document canvas. Scroll to pan, pinch or Ctrl-scroll to zoom."
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={stopPanning}
@@ -381,13 +388,37 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-const DEFAULT_SETTINGS: ViewerSettings = { showBoundingBoxes: false, hideNoise: true, onlyChanged: false };
+function ChangeInspector({ page, selected, onSelect }: { page: DiffPage; selected: string | null; onSelect: (id: string | null) => void }) {
+  const regions = page.regions ?? [];
+  const index = regions.findIndex((region) => region.id === selected);
+  const region = regions[index];
+  if (!regions.length) return null;
+  const width = page.width ?? 100, height = page.height ?? 100;
+  const x = region ? Math.max(0, region.x - 2) * width / 100 : 0;
+  const y = region ? Math.max(0, region.y - 2) * height / 100 : 0;
+  const cropWidth = region ? Math.min(width - x, (region.width + 4) * width / 100) : width;
+  const cropHeight = region ? Math.min(height - y, (region.height + 4) * height / 100) : height;
+  return <section className="shrink-0 border-t border-border bg-card px-4 py-2" aria-label="Changed areas">
+    <div className="flex items-center gap-3 text-xs">
+      <button {...styleProps(styles.quietButton)} disabled={index <= 0} onClick={() => onSelect(regions[index - 1]!.id)}>Previous area</button>
+      <span className="text-muted-foreground">{region ? `Area ${index + 1} of ${regions.length} on this page` : `${regions.length} changed areas on this page`}</span>
+      <button {...styleProps(styles.quietButton)} disabled={index >= regions.length - 1} onClick={() => onSelect(regions[index + 1]!.id)}>{region ? "Next area" : "Inspect changes"}</button>
+      {region ? <button {...styleProps(styles.quietButton)} onClick={() => onSelect(null)}>Close inspection</button> : null}
+    </div>
+    {region ? <div className="mt-2 grid grid-cols-2 gap-3">{([["Earlier", page.beforeSrc], ["Newer", page.afterSrc]] as const).map(([label, source]) => <figure key={label} className="min-w-0">
+      <figcaption className={`${ui.caps} mb-1`}>{label}</figcaption>
+      {source ? <svg className="h-32 w-full rounded-lg border border-border bg-background" viewBox={`${x} ${y} ${cropWidth} ${cropHeight}`} role="img" aria-label={`${label} selected area`}><image href={source} width={width} height={height} /></svg> : <p className="text-xs text-muted-foreground">No {label.toLowerCase()} page</p>}
+    </figure>)}</div> : null}
+  </section>;
+}
+
+const DEFAULT_SETTINGS: ViewerSettings = { showBoundingBoxes: false, onlyChanged: false };
 
 export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison, defaultOverlay, onOverlayChange, matchPages, onMatchPagesChange }: PdfDiffViewerProps) {
   // The save shortcut needs the live overlay settings, which are owned below;
   // the ref keeps the keyboard hook from depending on render order.
   const saveRef = useRef<() => void>(() => undefined);
-  const viewer = useViewerState({ comparison, onSave: () => saveRef.current() });
+
   const [overlay, setOverlay] = useState<OverlayStyle>(defaultOverlay ?? DEFAULT_OVERLAY_STYLE);
   const changeOverlay = (next: OverlayStyle): void => {
     setOverlay(next);
@@ -395,13 +426,15 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
   };
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPairing, setShowPairing] = useState(false);
+  const viewer = useViewerState({ comparison, onSave: () => saveRef.current(), onlyChanged: settings.onlyChanged, modalOpen: showSettings || showPairing });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const summary = useMemo(() => summarizeComparison(comparison), [comparison]);
   const {
     pages, pageIndex, mode, zoom, swipe, selectedRegion,
-    earlierPageIndex, newerPageIndex, showHelp, earlierPageCount,
-    newerPageCount, pairComparisonPending, pairError, currentPage, previewPage,
-    selectPage, stepChange, hasChanges, goToSourcePage, changeMode, setZoom, setSwipe, setSelectedRegion, setShowHelp,
+    showHelp, earlierPageCount, newerPageCount, pairComparisonPending, pairError, currentPage, previewPage,
+    pair, pairKey, manualPair, changePair, hasPreviousPage, hasNextPage,
+    selectPage, stepPage, changeMode, setZoom, setSwipe, setSelectedRegion, setShowHelp,
   } = viewer;
   useEffect(() => {
     saveRef.current = () => { if (previewPage) void downloadPageImage(comparison, previewPage, overlay); };
@@ -418,13 +451,25 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
     <section {...styleProps(styles.viewerRoot)} aria-label="PDF comparison workspace">
       <WorkspaceHeader comparison={comparison} summary={summary} processingProgress={processingProgress} onNewComparison={onNewComparison} headerActions={headerActions} />
       <div {...styleProps(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
-        <PageRail onlyChanged={settings.onlyChanged} hideNoise={settings.hideNoise} pages={pages} pageIndex={pageIndex} earlierPageIndex={earlierPageIndex} newerPageIndex={newerPageIndex} earlierPageCount={earlierPageCount} newerPageCount={newerPageCount} onSelectPage={selectPage} onSourcePageChange={goToSourcePage} />
+        <PageRail onlyChanged={settings.onlyChanged} pages={pages} pageIndex={pageIndex} onSelectPage={selectPage} onOnlyChanged={(onlyChanged) => setSettings((current) => ({ ...current, onlyChanged }))} />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
-          <ViewerToolbar mode={mode} onModeChange={changeMode} onStepChange={stepChange} hasChanges={hasChanges} zoom={zoom} onZoomChange={setZoom} textUnavailable={previewPage.semantic?.textUndecodable} isFullscreen={isFullscreen} onToggleFullscreen={toggleFullscreen} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} canExportImage={canDownloadPageImage(previewPage)} onExport={(choice) => { if (choice === "page-image") void downloadPageImage(comparison, previewPage, overlay); else downloadReport(comparison, choice); }} />
-          <PanZoomStage zoom={zoom} onZoomChange={setZoom} resetKey={`${mode}:${earlierPageIndex}:${newerPageIndex}`}><PagePreview page={previewPage} mode={mode} swipe={swipe} overlay={overlay} showBoundingBoxes={settings.showBoundingBoxes} showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
+          <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} textUnavailable={previewPage.semantic?.textUndecodable} isFullscreen={isFullscreen} onToggleFullscreen={toggleFullscreen} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} canExportImage={canDownloadPageImage(previewPage)} onExport={(choice) => { if (choice === "page-image") void downloadPageImage(comparison, previewPage, overlay); else downloadReport(comparison, choice); }} navigation={
+            <div {...styleProps(styles.toolbarNavigation)} aria-label="Page navigation">
+              <button {...styleProps(styles.quietButton)} disabled={!hasPreviousPage} onClick={() => stepPage(-1)}>← Previous page</button>
+              <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
+                <span className="text-center text-xs text-foreground">{manualPair ? "Temporary · " : ""}{pagePairLabel(previewPage, pageIndex)}</span>
+                {comparison.comparePagePair ? <button {...styleProps(styles.quietButton)} onClick={() => setShowPairing(true)}>Change pairing</button> : null}
+                {manualPair ? <button {...styleProps(styles.quietButton)} onClick={() => selectPage(pageIndex)}>Return to document</button> : null}
+              </div>
+              <button {...styleProps(styles.quietButton)} disabled={!hasNextPage} onClick={() => stepPage(1)}>Next page →</button>
+            </div>
+          } />
+          <PanZoomStage zoom={zoom} onZoomChange={setZoom} resetKey={`${mode}:${pairKey}`}><PagePreview page={previewPage} mode={mode} swipe={swipe} overlay={overlay} showBoundingBoxes={settings.showBoundingBoxes} showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
+          <ChangeInspector page={previewPage} selected={selectedRegion} onSelect={setSelectedRegion} />
           <StatusFooter processingProgress={processingProgress} />
         </section>
       </div>
+      {showPairing ? <PairingDialog earlier={pair.earlier} newer={pair.newer} earlierCount={earlierPageCount} newerCount={newerPageCount} onApply={changePair} onClose={() => setShowPairing(false)} /> : null}
       {showSettings ? <SettingsDialog overlay={overlay} onOverlayChange={changeOverlay} settings={settings} onSettingsChange={setSettings} matchPages={matchPages} onMatchPagesChange={onMatchPagesChange} onClose={() => setShowSettings(false)} /> : null}
       {showHelp ? <HelpDialog onClose={() => setShowHelp(false)} /> : null}
     </section>

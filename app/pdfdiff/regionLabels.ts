@@ -115,7 +115,7 @@ export function describeRegions(boxes: readonly InputRegion[], overlays: readonl
       id: group.id,
       ...unionBox(group.boxes),
       kind: label && group.match ? group.match.kind : "changed",
-      label: label ?? `Graphic change ${graphicCount}`,
+      label: label ?? `Changed area ${graphicCount}`,
       changeClass: group.boxes[0]!.changeClass,
     };
   });

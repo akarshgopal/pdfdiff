@@ -43,7 +43,7 @@ test("regions with no text underneath are numbered graphic changes", () => {
     [{ id: "1", x: 5, y: 5, width: 2, height: 2 }, { id: "2", x: 80, y: 80, width: 2, height: 2 }],
     [overlay("t1", "changed", "elsewhere", 40, 40, 5, 2)],
   );
-  assert.deepEqual(regions.map((region) => region.label), ["Graphic change 1", "Graphic change 2"]);
+  assert.deepEqual(regions.map((region) => region.label), ["Changed area 1", "Changed area 2"]);
   assert.deepEqual(regions.map((region) => region.kind), ["changed", "changed"]);
 });
 
@@ -52,7 +52,7 @@ test("graphic numbering counts only unlabeled regions", () => {
     [{ id: "1", x: 5, y: 5, width: 2, height: 2 }, { id: "2", x: 40, y: 40, width: 2, height: 2 }, { id: "3", x: 80, y: 80, width: 2, height: 2 }],
     [overlay("t1", "changed", "middle", 40, 40, 2, 2)],
   );
-  assert.deepEqual(regions.map((region) => region.label), ["Graphic change 1", "Changed “middle”", "Graphic change 2"]);
+  assert.deepEqual(regions.map((region) => region.label), ["Changed area 1", "Changed “middle”", "Changed area 2"]);
 });
 
 test("a region just outside a glyph quad still matches within tolerance", () => {
@@ -76,7 +76,7 @@ test("an overlay without quads never matches", () => {
     [{ id: "1", x: 10, y: 10, width: 5, height: 5 }],
     [{ id: "empty", kind: "added", text: "no geometry", quads: [] }],
   );
-  assert.equal(regions[0]!.label, "Graphic change 1");
+  assert.equal(regions[0]!.label, "Changed area 1");
 });
 
 test("one text change wrapped over several lines becomes a single entry", () => {
@@ -118,5 +118,5 @@ test("graphic regions stay separate entries and keep sequential numbers", () => 
     ],
     [overlay("c1", "added", "grouped", 20, 20, 4, 7)],
   );
-  assert.deepEqual(regions.map((region) => region.label), ["Graphic change 1", 'Added “grouped”', "Graphic change 2"]);
+  assert.deepEqual(regions.map((region) => region.label), ["Changed area 1", 'Added “grouped”', "Changed area 2"]);
 });

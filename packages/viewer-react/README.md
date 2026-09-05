@@ -25,15 +25,13 @@ to realign both sources to that page. The primary comparison views are:
 - **Swipe** — reveal either source with a draggable divider.
 - **Text** — compare extracted text with anchored highlights.
 
-The change inspector is collapsed by default. Open it when you need visual
-regions, semantic changes, or comparison settings. Keyboard shortcuts cover
-page movement, view selection, source A/B navigation, and closing or clearing
-the current selection.
+Overlay opens first. Inspect changes shows paired crops for each detected area.
+The page arrows and keyboard traverse comparison rows, respecting Only changed.
 
-To support Overlay, Swipe, or Text when A and B are stepped to different page
-numbers, provide `DiffComparison.comparePagePair`. The viewer invokes it on
-demand for the selected source pair. Source A/B views continue to show the
-independently selected original pages.
+Provide `DiffComparison.comparePagePair` for temporary manual pairing and sharper
+on-demand rendering. Its indices are zero-based source PDF page numbers, not
+comparison-row indices. Selecting a sidebar row restores the document pairing.
+Temporary pairs affect the displayed image export, not the document report.
 
 ## Styling
 

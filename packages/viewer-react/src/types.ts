@@ -13,7 +13,6 @@ export type RenderQuality = "standard" | "high";
 /** Everything the settings dialog owns; none of it re-runs a comparison. */
 export interface ViewerSettings {
   showBoundingBoxes: boolean;
-  hideNoise: boolean;
   onlyChanged: boolean;
 }
 

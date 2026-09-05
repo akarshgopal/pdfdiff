@@ -32,10 +32,10 @@ const REPORT = buildReport({
   ],
 });
 
-test("totals separate real changes from reflow-only pages", () => {
+test("totals count every changed page including possible reflow", () => {
   assert.deepEqual(REPORT.totals, {
     pages: 4,
-    changedPages: 1,
+    changedPages: 2,
     addedPages: 1,
     removedPages: 0,
     movedPages: 1,
@@ -59,7 +59,7 @@ test("CSV carries one row per text change with quoted fields", () => {
   assert.equal(rows[0], "earlier_page,newer_page,alignment,status,change_kind,before,after");
   assert.equal(rows[1], "1,1,matched,changed,changed,30 days,60 days");
   assert.equal(rows[2], ",2,added,added,added,,New schedule");
-  assert.equal(rows.length, 3, "the reflow-only page and the unchanged move contribute no rows");
+  assert.equal(rows.length, 5, "possible reflow and page movement remain in the export");
 });
 
 test("CSV escapes separators inside change text", () => {
@@ -83,25 +83,25 @@ test("a page that changed visually but has no text still appears in CSV", () => 
   assert.match(reportToCsv(visual), /1,1,matched,changed,visual,,/);
 });
 
-test("the text report hides reflow-only pages unless asked for", () => {
+test("the text report includes possible reflow by default", () => {
   const quiet = reportToText(REPORT);
-  assert.match(quiet, /1 changed · 1 added · 0 removed · 1 moved of 4 pages/);
+  assert.match(quiet, /2 changed · 1 added · 0 removed · 1 moved of 4 pages/);
   assert.match(quiet, /~ 30 days → 60 days/);
   assert.match(quiet, /\+ New schedule/);
-  assert.match(quiet, /1 pages changed only through reflow or formatting/);
-  assert.doesNotMatch(quiet, /A 2 → B 3/);
+  assert.match(quiet, /1 pages may include reflow or formatting/);
+  assert.match(quiet, /A 2 → B 3/);
 
   assert.match(reportToText(REPORT, { includeNoise: true }), /A 2 → B 3/);
 });
 
-test("substantive-change detection ignores reflow noise", () => {
+test("change detection includes possible reflow", () => {
   assert.equal(hasSubstantiveChanges(REPORT), true);
   const noiseOnly = buildReport({
     earlierName: "a.pdf",
     newerName: "b.pdf",
     pages: [page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1, status: "changed", noticeable: false, changeClasses: { content: 0, reflow: 5, formatting: 0, graphic: 0 }, semantic: semantic([]) })],
   });
-  assert.equal(hasSubstantiveChanges(noiseOnly), false);
+  assert.equal(hasSubstantiveChanges(noiseOnly), true);
 });
 
 test("a page whose text could not be decoded is called out, not reported as clean", () => {

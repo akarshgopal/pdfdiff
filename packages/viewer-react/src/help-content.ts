@@ -1,7 +1,7 @@
 export const helpSteps = [
-  { number: "1", title: "Find the changes", copy: "Press N and P, or use the arrows in the toolbar, to jump between pages that changed. The stacked A and B controls move each source independently." },
-  { number: "2", title: "Choose a view", copy: "Use Overlay, Split, Swipe, or Text to compare the selected A/B pages, with independent A and B page navigation." },
-  { number: "3", title: "Inspect and share", copy: "Scroll to zoom and drag to pan — past 150% the page re-renders sharper on its own — then press S or use Export to save the marked-up page." },
+  { number: "1", title: "Find the changes", copy: "Use Previous page and Next page to browse compared pairs. Only changed filters the page list and navigation." },
+  { number: "2", title: "Choose a view", copy: "Overlay opens first. Use Change pairing to compare different source pages temporarily." },
+  { number: "3", title: "Inspect and share", copy: "Inspect changes shows matching earlier and newer crops. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page." },
 ] as const;
 
 export const helpModes = [
@@ -14,12 +14,10 @@ export const helpModes = [
 export const helpShortcuts = [
   ["← →", "Comparison pages"],
   ["1–4", "Overlay, Split, Swipe, Text"],
-  ["N / P", "Next and previous changed page"],
   ["J / K", "Next and previous page"],
   ["M", "Cycle views"],
-  ["Shift + ← →", "Source A pages"],
-  ["Ctrl/Cmd + ← →", "Source B pages"],
-  ["Scroll / drag", "Zoom and pan the document canvas"],
+  ["Scroll / drag", "Pan the document canvas"],
+  ["Pinch / Ctrl + scroll", "Zoom"],
   ["+ − 0", "Zoom in, out, and back to 100%"],
   ["F", "Fullscreen"],
   ["S", "Save this page's diff image"],

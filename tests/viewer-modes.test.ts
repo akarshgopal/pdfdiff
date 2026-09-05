@@ -3,14 +3,10 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
-  adjacentChangedPageIndex,
-  buildPreviewPage,
   canDownloadPageImage,
   clampZoom,
-  defaultViewMode,
   pageImageFileName,
   qualityForZoom,
-  modeNeedsComparedPair,
   PdfDiffViewer,
   type DiffPage,
   } from "@pdfdiff/viewer-react";
@@ -25,68 +21,7 @@ const currentPage: DiffPage = {
   regions: [{ id: "current-region", x: 0, y: 0, width: 1, height: 1 }],
 };
 
-const earlierPage: DiffPage = { index: 1, beforeSrc: "selected-a", status: "same" };
-const newerPage: DiffPage = { index: 3, afterSrc: "selected-b", status: "same" };
-const comparisonPairPage: DiffPage = {
-  index: 1,
-  beforeSrc: "pair-a",
-  afterSrc: "pair-b",
-  diffSrc: "pair-diff",
-  status: "changed",
-  changedPixels: 20,
-  regions: [{ id: "pair-region", x: 0, y: 0, width: 1, height: 1 }],
-  textChanges: [{ id: "pair-text", text: "changed", kind: "changed" }],
-};
-
-test("a resolved pair supplies the exact normalized A/B sources", () => {
-  const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage });
-  assert.equal(preview?.beforeSrc, "pair-a");
-  assert.equal(preview?.afterSrc, "pair-b");
-  assert.equal(preview?.diffSrc, "pair-diff");
-  assert.equal(preview?.regions?.[0]?.id, "pair-region");
-  assert.equal(preview?.textChanges?.[0]?.id, "pair-text");
-});
-
-test("an unresolved pair falls back to the selected originals without leaking stale metadata", () => {
-  const preview = buildPreviewPage({ currentPage, earlierPage, newerPage, comparisonPairPage: null });
-  assert.equal(preview?.beforeSrc, "selected-a");
-  assert.equal(preview?.afterSrc, "selected-b");
-  assert.equal(preview?.diffSrc, undefined);
-  assert.deepEqual(preview?.regions, []);
-  assert.deepEqual(preview?.textChanges, []);
-  assert.equal(preview?.status, "processing");
-  assert.equal(modeNeedsComparedPair("swipe"), true, "so Swipe waits for the pair");
-  assert.equal(modeNeedsComparedPair("side-by-side"), false, "while Split shows the originals now");
-});
-
-test("changed-page navigation wraps in either direction and ignores unchanged pages", () => {
-  const pages: DiffPage[] = [
-    { index: 0, status: "same" },
-    { index: 1, status: "changed" },
-    { index: 2, status: "same" },
-    { index: 3, status: "added" },
-  ];
-  assert.equal(adjacentChangedPageIndex(pages, 1, 1), 3);
-  assert.equal(adjacentChangedPageIndex(pages, 3, 1), 1);
-  assert.equal(adjacentChangedPageIndex(pages, 1, -1), 3);
-  assert.equal(adjacentChangedPageIndex([{ index: 0, status: "same" }], 0, 1), 0);
-});
-
-test("the opening view is the one that reads: Text when both sides carry comparable text", () => {
-  const withText = (over: Partial<NonNullable<DiffPage["semantic"]>> = {}) => ({
-    before: [], after: [], changes: [], beforeOverlays: [], afterOverlays: [],
-    beforeTokenCount: 4, afterTokenCount: 5, hasBeforeText: true, hasAfterText: true, ...over,
-  });
-  assert.equal(defaultViewMode([{ index: 0, status: "changed", semantic: withText() }]), "semantic-text");
-  // A scan has pixels and no text, so overlaying the rasters is all there is.
-  assert.equal(defaultViewMode([{ index: 0, status: "changed" }]), "diff");
-  // Glyph codes with no Unicode mapping extract as noise, which is worse than the overlay.
-  assert.equal(defaultViewMode([{ index: 0, status: "changed", semantic: withText({ textUndecodable: true }) }]), "diff");
-  // One side blank means there is nothing to diff against.
-  assert.equal(defaultViewMode([{ index: 0, status: "added", semantic: withText({ hasBeforeText: false }) }]), "diff");
-});
-
-test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable canvas", () => {
+test("viewer renders pair navigation, overlay thumbnails, and a pannable canvas", () => {
   const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
     comparison: {
       earlierName: "earlier.pdf",
@@ -95,11 +30,13 @@ test("viewer renders unified A/B navigation, overlay thumbnails, and a pannable 
     },
   }));
 
-  assert.match(html, /aria-label="Independent PDF page navigation"/);
-  assert.match(html, /Previous source A page/);
-  assert.match(html, /Next source B page/);
+  assert.match(html, /aria-label="Page navigation"/);
+  assert.match(html, /aria-pressed="true"[^>]*>Overlay/);
+  assert.doesNotMatch(html, /Independent PDF page navigation/);
+  assert.match(html, /Previous page/);
+  assert.match(html, /Next page/);
   assert.match(html, /Comparison overlay preview/);
-  assert.match(html, /Document canvas\. Scroll to zoom and drag to pan\./);
+  assert.match(html, /Document canvas\. Scroll to pan, pinch or Ctrl-scroll to zoom\./);
   assert.match(html, /aria-label="Overlay colours"/);
   assert.match(html, />Added<\/span>.*>Removed<\/span>.*>Modified<\/span>/);
 });
@@ -152,11 +89,11 @@ test("the workspace opens with a document-level summary and filters", () => {
   assert.doesNotMatch(html, /9 reflow\/formatting/);
   // The filters moved behind the settings dialog, so the resting workspace shows neither.
   assert.doesNotMatch(html, /Hide reflow noise/);
-  assert.doesNotMatch(html, /Only changed pages/);
+  assert.match(html, /Only changed/);
   assert.match(html, /aria-label="Settings"/);
 });
 
-test("a comparison whose only changes are reflow reports no substantive changes", () => {
+test("a comparison with possible reflow still reports detected changes", () => {
   const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
     comparison: {
       earlierName: "earlier.pdf",
@@ -165,7 +102,8 @@ test("a comparison whose only changes are reflow reports no substantive changes"
     },
   }));
 
-  assert.match(html, /No substantive changes/);
+  assert.match(html, /1 page changed/);
+  assert.doesNotMatch(html, /No substantive changes/);
 });
 
 test("viewer renders supplied header actions in the comparison workspace", () => {
@@ -197,8 +135,7 @@ test("viewer renders document counts and progress without treating pending pages
     processingProgress: { completed: 0, total: 3 },
   }));
 
-  assert.match(html, /A<\/span><strong>1 \/ 3/);
-  assert.match(html, /B<\/span><strong>1 \/ 2/);
+  assert.match(html, /Page navigation/);
   assert.doesNotMatch(html, />Changed <span>/);
   assert.doesNotMatch(html, /The documents are identical/);
   assert.match(html, /Comparing 0 of 3 pages…/);
@@ -236,4 +173,20 @@ test("the high-resolution re-render follows the zoom, with a gap so a hovering w
   assert.equal(qualityForZoom(150, "standard"), "high", "close inspection asks for the sharper render");
   assert.equal(qualityForZoom(140, "high"), "high", "backing off a little keeps what was already rendered");
   assert.equal(qualityForZoom(125, "high"), "standard", "backing off past the lower bound releases it");
+});
+
+// Source numbers and comparison rows diverge after insertions and moves.
+test("page navigation uses source numbers and retains moved pages in the filter", async () => {
+  const { pagePairNumbers, sourcePageCount, visiblePageIndexes } = await import("../packages/viewer-react/src/viewer-utils.ts");
+  const pages: DiffPage[] = [
+    { index: 0, earlierPageNumber: 1, newerPageNumber: 2, status: "same" },
+    { index: 1, newerPageNumber: 1, status: "added" },
+    { index: 2, earlierPageNumber: 2, newerPageNumber: 3, alignment: "moved", status: "same" },
+    { index: 3, earlierPageNumber: 3, status: "removed" },
+  ];
+  assert.deepEqual(pagePairNumbers(pages[0]), { earlier: 1, newer: 2 });
+  assert.deepEqual(pagePairNumbers(pages[1]), { earlier: undefined, newer: 1 });
+  assert.equal(sourcePageCount(pages, "earlier"), 3);
+  assert.deepEqual(visiblePageIndexes(pages, true, 1), [1, 2, 3]);
+  assert.deepEqual(visiblePageIndexes(pages, true, 0), [0, 1, 2, 3]);
 });
