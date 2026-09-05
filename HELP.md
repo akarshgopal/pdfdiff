@@ -10,17 +10,21 @@ and **Next page** to browse the compared pairs. **Only changed** filters both
 the sidebar and page navigation; the selected page stays visible.
 
 Each row names the actual source pages, such as A 3 ↔ B 4. Added and removed
-pages have an empty opposite side. **Change pairing** lets you temporarily
-compare two different page numbers. Select a sidebar row or **Return to
+pages have an empty opposite side. Selecting the pair label in the toolbar
+lets you temporarily compare two different page numbers. Select a sidebar row or **Return to
 document** to restore the document's pairing. Temporary pairs do not change
 the document summary or report; image export saves the displayed pair.
 
-## Inspect changes
+## Walk the changes
 
-**Inspect changes** shows the same area of the Earlier and Newer pages in two
-crops. Use **Previous area** and **Next area** to inspect the detected regions.
-The selected region is outlined on the overlay. **Close inspection** returns
-space to the page. Settings can outline every detected region.
+The bar under the page counts the changes on it — **Change 3 of 70** — and
+**Previous change** and **Next change** step through them. The current change
+is outlined on the page, and a visual change also shows the same area of the
+Earlier and Newer pages as two crops. **Clear selection** returns the space to
+the page. Settings can outline every detected region.
+
+The count follows the view: **Text** counts text changes, the other views count
+changed areas, so the bar never disagrees with what is highlighted.
 
 All detected changes count, including possible reflow and formatting. Text
 matching provides additional highlights but does not hide visually changed
@@ -47,6 +51,9 @@ JSON. The app does not edit or merge PDFs.
 
 - Arrow keys, Page Up / Page Down, J / K: previous or next visible pair.
 - Home / End: first or last visible pair.
+- Shift + arrows / Page keys / Home / End: move document A on its own.
+- Ctrl or Cmd + the same keys: move document B on its own. The pair stays
+  compared, the same as picking pages in **Change pairing**.
 - 1–4: Overlay, Split, Swipe, Text.
 - Brackets or M / Shift+M: cycle views.
 - - / − / 0: zoom in, out, or fit the page.

@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
-import type { DiffViewMode } from "./types.js";
+import type { DiffViewMode, SourceSide } from "./types.js";
 import { clampZoom, toggleFullscreen, viewModes, ZOOM_STEP } from "./viewer-utils.js";
 
 interface ViewerKeyboardOptions {
   readonly enabled: boolean;
   readonly onStepPage: (direction: 1 | -1) => void;
+  readonly onStepSourcePage: (side: SourceSide, direction: 1 | -1) => void;
   readonly onBoundary: (last: boolean) => void;
+  readonly onSourceBoundary: (side: SourceSide, last: boolean) => void;
   readonly onClearSelection: () => void;
   readonly onChangeMode: (mode: DiffViewMode) => void;
   readonly onCycleMode: (direction: 1 | -1) => void;
@@ -63,6 +65,20 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
+/**
+ * Shift walks the earlier document on its own, Ctrl/Cmd walks the newer one, so
+ * a reviewer can re-align a pair that drifted without opening the pairing
+ * dialog. Only the arrow and page keys take a modifier: Cmd/Ctrl plus a letter
+ * belongs to the browser.
+ */
+export function sourceSideForEvent(event: KeyboardEvent): SourceSide | null {
+  if (!event.key.startsWith("Arrow") && !event.key.startsWith("Page") && event.key !== "Home" && event.key !== "End")
+    return null;
+  if (event.shiftKey) return "earlier";
+  if (event.ctrlKey || event.metaKey) return "newer";
+  return null;
+}
+
 function stepDirection(key: string): 1 | -1 | null {
   if (forwardKeys.has(key)) return 1;
   if (backwardKeys.has(key)) return -1;
@@ -72,8 +88,11 @@ function stepDirection(key: string): 1 | -1 | null {
 function handlePageStep(event: KeyboardEvent, options: ViewerKeyboardOptions): boolean {
   const direction = stepDirection(event.key.toLowerCase());
   if (!direction) return false;
+  const side = sourceSideForEvent(event);
+  if (!side && (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)) return false;
   event.preventDefault();
-  options.onStepPage(direction);
+  if (side) options.onStepSourcePage(side, direction);
+  else options.onStepPage(direction);
   return true;
 }
 
@@ -100,27 +119,20 @@ function modeCycleDirection(event: KeyboardEvent): 1 | -1 | null {
 
 function handleBoundary(event: KeyboardEvent, options: ViewerKeyboardOptions): boolean {
   if (event.key !== "Home" && event.key !== "End") return false;
+  const side = sourceSideForEvent(event);
+  if (!side && (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)) return false;
   event.preventDefault();
-  options.onBoundary(event.key === "End");
+  const last = event.key === "End";
+  if (side) options.onSourceBoundary(side, last);
+  else options.onBoundary(last);
   return true;
 }
 
 function handleKeyDown(event: KeyboardEvent, options: ViewerKeyboardOptions): void {
-  if (
-    isEditableTarget(event.target) ||
-    event.ctrlKey ||
-    event.metaKey ||
-    event.altKey ||
-    (event.shiftKey && event.key.startsWith("Arrow"))
-  )
-    return;
-  if (
-    handlePageStep(event, options) ||
-    handleModeChange(event, options) ||
-    handleBoundary(event, options) ||
-    handleViewerAction(event, options)
-  )
-    return;
+  if (isEditableTarget(event.target)) return;
+  if (handlePageStep(event, options) || handleBoundary(event, options)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  if (handleModeChange(event, options) || handleViewerAction(event, options)) return;
   if (event.key === "Escape") options.onClearSelection();
 }
 

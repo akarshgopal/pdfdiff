@@ -31,21 +31,13 @@ export function clampZoom(zoom: number): number {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(zoom)));
 }
 
-const statusSymbols: Record<NonNullable<DiffPage["status"]>, string> = {
-  same: "✓",
-  added: "+",
-  removed: "−",
-  changed: "•",
-  processing: "•",
-  error: "!",
-};
-
+/** Kept short: the rail shows this beside a page, and screen readers append it to a page description. */
 const statusLabels: Record<NonNullable<DiffPage["status"]>, string> = {
   same: "No changes",
-  added: "Added page",
-  removed: "Removed page",
-  changed: "Changes found",
-  processing: "Processing",
+  added: "Added",
+  removed: "Removed",
+  changed: "Changed",
+  processing: "Comparing…",
   error: "Error",
 };
 
@@ -78,12 +70,30 @@ export function pageStatus(page: DiffPage): NonNullable<DiffPage["status"]> {
   return "processing";
 }
 
-export function statusSymbol(status: NonNullable<DiffPage["status"]>): string {
-  return statusSymbols[status];
+/**
+ * The changes the current view can actually point at. Text mode highlights text
+ * runs and every other mode highlights pixel regions, and the two counts differ,
+ * so the rail, the counter, and next/previous all read the list that is on screen.
+ */
+export function pageChanges(page: DiffPage, mode: DiffViewMode): ReadonlyArray<{ readonly id: string }> {
+  if (mode === "semantic-text") return page.semantic?.changes ?? [];
+  return page.regions ?? [];
+}
+
+/** What the rail says about a page: its count when it changed, its state otherwise. */
+export function statusText(page: DiffPage, status: NonNullable<DiffPage["status"]>, mode: DiffViewMode): string {
+  const count = status === "changed" ? pageChanges(page, mode).length : 0;
+  return count ? `${count} change${count === 1 ? "" : "s"}` : statusLabels[status];
 }
 
 export function statusLabel(status: NonNullable<DiffPage["status"]>): string {
   return statusLabels[status];
+}
+
+/** The absent side of an added or removed page; undefined means the page is still rendering. */
+export function missingSideLabel(page: DiffPage, side: SourceSide): string | undefined {
+  if (side === "earlier") return page.status === "added" ? "No earlier page — added page" : undefined;
+  return page.status === "removed" ? "No newer page — removed page" : undefined;
 }
 
 export function sourceForSide(page: DiffPage | null | undefined, side: SourceSide): string | undefined {

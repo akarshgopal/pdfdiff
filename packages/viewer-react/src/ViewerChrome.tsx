@@ -1,5 +1,16 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Download, Keyboard, Maximize2, Minimize2, RotateCcw, Settings, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Keyboard,
+  Maximize2,
+  Minimize2,
+  RotateCcw,
+  Settings,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { styles, cx, ui } from "./styles.js";
 import type { CSSProperties } from "react";
 import type { DiffComparison, DiffPage, DiffViewMode, OverlayStyle, ViewerSettings } from "./types.js";
@@ -9,7 +20,7 @@ import {
   pagePairDescription,
   pagePairLabel,
   pageStatus,
-  statusSymbol,
+  statusText,
   viewModes,
   visiblePageIndexes,
   ZOOM_STEP,
@@ -100,38 +111,57 @@ export function WorkspaceHeader({
   );
 }
 
-function ExportMenu({
-  onExport,
-  canExportImage,
+function Menu({
+  label,
+  icon,
+  items,
 }: {
-  onExport: (choice: ExportChoice) => void;
-  canExportImage: boolean;
+  label: string;
+  icon: ReactNode;
+  items: ReadonlyArray<{ readonly label: string; readonly onSelect: () => void }>;
 }) {
   const [open, setOpen] = useState(false);
-  const choices = canExportImage ? exportOptions : exportOptions.filter(([choice]) => choice !== "page-image");
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: Event) => {
+      if (event instanceof KeyboardEvent && event.key !== "Escape") return;
+      if (event.type === "pointerdown" && wrap.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", dismiss);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", dismiss);
+    };
+  }, [open]);
   return (
-    <div className={styles.exportWrap}>
-      <IconButton
-        label="Export"
-        active={open}
-        icon={<Download size={16} />}
+    <div ref={wrap} className={styles.menuWrap}>
+      <button
+        className={cx(styles.quietButton, open && styles.modeButtonCurrent)}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        expanded={open}
-      />
+      >
+        {icon}
+        {label}
+      </button>
       {open ? (
-        <div className={styles.exportMenu} role="menu">
-          {choices.map(([choice, label]) => (
+        <div className={styles.menuPanel} role="menu">
+          {items.map((item) => (
             <button
-              key={choice}
-              className={styles.exportItem}
+              key={item.label}
+              className={styles.menuItem}
               type="button"
               role="menuitem"
               onClick={() => {
-                onExport(choice);
+                item.onSelect();
                 setOpen(false);
               }}
             >
-              {label}
+              {item.label}
             </button>
           ))}
         </div>
@@ -194,17 +224,19 @@ function pageStatusStyle(status: NonNullable<DiffPage["status"]>) {
 function PageRailItem({
   page,
   index,
+  mode,
   selected,
   onSelect,
 }: {
   page: DiffPage;
   index: number;
+  mode: DiffViewMode;
   selected: boolean;
   onSelect: (index: number) => void;
 }) {
   const state = pageStatus(page);
   const thumbnail = pageThumbnail(page);
-  const status = statusSymbol(state);
+  const status = statusText(page, state, mode);
   return (
     <button
       className={cx(styles.pageButton, selected && styles.pageButtonCurrent)}
@@ -239,41 +271,64 @@ function PageRailItem({
 export function PageRail({
   pages,
   pageIndex,
+  mode,
   onSelectPage,
   onlyChanged,
   onOnlyChanged,
+  collapsed,
+  onCollapsedChange,
 }: {
   pages: ReadonlyArray<DiffPage>;
   onlyChanged: boolean;
   pageIndex: number;
+  mode: DiffViewMode;
   onSelectPage: (index: number) => void;
   onOnlyChanged: (value: boolean) => void;
+  collapsed: boolean;
+  onCollapsedChange: (value: boolean) => void;
 }) {
   const visible = visiblePageIndexes(pages, onlyChanged, pageIndex);
   if (pages.length <= 1) return null;
   return (
     <aside className={styles.pageRail} aria-label="Pages">
       <div className={styles.railHeader}>
-        <h2 className={styles.railHeading}>Pages</h2>
-        <label className="flex items-center gap-2 text-2xs text-muted-foreground">
-          <input
-            className={`${ui.focus} pdfdiff-switch`}
-            type="checkbox"
-            checked={onlyChanged}
-            onChange={(event) => onOnlyChanged(event.target.checked)}
-          />
-          Only changed
-        </label>
+        <div className={styles.railHeaderTop}>
+          {collapsed ? null : <h2 className={styles.railHeading}>Pages</h2>}
+          <button
+            className={styles.railToggle}
+            type="button"
+            aria-label={collapsed ? "Show page list" : "Hide page list"}
+            title={collapsed ? "Show page list" : "Hide page list"}
+            aria-expanded={!collapsed}
+            onClick={() => onCollapsedChange(!collapsed)}
+          >
+            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+        </div>
+        {collapsed ? null : (
+          <label className="flex items-center gap-2 text-2xs text-muted-foreground">
+            <input
+              className={`${ui.focus} pdfdiff-switch`}
+              type="checkbox"
+              checked={onlyChanged}
+              onChange={(event) => onOnlyChanged(event.target.checked)}
+            />
+            Only changed
+          </label>
+        )}
       </div>
-      {visible.map((index) => (
-        <PageRailItem
-          key={pages[index]!.index}
-          page={pages[index]!}
-          index={index}
-          selected={index === pageIndex}
-          onSelect={onSelectPage}
-        />
-      ))}
+      {collapsed
+        ? null
+        : visible.map((index) => (
+            <PageRailItem
+              key={pages[index]!.index}
+              page={pages[index]!}
+              index={index}
+              mode={mode}
+              selected={index === pageIndex}
+              onSelect={onSelectPage}
+            />
+          ))}
     </aside>
   );
 }
@@ -438,7 +493,15 @@ export function ViewerToolbar({
         />
         <IconButton label="Settings" icon={<Settings size={16} />} onClick={onSettings} />
         <IconButton desktopOnly label="Keyboard shortcuts" icon={<Keyboard size={16} />} onClick={onHelp} />
-        {onExport ? <ExportMenu onExport={onExport} canExportImage={canExportImage} /> : null}
+        {onExport ? (
+          <Menu
+            label="Export"
+            icon={<Download size={16} />}
+            items={(canExportImage ? exportOptions : exportOptions.filter(([choice]) => choice !== "page-image")).map(
+              ([choice, label]) => ({ label, onSelect: () => onExport(choice) }),
+            )}
+          />
+        ) : null}
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ to realign both sources to that page. The primary comparison views are:
 - **Swipe** — reveal either source with a draggable divider.
 - **Text** — compare extracted text with anchored highlights.
 
-Overlay opens first. Inspect changes shows paired crops for each detected area.
+Overlay opens first. Previous and Next change walk the page's changes one at a time.
 The page arrows and keyboard traverse comparison rows, respecting Only changed.
 
 Provide `DiffComparison.comparePagePair` for temporary manual pairing and sharper

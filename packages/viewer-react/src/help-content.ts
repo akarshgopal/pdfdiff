@@ -12,7 +12,7 @@ export const helpSteps = [
   {
     number: "3",
     title: "Inspect and share",
-    copy: "Inspect changes shows matching earlier and newer crops. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
+    copy: "Previous and Next change step through the page one change at a time. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
   },
 ] as const;
 
@@ -27,6 +27,8 @@ export const helpShortcuts = [
   ["← →", "Comparison pages"],
   ["1–4", "Overlay, Split, Swipe, Text"],
   ["J / K", "Next and previous page"],
+  ["Shift + ← →", "Move document A alone"],
+  ["Ctrl/Cmd + ← →", "Move document B alone"],
   ["M", "Cycle views"],
   ["Scroll / drag", "Pan the document canvas"],
   ["Pinch / Ctrl + scroll", "Zoom"],

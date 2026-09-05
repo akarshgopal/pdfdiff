@@ -30,7 +30,7 @@ import {
 import { summarizeComparison } from "./summary.js";
 import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
-import { clampZoom, toggleFullscreen, pagePairLabel } from "./viewer-utils.js";
+import { clampZoom, missingSideLabel, toggleFullscreen, pageChanges, pagePairLabel } from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
 import type { OverlayStyle } from "./types.js";
@@ -51,10 +51,11 @@ function getRegionStyle(region: DiffRegion): CSSProperties {
   };
 }
 
-function PaperFallback({ label }: { label: string }) {
-  if (label.startsWith("No ")) return <div className={styles.paperEmpty}>{label}</div>;
+/** A label means the page is genuinely absent; without one the page is still rendering. */
+function PaperFallback({ label }: { label?: string }) {
+  if (label) return <div className={styles.paperEmpty}>{label}</div>;
   return (
-    <div className={styles.paperEmpty} role="status" aria-label={label}>
+    <div className={styles.paperEmpty} role="status" aria-label="Preview is still rendering">
       <div className={styles.paperSkeleton} aria-hidden="true">
         <span className={styles.paperSkeletonLine} />
         <span className={cx(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} />
@@ -83,7 +84,7 @@ function PageImage({
   source,
   alt,
   imageStyle = styles.pageImage,
-  missingLabel = "Preview is still rendering",
+  missingLabel,
 }: {
   source?: string;
   alt: string;
@@ -108,6 +109,7 @@ function SemanticNativePane({
   selectedRegion,
   showHighlights,
   onSelectChange,
+  missingLabel,
 }: {
   side: SourceSide;
   source?: string;
@@ -115,6 +117,7 @@ function SemanticNativePane({
   selectedRegion: string | null;
   showHighlights: boolean;
   onSelectChange: (id: string) => void;
+  missingLabel?: string;
 }) {
   const label = side === "earlier" ? "Earlier" : "Newer";
   return (
@@ -131,7 +134,7 @@ function SemanticNativePane({
             draggable={false}
           />
         ) : (
-          <PaperFallback label={`No ${label.toLowerCase()} page`} />
+          <PaperFallback label={missingLabel} />
         )}
         {source && showHighlights && overlays.length ? (
           <svg
@@ -268,6 +271,7 @@ function SemanticPdfPreview({
           selectedRegion={selectedRegion}
           showHighlights={showHighlights}
           onSelectChange={onSelectChange}
+          missingLabel={missingSideLabel(page, "earlier")}
         />
         <SemanticNativePane
           side="newer"
@@ -276,6 +280,7 @@ function SemanticPdfPreview({
           selectedRegion={selectedRegion}
           showHighlights={showHighlights}
           onSelectChange={onSelectChange}
+          missingLabel={missingSideLabel(page, "newer")}
         />
       </div>
       {summary.missingText && !summary.undecodable ? (
@@ -346,7 +351,7 @@ function SwipePreview({
       {sizingSource ? (
         <img className={styles.swipeSizer} src={sizingSource} alt="" aria-hidden="true" draggable={false} />
       ) : (
-        <PaperFallback label="Preview is still rendering" />
+        <PaperFallback />
       )}
       {before ? (
         <div className={styles.swipeLayer} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}>
@@ -433,14 +438,14 @@ function PagePreview({
             <PageImage
               source={before}
               alt="Earlier version of this page"
-              missingLabel={page.status === "added" ? "No earlier page — added page" : undefined}
+              missingLabel={missingSideLabel(page, "earlier")}
             />
           </div>
           <div className={styles.sidePanel}>
             <PageImage
               source={after}
               alt="Newer version of this page"
-              missingLabel={page.status === "removed" ? "No newer page — removed page" : undefined}
+              missingLabel={missingSideLabel(page, "newer")}
             />
           </div>
         </div>
@@ -796,19 +801,28 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ChangeInspector({
+/**
+ * The workspace's primary action: walk the changes on this page one at a time.
+ * The list follows the current view, so its count can never disagree with the
+ * count the view itself reports.
+ */
+function ChangeNavigator({
   page,
+  mode,
   selected,
   onSelect,
 }: {
   page: DiffPage;
+  mode: DiffViewMode;
   selected: string | null;
   onSelect: (id: string | null) => void;
 }) {
-  const regions = page.regions ?? [];
-  const index = regions.findIndex((region) => region.id === selected);
-  const region = regions[index];
-  if (!regions.length) return null;
+  const changes = pageChanges(page, mode);
+  const index = changes.findIndex((change) => change.id === selected);
+  // Only pixel regions carry geometry, so the close-up is offered when the
+  // selected change happens to be one.
+  const region = page.regions?.find((item) => item.id === selected);
+  if (!changes.length) return null;
   const width = page.width ?? 100,
     height = page.height ?? 100;
   const x = region ? (Math.max(0, region.x - 2) * width) / 100 : 0;
@@ -816,31 +830,35 @@ function ChangeInspector({
   const cropWidth = region ? Math.min(width - x, ((region.width + 4) * width) / 100) : width;
   const cropHeight = region ? Math.min(height - y, ((region.height + 4) * height) / 100) : height;
   return (
-    <section className="shrink-0 border-t border-border bg-card px-4 py-2" aria-label="Changed areas">
-      <div className="flex items-center gap-3 text-xs">
-        <button className={styles.quietButton} disabled={index <= 0} onClick={() => onSelect(regions[index - 1]!.id)}>
-          Previous area
+    <section className={styles.changeBar} aria-label="Change navigation">
+      <button
+        className={styles.primaryButton}
+        type="button"
+        disabled={index <= 0}
+        onClick={() => onSelect(changes[index - 1]!.id)}
+      >
+        ← Previous change
+      </button>
+      <span className={styles.changeCount} aria-live="polite">
+        {index >= 0
+          ? `Change ${index + 1} of ${changes.length}`
+          : `${changes.length} change${changes.length === 1 ? "" : "s"} on this page`}
+      </span>
+      <button
+        className={styles.primaryButton}
+        type="button"
+        disabled={index >= changes.length - 1}
+        onClick={() => onSelect(changes[index + 1]!.id)}
+      >
+        Next change →
+      </button>
+      {index >= 0 ? (
+        <button className={styles.quietButton} type="button" onClick={() => onSelect(null)}>
+          Clear selection
         </button>
-        <span className="text-muted-foreground">
-          {region
-            ? `Area ${index + 1} of ${regions.length} on this page`
-            : `${regions.length} changed areas on this page`}
-        </span>
-        <button
-          className={styles.quietButton}
-          disabled={index >= regions.length - 1}
-          onClick={() => onSelect(regions[index + 1]!.id)}
-        >
-          {region ? "Next area" : "Inspect changes"}
-        </button>
-        {region ? (
-          <button className={styles.quietButton} onClick={() => onSelect(null)}>
-            Close inspection
-          </button>
-        ) : null}
-      </div>
+      ) : null}
       {region ? (
-        <div className="mt-2 grid grid-cols-2 gap-3">
+        <div className={styles.changeCrops}>
           {(
             [
               ["Earlier", page.beforeSrc],
@@ -893,6 +911,7 @@ export function PdfDiffViewer({
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [showPairing, setShowPairing] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const viewer = useViewerState({
     comparison,
     onSave: () => saveRef.current(),
@@ -951,13 +970,22 @@ export function PdfDiffViewer({
         onNewComparison={onNewComparison}
         headerActions={headerActions}
       />
-      <div className={cx(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
+      <div
+        className={cx(
+          styles.workspaceMain,
+          railCollapsed && styles.workspaceMainRailCollapsed,
+          pages.length <= 1 && styles.workspaceMainSinglePage,
+        )}
+      >
         <PageRail
           onlyChanged={settings.onlyChanged}
           pages={pages}
           pageIndex={pageIndex}
+          mode={mode}
           onSelectPage={selectPage}
           onOnlyChanged={(onlyChanged) => setSettings((current) => ({ ...current, onlyChanged }))}
+          collapsed={railCollapsed}
+          onCollapsedChange={setRailCollapsed}
         />
         <section className={styles.canvasColumn} aria-label="PDF comparison">
           <ViewerToolbar
@@ -981,15 +1009,15 @@ export function PdfDiffViewer({
                   ← Previous page
                 </button>
                 <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
-                  <span className="text-center text-xs text-foreground">
-                    {manualPair ? "Temporary · " : ""}
-                    {pagePairLabel(previewPage, pageIndex)}
-                  </span>
                   {comparison.comparePagePair ? (
-                    <button className={styles.quietButton} onClick={() => setShowPairing(true)}>
-                      Change pairing
+                    // The pair label is the only thing worth clicking here, so it is the button.
+                    <button className={styles.quietButton} title="Change pairing" onClick={() => setShowPairing(true)}>
+                      {manualPair ? "Temporary · " : ""}
+                      {pagePairLabel(previewPage, pageIndex)}
                     </button>
-                  ) : null}
+                  ) : (
+                    <span className="text-center text-xs text-foreground">{pagePairLabel(previewPage, pageIndex)}</span>
+                  )}
                   {manualPair ? (
                     <button className={styles.quietButton} onClick={() => selectPage(pageIndex)}>
                       Return to document
@@ -1018,7 +1046,7 @@ export function PdfDiffViewer({
               pairError={pairError}
             />
           </PanZoomStage>
-          <ChangeInspector page={previewPage} selected={selectedRegion} onSelect={setSelectedRegion} />
+          <ChangeNavigator page={previewPage} mode={mode} selected={selectedRegion} onSelect={setSelectedRegion} />
           <StatusFooter processingProgress={processingProgress} />
         </section>
       </div>

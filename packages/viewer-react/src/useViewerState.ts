@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { DiffComparison, DiffPage, DiffViewMode, RenderQuality } from "./types.js";
+import type { DiffComparison, DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
 import {
   clampPageIndex,
   pagePairNumbers,
@@ -78,6 +78,17 @@ export function useViewerState({
     setManualPair({ earlier, newer });
     setSelectedRegion(null);
   };
+  const sourceCounts = {
+    earlier: comparison.earlierPageCount ?? sourcePageCount(pages, "earlier"),
+    newer: comparison.newerPageCount ?? sourcePageCount(pages, "newer"),
+  };
+  // Documents drift apart when one side gains a page, so each side can be
+  // walked on its own; the result is the same manual pair the dialog produces.
+  const goToSourcePage = (side: SourceSide, page: number) => {
+    const next = { earlier: pair.earlier ?? 1, newer: pair.newer ?? 1 };
+    next[side] = Math.min(Math.max(1, page), Math.max(1, sourceCounts[side]));
+    changePair(next.earlier, next.newer);
+  };
   useEffect(() => {
     if (!needsResolution || !comparison.comparePagePair || !pair.earlier || !pair.newer) return;
     const controller = new AbortController();
@@ -105,6 +116,8 @@ export function useViewerState({
   useViewerKeyboard({
     enabled: !showHelp && !modalOpen,
     onStepPage: stepPage,
+    onStepSourcePage: (side, direction) => goToSourcePage(side, (pair[side] ?? 1) + direction),
+    onSourceBoundary: (side, last) => goToSourcePage(side, last ? sourceCounts[side] : 1),
     onBoundary: (last) => selectPage(visibleIndexes[last ? visibleIndexes.length - 1 : 0] ?? pageIndex),
     onClearSelection: () => setSelectedRegion(null),
     onChangeMode: setMode,
@@ -128,8 +141,8 @@ export function useViewerState({
     showHelp,
     currentPage,
     previewPage,
-    earlierPageCount: comparison.earlierPageCount ?? sourcePageCount(pages, "earlier"),
-    newerPageCount: comparison.newerPageCount ?? sourcePageCount(pages, "newer"),
+    earlierPageCount: sourceCounts.earlier,
+    newerPageCount: sourceCounts.newer,
     pair,
     pairKey,
     manualPair,

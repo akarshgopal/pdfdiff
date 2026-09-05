@@ -246,3 +246,41 @@ test("page navigation uses source numbers and retains moved pages in the filter"
   assert.deepEqual(visiblePageIndexes(pages, true, 1), [1, 2, 3]);
   assert.deepEqual(visiblePageIndexes(pages, true, 0), [0, 1, 2, 3]);
 });
+
+// The rail label, the change counter, and next/previous all read one list, so
+// Text mode can never claim a different number of changes than the view shows.
+test("change navigation counts the list the current view highlights", async () => {
+  const { pageChanges, statusText } = await import("../packages/viewer-react/src/viewer-utils.ts");
+  const page: DiffPage = {
+    index: 0,
+    status: "changed",
+    regions: [
+      { id: "r1", x: 0, y: 0, width: 1, height: 1 },
+      { id: "r2", x: 1, y: 1, width: 1, height: 1 },
+      { id: "r3", x: 2, y: 2, width: 1, height: 1 },
+    ],
+    semantic: {
+      before: [],
+      after: [],
+      changes: [{ id: "t1", kind: "changed", before: "a", after: "b" }],
+      beforeOverlays: [],
+      afterOverlays: [],
+      beforeTokenCount: 1,
+      afterTokenCount: 1,
+      hasBeforeText: true,
+      hasAfterText: true,
+    },
+  };
+
+  assert.deepEqual(
+    pageChanges(page, "semantic-text").map((change) => change.id),
+    ["t1"],
+  );
+  assert.deepEqual(
+    pageChanges(page, "diff").map((change) => change.id),
+    ["r1", "r2", "r3"],
+  );
+  assert.equal(statusText(page, "changed", "semantic-text"), "1 change");
+  assert.equal(statusText(page, "changed", "diff"), "3 changes");
+  assert.equal(statusText({ index: 1, status: "removed" }, "removed", "diff"), "Removed");
+});
