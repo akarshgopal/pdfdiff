@@ -21,14 +21,25 @@ interface OverlayBox extends Box {
 function overlayBox(overlay: DiffSemanticOverlay): OverlayBox | null {
   const points = overlay.quads.flat();
   if (points.length === 0) return null;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const point of points) {
     minX = Math.min(minX, point.x);
     minY = Math.min(minY, point.y);
     maxX = Math.max(maxX, point.x);
     maxY = Math.max(maxY, point.y);
   }
-  return { id: overlay.id, kind: overlay.kind, text: overlay.text, x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  return {
+    id: overlay.id,
+    kind: overlay.kind,
+    text: overlay.text,
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
 }
 
 export function overlapArea(a: Box, b: Box): number {
@@ -58,13 +69,17 @@ function bestOverlayMatch(region: Box, overlays: readonly OverlayBox[]): Overlay
 export function regionLabel(kind: DiffRegionKind, text: string): string | null {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return null;
-  const clipped = normalized.length > MAX_REGION_LABEL_CHARS ? `${normalized.slice(0, MAX_REGION_LABEL_CHARS - 1)}…` : normalized;
+  const clipped =
+    normalized.length > MAX_REGION_LABEL_CHARS ? `${normalized.slice(0, MAX_REGION_LABEL_CHARS - 1)}…` : normalized;
   const prefix = kind === "added" ? "Added" : kind === "removed" ? "Removed" : "Changed";
   return `${prefix} “${clipped}”`;
 }
 
 function unionBox(boxes: readonly Box[]): Box {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const box of boxes) {
     minX = Math.min(minX, box.x);
     minY = Math.min(minY, box.y);

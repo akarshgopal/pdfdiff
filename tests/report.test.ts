@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildReport, hasSubstantiveChanges, hasUnreadableText, reportToCsv, reportToJson, reportToText, type ComparisonPage } from "@pdfdiff/core";
+import {
+  buildReport,
+  hasSubstantiveChanges,
+  hasUnreadableText,
+  reportToCsv,
+  reportToJson,
+  reportToText,
+  type ComparisonPage,
+} from "@pdfdiff/core";
 
 function page(overrides: Partial<ComparisonPage> & { index: number }): ComparisonPage {
   return {
@@ -11,12 +19,19 @@ function page(overrides: Partial<ComparisonPage> & { index: number }): Compariso
   };
 }
 
-function semantic(changes: ReadonlyArray<{ id: string; kind: "added" | "removed" | "changed"; before: string; after: string }>) {
+function semantic(
+  changes: ReadonlyArray<{ id: string; kind: "added" | "removed" | "changed"; before: string; after: string }>,
+) {
   return {
-    before: [], after: [], changes,
-    beforeTokenCount: 0, afterTokenCount: 0,
-    hasBeforeText: true, hasAfterText: true,
-    beforeOverlays: [], afterOverlays: [],
+    before: [],
+    after: [],
+    changes,
+    beforeTokenCount: 0,
+    afterTokenCount: 0,
+    hasBeforeText: true,
+    hasAfterText: true,
+    beforeOverlays: [],
+    afterOverlays: [],
   };
 }
 
@@ -25,10 +40,40 @@ const REPORT = buildReport({
   newerName: "spec-v2.pdf",
   generatedAt: new Date("2026-08-30T12:00:00Z"),
   pages: [
-    page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1, alignment: "matched", status: "changed", changeClasses: { content: 2, reflow: 4, formatting: 0, graphic: 1 }, semantic: semantic([{ id: "c1", kind: "changed", before: "30 days", after: "60 days" }]) }),
-    page({ index: 1, newerPageNumber: 2, alignment: "added", status: "added", semantic: semantic([{ id: "c2", kind: "added", before: "", after: "New schedule" }]) }),
-    page({ index: 2, earlierPageNumber: 2, newerPageNumber: 3, alignment: "matched", status: "changed", noticeable: false, changeClasses: { content: 0, reflow: 7, formatting: 0, graphic: 0 }, semantic: semantic([]) }),
-    page({ index: 3, earlierPageNumber: 3, newerPageNumber: 4, alignment: "moved", status: "same", semantic: semantic([]) }),
+    page({
+      index: 0,
+      earlierPageNumber: 1,
+      newerPageNumber: 1,
+      alignment: "matched",
+      status: "changed",
+      changeClasses: { content: 2, reflow: 4, formatting: 0, graphic: 1 },
+      semantic: semantic([{ id: "c1", kind: "changed", before: "30 days", after: "60 days" }]),
+    }),
+    page({
+      index: 1,
+      newerPageNumber: 2,
+      alignment: "added",
+      status: "added",
+      semantic: semantic([{ id: "c2", kind: "added", before: "", after: "New schedule" }]),
+    }),
+    page({
+      index: 2,
+      earlierPageNumber: 2,
+      newerPageNumber: 3,
+      alignment: "matched",
+      status: "changed",
+      noticeable: false,
+      changeClasses: { content: 0, reflow: 7, formatting: 0, graphic: 0 },
+      semantic: semantic([]),
+    }),
+    page({
+      index: 3,
+      earlierPageNumber: 3,
+      newerPageNumber: 4,
+      alignment: "moved",
+      status: "same",
+      semantic: semantic([]),
+    }),
   ],
 });
 
@@ -66,7 +111,15 @@ test("CSV escapes separators inside change text", () => {
   const tricky = buildReport({
     earlierName: "a.pdf",
     newerName: "b.pdf",
-    pages: [page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1, status: "changed", semantic: semantic([{ id: "c1", kind: "changed", before: 'x, "y"', after: "line\nbreak" }]) })],
+    pages: [
+      page({
+        index: 0,
+        earlierPageNumber: 1,
+        newerPageNumber: 1,
+        status: "changed",
+        semantic: semantic([{ id: "c1", kind: "changed", before: 'x, "y"', after: "line\nbreak" }]),
+      }),
+    ],
   });
   // Not split on newlines: the escaped field deliberately contains one.
   const csv = reportToCsv(tricky);
@@ -78,7 +131,15 @@ test("a page that changed visually but has no text still appears in CSV", () => 
   const visual = buildReport({
     earlierName: "a.pdf",
     newerName: "b.pdf",
-    pages: [page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1, status: "changed", changeClasses: { content: 0, reflow: 0, formatting: 0, graphic: 3 } })],
+    pages: [
+      page({
+        index: 0,
+        earlierPageNumber: 1,
+        newerPageNumber: 1,
+        status: "changed",
+        changeClasses: { content: 0, reflow: 0, formatting: 0, graphic: 3 },
+      }),
+    ],
   });
   assert.match(reportToCsv(visual), /1,1,matched,changed,visual,,/);
 });
@@ -99,7 +160,17 @@ test("change detection includes possible reflow", () => {
   const noiseOnly = buildReport({
     earlierName: "a.pdf",
     newerName: "b.pdf",
-    pages: [page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1, status: "changed", noticeable: false, changeClasses: { content: 0, reflow: 5, formatting: 0, graphic: 0 }, semantic: semantic([]) })],
+    pages: [
+      page({
+        index: 0,
+        earlierPageNumber: 1,
+        newerPageNumber: 1,
+        status: "changed",
+        noticeable: false,
+        changeClasses: { content: 0, reflow: 5, formatting: 0, graphic: 0 },
+        semantic: semantic([]),
+      }),
+    ],
   });
   assert.equal(hasSubstantiveChanges(noiseOnly), true);
 });
@@ -108,7 +179,16 @@ test("a page whose text could not be decoded is called out, not reported as clea
   const undecodable = buildReport({
     earlierName: "drawing-a.pdf",
     newerName: "drawing-b.pdf",
-    pages: [page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1, status: "changed", changeClasses: { content: 0, reflow: 0, formatting: 0, graphic: 80 }, semantic: { ...semantic([]), hasBeforeText: false, hasAfterText: false, textUndecodable: true } })],
+    pages: [
+      page({
+        index: 0,
+        earlierPageNumber: 1,
+        newerPageNumber: 1,
+        status: "changed",
+        changeClasses: { content: 0, reflow: 0, formatting: 0, graphic: 80 },
+        semantic: { ...semantic([]), hasBeforeText: false, hasAfterText: false, textUndecodable: true },
+      }),
+    ],
   });
   assert.equal(undecodable.totals.pagesWithUnreadableText, 1);
   assert.equal(undecodable.pages[0]!.textUnreadable, true);
@@ -121,7 +201,11 @@ test("a readable comparison is not flagged as unreadable", () => {
 });
 
 test("pages without extractable text are counted for the trust warning", () => {
-  const scanned = buildReport({ earlierName: "a.pdf", newerName: "b.pdf", pages: [page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1 })] });
+  const scanned = buildReport({
+    earlierName: "a.pdf",
+    newerName: "b.pdf",
+    pages: [page({ index: 0, earlierPageNumber: 1, newerPageNumber: 1 })],
+  });
   assert.equal(scanned.totals.pagesWithoutText, 1);
   assert.match(reportToText(scanned), /1 pages have no selectable text/);
 });

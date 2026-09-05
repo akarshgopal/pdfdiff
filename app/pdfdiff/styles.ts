@@ -29,7 +29,8 @@ export const styles = {
   compareButtonReady: "w-full",
   privacyNote: "inline-flex items-center gap-2 text-xs leading-relaxed text-muted-foreground",
   privacyDot: "size-1.5 shrink-0 rounded-full bg-success",
-  errorBox: "mt-4 w-full rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left text-xs leading-[1.5] text-destructive",
+  errorBox:
+    "mt-4 w-full rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left text-xs leading-[1.5] text-destructive",
   pageDropActive: "outline-dashed outline-2 -outline-offset-4 outline-primary",
   facts: `${gutter} ${container} mb-16 grid grid-cols-3 gap-x-10 gap-y-6 border-t border-border pt-8 text-xs leading-[1.6] text-muted-foreground max-[820px]:grid-cols-1`,
   factTitle: "mb-1 block text-sm font-medium tracking-tight text-foreground",
@@ -42,7 +43,8 @@ export const styles = {
   historyFileName: "min-w-0 truncate font-medium",
   historyArrow: "shrink-0 text-primary",
   historyMeta: "flex flex-wrap gap-x-4 gap-y-1 text-2xs text-muted-foreground",
-  historyResume: "col-start-2 row-span-2 row-start-1 max-[650px]:col-start-1 max-[650px]:row-span-1 max-[650px]:row-start-auto max-[650px]:justify-self-start",
+  historyResume:
+    "col-start-2 row-span-2 row-start-1 max-[650px]:col-start-1 max-[650px]:row-span-1 max-[650px]:row-start-auto max-[650px]:justify-self-start",
   historyNote: "mt-3 text-xs leading-relaxed text-muted-foreground",
   demo: `${ui.card} w-full overflow-hidden text-left`,
   demoBar: "flex items-center gap-2 border-b border-border bg-card px-3 py-2.5 text-2xs",

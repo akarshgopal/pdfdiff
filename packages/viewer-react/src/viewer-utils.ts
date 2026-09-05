@@ -65,7 +65,8 @@ export function pagePairDescription(page: DiffPage, index: number, status: NonNu
   if (page.alignment === "moved" && earlier !== undefined && newer !== undefined) {
     return `Page moved from A ${earlier} to B ${newer}, ${statusLabel(status)}`;
   }
-  if (earlier !== undefined && newer !== undefined) return `Compare A page ${earlier} with B page ${newer}, ${statusLabel(status)}`;
+  if (earlier !== undefined && newer !== undefined)
+    return `Compare A page ${earlier} with B page ${newer}, ${statusLabel(status)}`;
   if (earlier !== undefined) return `A page ${earlier} was removed`;
   if (newer !== undefined) return `B page ${newer} was added`;
   return `Comparison row ${index + 1}, ${statusLabel(status)}`;
@@ -106,5 +107,7 @@ export function pagePairNumbers(page: DiffPage | undefined): { earlier?: number;
 }
 
 export function visiblePageIndexes(pages: readonly DiffPage[], onlyChanged: boolean, selected: number): number[] {
-  return pages.flatMap((page, index) => !onlyChanged || index === selected || pageStatus(page) !== "same" || page.alignment === "moved" ? [index] : []);
+  return pages.flatMap((page, index) =>
+    !onlyChanged || index === selected || pageStatus(page) !== "same" || page.alignment === "moved" ? [index] : [],
+  );
 }

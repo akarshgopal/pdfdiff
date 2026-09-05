@@ -66,7 +66,10 @@ function buildScenarios() {
   const base = raster(1024, 768);
   const changed = changedRaster(base);
   const shifted = shiftedRaster(base, 4, 4);
-  const beforeText = Array.from({ length: 900 }, (_, index) => `Section ${index} payment is due within thirty days.`).join(" ");
+  const beforeText = Array.from(
+    { length: 900 },
+    (_, index) => `Section ${index} payment is due within thirty days.`,
+  ).join(" ");
   const afterText = beforeText.replaceAll("thirty", "forty-five").replace("Section 420", "Revised section 420");
 
   return [
@@ -84,7 +87,11 @@ function buildScenarios() {
       "A same-size pair with several changed regions.",
       (metrics) => {
         const result = diffImages(base, changed, { threshold: 0.1, regionOptions: { minPixels: 4 }, metrics });
-        return { changedPixels: result.changedPixels, changedPercent: result.changedPercent, regions: result.regions.length };
+        return {
+          changedPixels: result.changedPixels,
+          changedPercent: result.changedPercent,
+          regions: result.regions.length,
+        };
       },
       (result) => result.changedPixels > 0 && result.regions > 0,
     ),
@@ -102,7 +109,11 @@ function buildScenarios() {
       "A long token stream with repeated and localized text changes.",
       (metrics) => {
         const result = diffSemanticText(beforeText, afterText, { metrics });
-        return { beforeTokens: result.beforeTokenCount, afterTokens: result.afterTokenCount, changes: result.changes.length };
+        return {
+          beforeTokens: result.beforeTokenCount,
+          afterTokens: result.afterTokenCount,
+          changes: result.changes.length,
+        };
       },
       (result) => result.changes > 0,
     ),
@@ -140,11 +151,13 @@ async function runScenario(entry, runs, warmups) {
   };
 }
 
-const { values } = parseArgs({ options: {
-  runs: { type: "string" },
-  warmups: { type: "string" },
-  output: { type: "string", default: DEFAULT_OUTPUT },
-} });
+const { values } = parseArgs({
+  options: {
+    runs: { type: "string" },
+    warmups: { type: "string" },
+    output: { type: "string", default: DEFAULT_OUTPUT },
+  },
+});
 const runs = integerOption(values.runs, DEFAULT_RUNS);
 const warmups = integerOption(values.warmups, DEFAULT_WARMUPS, 0);
 const output = values.output;
@@ -171,12 +184,20 @@ const report = {
 const outputSeparator = output.lastIndexOf("/");
 await mkdir(outputSeparator >= 0 ? output.slice(0, outputSeparator) : ".", { recursive: true });
 await writeFile(output, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-console.table(scenarios.map((entry) => ({
-  scenario: entry.id,
-  quality: entry.qualityPassed ? "pass" : "FAIL",
-  medianMs: percentile(entry.runs.map((run) => run.durationMs), 0.5).toFixed(2),
-  p95Ms: percentile(entry.runs.map((run) => run.durationMs), 0.95).toFixed(2),
-})));
+console.table(
+  scenarios.map((entry) => ({
+    scenario: entry.id,
+    quality: entry.qualityPassed ? "pass" : "FAIL",
+    medianMs: percentile(
+      entry.runs.map((run) => run.durationMs),
+      0.5,
+    ).toFixed(2),
+    p95Ms: percentile(
+      entry.runs.map((run) => run.durationMs),
+      0.95,
+    ).toFixed(2),
+  })),
+);
 console.log(`Wrote ${output}`);
 
 if (scenarios.some((entry) => !entry.qualityPassed)) process.exitCode = 1;

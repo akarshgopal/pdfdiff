@@ -46,10 +46,12 @@ export interface ClassifyRegionsInput {
 const DEFAULT_TOLERANCE = 2;
 
 function intersects(region: ChangeRegion, box: ClassifierBox, tolerance: number): boolean {
-  return region.x - tolerance < box.x + box.width
-    && box.x < region.x + region.width + tolerance
-    && region.y - tolerance < box.y + box.height
-    && box.y < region.y + region.height + tolerance;
+  return (
+    region.x - tolerance < box.x + box.width &&
+    box.x < region.x + region.width + tolerance &&
+    region.y - tolerance < box.y + box.height &&
+    box.y < region.y + region.height + tolerance
+  );
 }
 
 function anyIntersects(region: ChangeRegion, boxes: readonly ClassifierBox[], tolerance: number): boolean {
@@ -85,10 +87,13 @@ export function limitRegions(regions: readonly ClassifiedRegion[], maxRegions: n
   if (regions.length <= maxRegions) return [...regions];
   return regions
     .map((region, order) => ({ region, order }))
-    .sort((first, second) =>
-      Number(NOTICEABLE_CLASSES.has(second.region.changeClass)) - Number(NOTICEABLE_CLASSES.has(first.region.changeClass))
-      || second.region.pixelCount - first.region.pixelCount
-      || first.order - second.order)
+    .sort(
+      (first, second) =>
+        Number(NOTICEABLE_CLASSES.has(second.region.changeClass)) -
+          Number(NOTICEABLE_CLASSES.has(first.region.changeClass)) ||
+        second.region.pixelCount - first.region.pixelCount ||
+        first.order - second.order,
+    )
     .slice(0, maxRegions)
     .sort((first, second) => first.order - second.order)
     .map((entry) => entry.region);

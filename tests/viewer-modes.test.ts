@@ -9,7 +9,7 @@ import {
   qualityForZoom,
   PdfDiffViewer,
   type DiffPage,
-  } from "@pdfdiff/viewer-react";
+} from "@pdfdiff/viewer-react";
 
 const currentPage: DiffPage = {
   index: 0,
@@ -22,13 +22,18 @@ const currentPage: DiffPage = {
 };
 
 test("viewer renders pair navigation, overlay thumbnails, and a pannable canvas", () => {
-  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
-    comparison: {
-      earlierName: "earlier.pdf",
-      newerName: "newer.pdf",
-      pages: [{ ...currentPage, changedPercent: 7.33 }, { index: 1, status: "same", beforeSrc: "second-a", afterSrc: "second-b" }],
-    },
-  }));
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        pages: [
+          { ...currentPage, changedPercent: 7.33 },
+          { index: 1, status: "same", beforeSrc: "second-a", afterSrc: "second-b" },
+        ],
+      },
+    }),
+  );
 
   assert.match(html, /aria-label="Page navigation"/);
   assert.match(html, /aria-pressed="true"[^>]*>Overlay/);
@@ -42,25 +47,36 @@ test("viewer renders pair navigation, overlay thumbnails, and a pannable canvas"
 });
 
 test("single-page unreadable comparisons remove duplicate chrome and retain the warning", () => {
-  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
-    comparison: {
-      earlierName: "earlier.pdf",
-      newerName: "newer.pdf",
-      pages: [{
-        ...currentPage,
-        regions: [
-          { id: "graphic-1", x: 0, y: 0, width: 1, height: 1, changeClass: "graphic" },
-          { id: "content-1", x: 2, y: 2, width: 1, height: 1, changeClass: "content" },
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        pages: [
+          {
+            ...currentPage,
+            regions: [
+              { id: "graphic-1", x: 0, y: 0, width: 1, height: 1, changeClass: "graphic" },
+              { id: "content-1", x: 2, y: 2, width: 1, height: 1, changeClass: "content" },
+            ],
+            changeClasses: { content: 1, graphic: 1, reflow: 0, formatting: 0 },
+            semantic: {
+              textUndecodable: true,
+              before: [],
+              after: [],
+              changes: [],
+              beforeOverlays: [],
+              afterOverlays: [],
+              beforeTokenCount: 0,
+              afterTokenCount: 0,
+              hasBeforeText: false,
+              hasAfterText: false,
+            },
+          },
         ],
-        changeClasses: { content: 1, graphic: 1, reflow: 0, formatting: 0 },
-        semantic: {
-          textUndecodable: true,
-          before: [], after: [], changes: [], beforeOverlays: [], afterOverlays: [],
-          beforeTokenCount: 0, afterTokenCount: 0, hasBeforeText: false, hasAfterText: false,
-        },
-      }],
-    },
-  }));
+      },
+    }),
+  );
 
   assert.match(html, />1 page changed<\/strong>/);
   assert.match(html, /⚠ Text unavailable on 1 of 1 pages<\/span>/);
@@ -72,16 +88,23 @@ test("single-page unreadable comparisons remove duplicate chrome and retain the 
 });
 
 test("the workspace opens with a document-level summary and filters", () => {
-  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
-    comparison: {
-      earlierName: "earlier.pdf",
-      newerName: "newer.pdf",
-      pages: [
-        { ...currentPage, changeClasses: { content: 2, reflow: 9, formatting: 0, graphic: 1 }, noticeable: true, textChangeCount: 2 },
-        { index: 1, status: "same", beforeSrc: "b", afterSrc: "a" },
-      ],
-    },
-  }));
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        pages: [
+          {
+            ...currentPage,
+            changeClasses: { content: 2, reflow: 9, formatting: 0, graphic: 1 },
+            noticeable: true,
+            textChangeCount: 2,
+          },
+          { index: 1, status: "same", beforeSrc: "b", afterSrc: "a" },
+        ],
+      },
+    }),
+  );
 
   assert.match(html, /aria-label="Comparison summary"/);
   assert.match(html, /1 changed of 2 pages/);
@@ -94,46 +117,59 @@ test("the workspace opens with a document-level summary and filters", () => {
 });
 
 test("a comparison with possible reflow still reports detected changes", () => {
-  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
-    comparison: {
-      earlierName: "earlier.pdf",
-      newerName: "newer.pdf",
-      pages: [{ ...currentPage, status: "changed", noticeable: false, changeClasses: { content: 0, reflow: 6, formatting: 1, graphic: 0 } }],
-    },
-  }));
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        pages: [
+          {
+            ...currentPage,
+            status: "changed",
+            noticeable: false,
+            changeClasses: { content: 0, reflow: 6, formatting: 1, graphic: 0 },
+          },
+        ],
+      },
+    }),
+  );
 
   assert.match(html, /1 page changed/);
   assert.doesNotMatch(html, /No substantive changes/);
 });
 
 test("viewer renders supplied header actions in the comparison workspace", () => {
-  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
-    comparison: {
-      earlierName: "earlier.pdf",
-      newerName: "newer.pdf",
-      pages: [{ ...currentPage }],
-    },
-    headerActions: createElement("button", { type: "button", "aria-label": "Toggle dark mode" }, "theme"),
-  }));
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        pages: [{ ...currentPage }],
+      },
+      headerActions: createElement("button", { type: "button", "aria-label": "Toggle dark mode" }, "theme"),
+    }),
+  );
 
   assert.match(html, /aria-label="Toggle dark mode"/);
 });
 
 test("viewer renders document counts and progress without treating pending pages as changes", () => {
-  const html = renderToStaticMarkup(createElement(PdfDiffViewer, {
-    comparison: {
-      earlierName: "earlier.pdf",
-      newerName: "newer.pdf",
-      earlierPageCount: 3,
-      newerPageCount: 2,
-      pages: [
-        { index: 0, status: "processing" },
-        { index: 1, status: "processing" },
-        { index: 2, status: "processing" },
-      ],
-    },
-    processingProgress: { completed: 0, total: 3 },
-  }));
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        earlierPageCount: 3,
+        newerPageCount: 2,
+        pages: [
+          { index: 0, status: "processing" },
+          { index: 1, status: "processing" },
+          { index: 2, status: "processing" },
+        ],
+      },
+      processingProgress: { completed: 0, total: 3 },
+    }),
+  );
 
   assert.match(html, /Page navigation/);
   assert.doesNotMatch(html, />Changed <span>/);
@@ -149,17 +185,36 @@ test("the marked-up page can leave the tab, named after both sources and the pag
   const comparison = { earlierName: "Wheel Hub Rev A.pdf", newerName: "Wheel Hub Rev B.pdf", pages: [] };
   const named = (page: DiffPage) => pageImageFileName(comparison, page);
 
-  assert.equal(named({ index: 0, earlierPageNumber: 3, newerPageNumber: 3 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-3.png");
-  assert.equal(named({ index: 0, earlierPageNumber: 3, newerPageNumber: 5 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-A3-B5.png", "a moved page names both sides");
-  assert.equal(named({ index: 0, earlierPageNumber: 2 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-A2.png", "a removed page");
+  assert.equal(
+    named({ index: 0, earlierPageNumber: 3, newerPageNumber: 3 }),
+    "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-3.png",
+  );
+  assert.equal(
+    named({ index: 0, earlierPageNumber: 3, newerPageNumber: 5 }),
+    "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-A3-B5.png",
+    "a moved page names both sides",
+  );
+  assert.equal(
+    named({ index: 0, earlierPageNumber: 2 }),
+    "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-A2.png",
+    "a removed page",
+  );
   assert.equal(named({ index: 7 }), "Wheel-Hub-Rev-A-vs-Wheel-Hub-Rev-B-page-8.png", "falls back to the row number");
 });
 
 test("the image export is offered only once a page has a rendered overlay", () => {
   assert.equal(canDownloadPageImage(null), false);
-  assert.equal(canDownloadPageImage({ index: 0, status: "processing" }), false, "a page still rendering has nothing to save");
+  assert.equal(
+    canDownloadPageImage({ index: 0, status: "processing" }),
+    false,
+    "a page still rendering has nothing to save",
+  );
   assert.equal(canDownloadPageImage({ index: 0, diffSrc: "blob:diff" }), true);
-  assert.equal(canDownloadPageImage({ index: 0, layers: { base: "b", added: "a", removed: "r", modified: "m" } }), true, "layers alone are enough to compose an export");
+  assert.equal(
+    canDownloadPageImage({ index: 0, layers: { base: "b", added: "a", removed: "r", modified: "m" } }),
+    true,
+    "layers alone are enough to compose an export",
+  );
 });
 
 test("keyboard and toolbar zoom stay inside the same bounds", () => {
@@ -177,7 +232,8 @@ test("the high-resolution re-render follows the zoom, with a gap so a hovering w
 
 // Source numbers and comparison rows diverge after insertions and moves.
 test("page navigation uses source numbers and retains moved pages in the filter", async () => {
-  const { pagePairNumbers, sourcePageCount, visiblePageIndexes } = await import("../packages/viewer-react/src/viewer-utils.ts");
+  const { pagePairNumbers, sourcePageCount, visiblePageIndexes } =
+    await import("../packages/viewer-react/src/viewer-utils.ts");
   const pages: DiffPage[] = [
     { index: 0, earlierPageNumber: 1, newerPageNumber: 2, status: "same" },
     { index: 1, newerPageNumber: 1, status: "added" },

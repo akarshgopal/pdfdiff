@@ -3,7 +3,13 @@ import { resultTransfers, runRasterDiffJob, type RasterDiffJob, type RasterDiffJ
 // The worker entry is also the DOM-free door onto the raster diff, so callers
 // that must not pull in PDF.js — the worker bundle, the tests — get everything
 // from here rather than from three subpaths.
-export { rasterImage, resultTransfers, runRasterDiffJob, type RasterDiffJob, type RasterDiffJobResult } from "./raster-diff-job.js";
+export {
+  rasterImage,
+  resultTransfers,
+  runRasterDiffJob,
+  type RasterDiffJob,
+  type RasterDiffJobResult,
+} from "./raster-diff-job.js";
 export { createRasterDiffClient, type RasterDiffClient, type RasterDiffWorkerFactory } from "./raster-diff-client.js";
 
 export interface RasterDiffRequest extends RasterDiffJob {
@@ -34,7 +40,14 @@ export function serveRasterDiffWorker(scope: WorkerScope = globalThis as unknown
     } catch (error) {
       // A failed page must not take the worker down with it; the client falls
       // back to comparing that page on the main thread.
-      scope.postMessage({ id, ok: false, message: error instanceof Error ? error.message : "Raster diff failed." } satisfies RasterDiffResponse, []);
+      scope.postMessage(
+        {
+          id,
+          ok: false,
+          message: error instanceof Error ? error.message : "Raster diff failed.",
+        } satisfies RasterDiffResponse,
+        [],
+      );
     }
   };
 }

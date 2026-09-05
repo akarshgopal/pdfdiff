@@ -9,17 +9,35 @@ const urlArgument = process.argv.find((value) => value.startsWith("--url="));
 const check = process.argv.includes("--check");
 const url = urlArgument?.slice("--url=".length) ?? "http://127.0.0.1:4176/";
 
-for (const entry of corpus.cases ?? []) for (const page of entry.visualPages ?? []) {
-  if (!Number.isInteger(page.earlier) || !Number.isInteger(page.newer) || !["same", "changed", "added", "removed"].includes(page.status)) throw new Error(`${entry.id} has an invalid visual page expectation.`);
-  for (const region of page.regions ?? []) if (!region.label || !Array.isArray(region.box) || region.box.length !== 4
-    || region.box.some((value) => !Number.isFinite(value) || value < 0 || value > 1) || region.box[0] >= region.box[2] || region.box[1] >= region.box[3]) throw new Error(`${entry.id} has an invalid normalized visual box.`);
-}
+for (const entry of corpus.cases ?? [])
+  for (const page of entry.visualPages ?? []) {
+    if (
+      !Number.isInteger(page.earlier) ||
+      !Number.isInteger(page.newer) ||
+      !["same", "changed", "added", "removed"].includes(page.status)
+    )
+      throw new Error(`${entry.id} has an invalid visual page expectation.`);
+    for (const region of page.regions ?? [])
+      if (
+        !region.label ||
+        !Array.isArray(region.box) ||
+        region.box.length !== 4 ||
+        region.box.some((value) => !Number.isFinite(value) || value < 0 || value > 1) ||
+        region.box[0] >= region.box[2] ||
+        region.box[1] >= region.box[3]
+      )
+        throw new Error(`${entry.id} has an invalid normalized visual box.`);
+  }
 
 const delay = (milliseconds) => new Promise((done) => setTimeout(done, milliseconds));
 
 async function startServer() {
   if (urlArgument) return undefined;
-  const child = spawn(process.execPath, [resolve("node_modules/vite/bin/vite.js"), "--host", "127.0.0.1", "--port", "4176", "--strictPort"], { stdio: "ignore" });
+  const child = spawn(
+    process.execPath,
+    [resolve("node_modules/vite/bin/vite.js"), "--host", "127.0.0.1", "--port", "4176", "--strictPort"],
+    { stdio: "ignore" },
+  );
   for (let attempt = 0; attempt < 100; attempt += 1) {
     if (child.exitCode !== null) throw new Error("The visual accuracy server stopped before it was ready.");
     try {
@@ -45,14 +63,19 @@ function intersectionCoverage(expected, actual) {
 }
 
 function scoreCase(entry, pages) {
-  let expectedPages = 0, foundPages = 0, expectedRegions = 0, foundRegions = 0;
+  let expectedPages = 0,
+    foundPages = 0,
+    expectedRegions = 0,
+    foundRegions = 0;
   const missing = [];
   for (const expected of entry.visualPages ?? []) {
     expectedPages += 1;
     expectedRegions += expected.regions?.length ?? 0;
     const actual = pages.find((page) => page.earlier === expected.earlier && page.newer === expected.newer);
     if (!actual || actual.status !== expected.status) {
-      missing.push(`A${expected.earlier ?? "-"}/B${expected.newer ?? "-"} expected ${expected.status}, got ${actual?.status ?? "no pair"}`);
+      missing.push(
+        `A${expected.earlier ?? "-"}/B${expected.newer ?? "-"} expected ${expected.status}, got ${actual?.status ?? "no pair"}`,
+      );
       continue;
     }
     foundPages += 1;
@@ -65,7 +88,9 @@ function scoreCase(entry, pages) {
 }
 
 const server = await startServer();
-const browser = await chromium.launch({ args: ["--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", "--ignore-gpu-blocklist"] });
+const browser = await chromium.launch({
+  args: ["--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", "--ignore-gpu-blocklist"],
+});
 const page = await browser.newPage();
 const results = [];
 
@@ -74,10 +99,14 @@ try {
     await page.goto(url, { waitUntil: "networkidle" });
     await page.evaluate(() => {
       window.__accuracyFiles = [];
-      document.addEventListener("change", (event) => {
-        const file = event.target.files?.[0];
-        if (file) window.__accuracyFiles.push(file);
-      }, true);
+      document.addEventListener(
+        "change",
+        (event) => {
+          const file = event.target.files?.[0];
+          if (file) window.__accuracyFiles.push(file);
+        },
+        true,
+      );
     });
     const inputs = page.locator('input[type="file"]');
     await inputs.nth(0).setInputFiles(resolve(entry.earlier));
@@ -115,11 +144,14 @@ try {
   server?.kill();
 }
 
-console.table(results.map((result) => ({
-  case: result.entry.id,
-  pages: `${result.foundPages}/${result.expectedPages}`,
-  regionAnchors: `${result.foundRegions}/${result.expectedRegions}`,
-  result: result.missing.length ? "FAIL" : "pass",
-})));
-for (const result of results.filter((candidate) => candidate.missing.length)) console.log(`${result.entry.id}: missing ${result.missing.join(", ")}`);
+console.table(
+  results.map((result) => ({
+    case: result.entry.id,
+    pages: `${result.foundPages}/${result.expectedPages}`,
+    regionAnchors: `${result.foundRegions}/${result.expectedRegions}`,
+    result: result.missing.length ? "FAIL" : "pass",
+  })),
+);
+for (const result of results.filter((candidate) => candidate.missing.length))
+  console.log(`${result.entry.id}: missing ${result.missing.join(", ")}`);
 if (check && results.some((result) => result.missing.length)) process.exitCode = 1;

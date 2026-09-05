@@ -1,7 +1,19 @@
 export const helpSteps = [
-  { number: "1", title: "Find the changes", copy: "Use Previous page and Next page to browse compared pairs. Only changed filters the page list and navigation." },
-  { number: "2", title: "Choose a view", copy: "Overlay opens first. Use Change pairing to compare different source pages temporarily." },
-  { number: "3", title: "Inspect and share", copy: "Inspect changes shows matching earlier and newer crops. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page." },
+  {
+    number: "1",
+    title: "Find the changes",
+    copy: "Use Previous page and Next page to browse compared pairs. Only changed filters the page list and navigation.",
+  },
+  {
+    number: "2",
+    title: "Choose a view",
+    copy: "Overlay opens first. Use Change pairing to compare different source pages temporarily.",
+  },
+  {
+    number: "3",
+    title: "Inspect and share",
+    copy: "Inspect changes shows matching earlier and newer crops. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
+  },
 ] as const;
 
 export const helpModes = [

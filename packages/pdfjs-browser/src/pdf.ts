@@ -47,9 +47,14 @@ function sourceType(source: PdfSource): "file" | "array-buffer" | "uint8-array" 
   return source instanceof ArrayBuffer ? "array-buffer" : "uint8-array";
 }
 
-function watchAbort(task: PDFDocumentLoadingTask, signal?: PdfLoadOptions["signal"]): { promise: Promise<never>; detach: () => void } {
+function watchAbort(
+  task: PDFDocumentLoadingTask,
+  signal?: PdfLoadOptions["signal"],
+): { promise: Promise<never>; detach: () => void } {
   let rejectAbort: (reason: PdfDiffAbortError) => void = () => undefined;
-  const promise = new Promise<never>((_, reject) => { rejectAbort = reject; });
+  const promise = new Promise<never>((_, reject) => {
+    rejectAbort = reject;
+  });
   const onAbort = (): void => {
     void task.destroy();
     rejectAbort(new PdfDiffAbortError());
@@ -64,17 +69,24 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
   throwIfAborted(options.signal);
   configureWorker(options.workerSrc);
 
-  const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), { sourceType: sourceType(source) });
+  const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), {
+    sourceType: sourceType(source),
+  });
   throwIfAborted(options.signal);
   const task = getDocument({ data, ...assetUrls(options.assetBaseUrl) });
   const abort = watchAbort(task, options.signal);
 
   try {
-    const pdf = await measureAsync(options.metrics, "pdf.document.load", async () => {
-      const loaded = await Promise.race([task.promise, abort.promise]);
-      throwIfAborted(options.signal);
-      return loaded;
-    }, { bytes: data.byteLength });
+    const pdf = await measureAsync(
+      options.metrics,
+      "pdf.document.load",
+      async () => {
+        const loaded = await Promise.race([task.promise, abort.promise]);
+        throwIfAborted(options.signal);
+        return loaded;
+      },
+      { bytes: data.byteLength },
+    );
     return {
       pdf,
       name: isFile(source) ? source.name : undefined,

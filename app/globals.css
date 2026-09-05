@@ -35,10 +35,35 @@ input[type="range"] {
 }
 
 /* Landing demo: the swipe divider sweeps on its own. */
-.pdfdiff-swipe-top { clip-path: inset(0 50% 0 0); animation: pdfdiff-swipe-clip 5.2s ease-in-out infinite; }
-.pdfdiff-swipe-handle { left: 50%; animation: pdfdiff-swipe-handle 5.2s ease-in-out infinite; }
-@keyframes pdfdiff-swipe-clip { 0%, 100% { clip-path: inset(0 78% 0 0); } 50% { clip-path: inset(0 22% 0 0); } }
-@keyframes pdfdiff-swipe-handle { 0%, 100% { left: 22%; } 50% { left: 78%; } }
+.pdfdiff-swipe-top {
+  clip-path: inset(0 50% 0 0);
+  animation: pdfdiff-swipe-clip 5.2s ease-in-out infinite;
+}
+.pdfdiff-swipe-handle {
+  left: 50%;
+  animation: pdfdiff-swipe-handle 5.2s ease-in-out infinite;
+}
+@keyframes pdfdiff-swipe-clip {
+  0%,
+  100% {
+    clip-path: inset(0 78% 0 0);
+  }
+  50% {
+    clip-path: inset(0 22% 0 0);
+  }
+}
+@keyframes pdfdiff-swipe-handle {
+  0%,
+  100% {
+    left: 22%;
+  }
+  50% {
+    left: 78%;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .pdfdiff-swipe-top, .pdfdiff-swipe-handle { animation: none; }
+  .pdfdiff-swipe-top,
+  .pdfdiff-swipe-handle {
+    animation: none;
+  }
 }

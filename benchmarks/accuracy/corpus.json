@@ -1,1014 +1,717 @@
 {
- "schemaVersion": 1,
- "cases": [
-  {
-   "id": "wheel-hub-cad",
-   "category": "cad",
-   "earlier": "examples/pdf-fixtures/cad/wheel-hub-rev-a.pdf",
-   "newer": "examples/pdf-fixtures/cad/wheel-hub-rev-b.pdf",
-   "alignmentCoverage": "complete",
-   "pages": [
+  "schemaVersion": 1,
+  "cases": [
     {
-     "earlier": 1,
-     "newer": 1,
-     "kind": "matched"
+      "id": "wheel-hub-cad",
+      "category": "cad",
+      "earlier": "examples/pdf-fixtures/cad/wheel-hub-rev-a.pdf",
+      "newer": "examples/pdf-fixtures/cad/wheel-hub-rev-b.pdf",
+      "alignmentCoverage": "complete",
+      "pages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "kind": "matched"
+        }
+      ],
+      "trust": {
+        "unreadablePages": 1
+      },
+      "selfCheck": true,
+      "visualPages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "section A-A, stepped bore, and finish-turn callout",
+              "box": [0.15, 0.04, 0.58, 0.38]
+            },
+            {
+              "label": "front view, bore, and bolt-pattern dimensions",
+              "box": [0.06, 0.4, 0.55, 0.92]
+            },
+            {
+              "label": "quantity and finish notes",
+              "box": [0.68, 0.42, 0.97, 0.66]
+            },
+            {
+              "label": "title block, title, and revision B",
+              "box": [0.49, 0.77, 0.98, 0.98]
+            }
+          ]
+        }
+      ],
+      "notes": "Text is undecodable. The visual diff must find the stepped bore, revised dimensions, notes, and Rev A to Rev B title block."
+    },
+    {
+      "id": "olimexino-pcb",
+      "category": "pcb",
+      "earlier": "examples/pdf-fixtures/pcb/olimexino-stm32-rev-a.pdf",
+      "newer": "examples/pdf-fixtures/pcb/olimexino-stm32-rev-b.pdf",
+      "alignmentCoverage": "complete",
+      "pages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "kind": "matched",
+          "status": "changed"
+        }
+      ],
+      "trust": {
+        "unreadablePages": 0
+      },
+      "selfCheck": true,
+      "textAnchors": [
+        {
+          "id": "vbat",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "VBAT"
+        },
+        {
+          "id": "r34",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "R34"
+        },
+        {
+          "id": "c32",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "C32"
+        },
+        {
+          "id": "usb-old",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "removed",
+          "beforeIncludes": "MICRO_B"
+        },
+        {
+          "id": "usb-new",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "USB-MINI"
+        }
+      ],
+      "forbiddenFragments": ["PO W ER", "ANALO G", "DIG ITAL", "T RST", "T DI", "T DO"],
+      "visualPages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "MCU top additions, VBAT, R34/R35, and design title",
+              "box": [0.26, 0.04, 0.83, 0.5]
+            },
+            {
+              "label": "USB device block",
+              "box": [0.05, 0.2, 0.28, 0.51]
+            },
+            {
+              "label": "power supply, battery charger, and regulators",
+              "box": [0.04, 0.61, 0.75, 0.94]
+            },
+            {
+              "label": "revision footer and Made in Bulgaria",
+              "box": [0.74, 0.84, 0.95, 0.98]
+            }
+          ]
+        }
+      ],
+      "notes": "A schematic's net labels are separated by unchanged text in extraction order, so swapping one connector surfaces as a removal plus an addition rather than a single changed run. Both halves are anchored instead of asserting the merged form."
+    },
+    {
+      "id": "work-order-contract",
+      "category": "contract",
+      "earlier": "examples/pdf-fixtures/contracts/work-order-original.pdf",
+      "newer": "examples/pdf-fixtures/contracts/work-order-amended.pdf",
+      "alignmentCoverage": "complete",
+      "pages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "kind": "matched",
+          "status": "changed"
+        }
+      ],
+      "trust": {
+        "unreadablePages": 0
+      },
+      "selfCheck": true,
+      "textAnchors": [
+        {
+          "id": "title",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "changed",
+          "beforeIncludes": "Exhibit A: Sample Work Order Contract",
+          "afterIncludes": "Exhibit B: Sample Amended Work Order Contract"
+        },
+        {
+          "id": "amendment",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "AMENDMENT 1"
+        },
+        {
+          "id": "duties-removed",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "removed",
+          "beforeIncludes": "Contractor\u2019s Duties"
+        },
+        {
+          "id": "recitals",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "Recitals"
+        },
+        {
+          "id": "payment-revision",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "REVISION 2. Clause 3."
+        },
+        {
+          "id": "retainage",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "3.2.2. Retainage"
+        },
+        {
+          "id": "project-managers-removed",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "removed",
+          "beforeIncludes": "Project Managers"
+        }
+      ],
+      "visualPages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "document title and state header",
+              "box": [0.14, 0.01, 0.86, 0.15]
+            },
+            {
+              "label": "agreement summary fields and introductory reflow",
+              "box": [0.05, 0.14, 0.97, 0.32]
+            },
+            {
+              "label": "recitals, amendment headings, and Revision 1",
+              "box": [0.06, 0.3, 0.97, 0.59]
+            },
+            {
+              "label": "consideration, payment, Revision 2, and footer",
+              "box": [0.06, 0.43, 0.98, 0.99]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sn74lv126a-datasheet",
+      "category": "datasheet",
+      "earlier": "examples/pdf-fixtures/datasheets/ti-sn74lv126a-rev-i.pdf",
+      "newer": "examples/pdf-fixtures/datasheets/ti-sn74lv126a-rev-j.pdf",
+      "alignmentCoverage": "anchors",
+      "pages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "kind": "matched"
+        },
+        {
+          "earlier": 2,
+          "newer": 2,
+          "kind": "matched"
+        },
+        {
+          "earlier": 4,
+          "newer": 3,
+          "kind": "matched"
+        },
+        {
+          "earlier": 5,
+          "newer": 4,
+          "kind": "matched"
+        },
+        {
+          "earlier": 8,
+          "newer": 7,
+          "kind": "matched"
+        },
+        {
+          "earlier": 10,
+          "newer": 9,
+          "kind": "matched"
+        },
+        {
+          "earlier": 14,
+          "newer": 13,
+          "kind": "matched"
+        },
+        {
+          "earlier": 18,
+          "newer": 20,
+          "kind": "matched"
+        },
+        {
+          "earlier": 24,
+          "newer": 27,
+          "kind": "matched"
+        }
+      ],
+      "trust": {
+        "unreadablePages": 0
+      },
+      "selfCheck": true,
+      "textAnchors": [
+        {
+          "id": "document-number",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "SCES131J"
+        },
+        {
+          "id": "sn54-removed",
+          "earlier": 12,
+          "newer": 11,
+          "kind": "added",
+          "afterIncludes": "Removed the SN54LV126A device"
+        },
+        {
+          "id": "function-table",
+          "earlier": 12,
+          "newer": 11,
+          "kind": "added",
+          "afterIncludes": "correct 126 function table"
+        }
+      ],
+      "visualPages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "header, title, and revision",
+              "box": [0.08, 0.03, 0.95, 0.14]
+            },
+            {
+              "label": "features, applications, description, and package",
+              "box": [0.08, 0.14, 0.95, 0.48]
+            },
+            {
+              "label": "logic diagrams",
+              "box": [0.08, 0.48, 0.94, 0.76]
+            }
+          ]
+        },
+        {
+          "earlier": 4,
+          "newer": 3,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "header and section heading",
+              "box": [0.08, 0.03, 0.95, 0.15]
+            },
+            {
+              "label": "specification tables",
+              "box": [0.08, 0.15, 0.95, 0.76]
+            },
+            {
+              "label": "footnotes and footer",
+              "box": [0.08, 0.76, 0.95, 0.94]
+            }
+          ]
+        },
+        {
+          "earlier": 5,
+          "newer": 4,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "header and continued heading",
+              "box": [0.08, 0.03, 0.95, 0.15]
+            },
+            {
+              "label": "recommended conditions table",
+              "box": [0.08, 0.15, 0.95, 0.32]
+            },
+            {
+              "label": "thermal and electrical tables",
+              "box": [0.08, 0.32, 0.95, 0.77]
+            }
+          ]
+        },
+        {
+          "earlier": 8,
+          "newer": 7,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "header and section heading",
+              "box": [0.08, 0.03, 0.95, 0.14]
+            },
+            {
+              "label": "waveform diagrams",
+              "box": [0.08, 0.14, 0.95, 0.64]
+            },
+            {
+              "label": "notes and caption",
+              "box": [0.08, 0.64, 0.95, 0.82]
+            }
+          ]
+        },
+        {
+          "earlier": 10,
+          "newer": 9,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "heading and note",
+              "box": [0.08, 0.03, 0.95, 0.23]
+            },
+            {
+              "label": "application text",
+              "box": [0.08, 0.23, 0.95, 0.35]
+            },
+            {
+              "label": "application schematic",
+              "box": [0.12, 0.3, 0.88, 0.63]
+            },
+            {
+              "label": "design requirements",
+              "box": [0.08, 0.57, 0.95, 0.83]
+            }
+          ]
+        },
+        {
+          "earlier": 14,
+          "newer": 13,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "addendum header and date",
+              "box": [0.06, 0.03, 0.95, 0.2]
+            },
+            {
+              "label": "legal disclaimer body",
+              "box": [0.06, 0.2, 0.95, 0.47]
+            }
+          ]
+        },
+        {
+          "earlier": 18,
+          "newer": 20,
+          "status": "same",
+          "regions": []
+        },
+        {
+          "earlier": 24,
+          "newer": 27,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "notice heading",
+              "box": [0.08, 0.03, 0.95, 0.14]
+            },
+            {
+              "label": "disclaimer paragraphs",
+              "box": [0.05, 0.14, 0.96, 0.42]
+            }
+          ]
+        }
+      ],
+      "notes": "Only high-confidence content pairs are scored; package, blank, and consolidated front-matter pages are ambiguous."
+    },
+    {
+      "id": "sn74hc595-datasheet",
+      "category": "datasheet",
+      "earlier": "examples/pdf-fixtures/datasheets/ti-sn74hc595-rev-i.pdf",
+      "newer": "examples/pdf-fixtures/datasheets/ti-sn74hc595-rev-j.pdf",
+      "alignmentCoverage": "anchors",
+      "pages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "kind": "matched"
+        },
+        {
+          "earlier": 2,
+          "newer": 2,
+          "kind": "matched"
+        },
+        {
+          "earlier": 4,
+          "newer": 3,
+          "kind": "matched"
+        },
+        {
+          "earlier": 8,
+          "newer": 7,
+          "kind": "matched"
+        },
+        {
+          "earlier": 12,
+          "newer": 11,
+          "kind": "matched"
+        },
+        {
+          "earlier": 16,
+          "newer": 15,
+          "kind": "matched"
+        },
+        {
+          "earlier": 22,
+          "newer": 21,
+          "kind": "matched"
+        },
+        {
+          "earlier": 26,
+          "newer": 27,
+          "kind": "matched"
+        },
+        {
+          "earlier": 30,
+          "newer": 30,
+          "kind": "matched"
+        },
+        {
+          "earlier": 35,
+          "newer": 36,
+          "kind": "matched"
+        },
+        {
+          "earlier": 37,
+          "newer": 40,
+          "kind": "matched"
+        },
+        {
+          "earlier": 38,
+          "newer": 41,
+          "kind": "matched"
+        }
+      ],
+      "trust": {
+        "unreadablePages": 0
+      },
+      "selfCheck": true,
+      "textAnchors": [
+        {
+          "id": "document-number",
+          "earlier": 1,
+          "newer": 1,
+          "kind": "added",
+          "afterIncludes": "SCLS041J"
+        },
+        {
+          "id": "revision-date",
+          "earlier": 2,
+          "newer": 2,
+          "kind": "changed",
+          "beforeIncludes": "REVISED SEPTEMBER 2015",
+          "afterIncludes": "REVISED OCTOBER 2021"
+        }
+      ],
+      "visualPages": [
+        {
+          "earlier": 1,
+          "newer": 1,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "header, title, and revision metadata",
+              "box": [0.04, 0, 0.96, 0.1]
+            },
+            {
+              "label": "features, applications, description, and device table",
+              "box": [0.04, 0.08, 0.96, 0.4]
+            },
+            {
+              "label": "logic and functional block diagrams",
+              "box": [0.08, 0.38, 0.84, 0.9]
+            },
+            {
+              "label": "important notice and footer",
+              "box": [0.04, 0.88, 0.96, 1]
+            }
+          ]
+        },
+        {
+          "earlier": 2,
+          "newer": 2,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "table of contents",
+              "box": [0.04, 0.05, 0.96, 0.4]
+            },
+            {
+              "label": "revision history",
+              "box": [0.04, 0.39, 0.96, 0.72]
+            },
+            {
+              "label": "footer and page metadata",
+              "box": [0.04, 0.9, 0.96, 1]
+            }
+          ]
+        },
+        {
+          "earlier": 4,
+          "newer": 3,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "pin headings and package diagrams",
+              "box": [0.04, 0.04, 0.96, 0.32]
+            },
+            {
+              "label": "pin functions table and layout reflow",
+              "box": [0.04, 0.28, 0.96, 0.82]
+            },
+            {
+              "label": "footer and page number",
+              "box": [0.04, 0.9, 0.96, 1]
+            }
+          ]
+        },
+        {
+          "earlier": 8,
+          "newer": 7,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "timing diagram and figure caption",
+              "box": [0.08, 0.03, 0.95, 0.84]
+            },
+            {
+              "label": "footer and page number",
+              "box": [0.04, 0.9, 0.96, 1]
+            }
+          ]
+        },
+        {
+          "earlier": 12,
+          "newer": 11,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "detailed description and overview",
+              "box": [0.04, 0.04, 0.96, 0.22]
+            },
+            {
+              "label": "functional block diagram",
+              "box": [0.08, 0.18, 0.84, 0.75]
+            },
+            {
+              "label": "figure caption and footer",
+              "box": [0.04, 0.72, 0.96, 1]
+            }
+          ]
+        },
+        {
+          "earlier": 16,
+          "newer": 15,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "power recommendations and layout text",
+              "box": [0.04, 0.04, 0.96, 0.37]
+            },
+            {
+              "label": "layout guideline figures",
+              "box": [0.12, 0.35, 0.85, 0.72]
+            },
+            {
+              "label": "footer and page number",
+              "box": [0.04, 0.9, 0.96, 1]
+            }
+          ]
+        },
+        {
+          "earlier": 22,
+          "newer": 21,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "package materials heading and date",
+              "box": [0.04, 0.02, 0.96, 0.12]
+            },
+            {
+              "label": "package box drawing and dimensions table",
+              "box": [0.06, 0.12, 0.94, 0.8]
+            },
+            {
+              "label": "footer and page metadata",
+              "box": [0.04, 0.9, 0.96, 1]
+            }
+          ]
+        },
+        {
+          "earlier": 26,
+          "newer": 27,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "package outline title and identity",
+              "box": [0.04, 0.02, 0.96, 0.12]
+            },
+            {
+              "label": "package outline drawings and dimensions",
+              "box": [0.04, 0.1, 0.96, 0.78]
+            },
+            {
+              "label": "notes and package references",
+              "box": [0.04, 0.75, 0.96, 0.93]
+            }
+          ]
+        },
+        {
+          "earlier": 30,
+          "newer": 30,
+          "status": "same"
+        },
+        {
+          "earlier": 35,
+          "newer": 36,
+          "status": "same"
+        },
+        {
+          "earlier": 38,
+          "newer": 41,
+          "status": "changed",
+          "regions": [
+            {
+              "label": "important notice and disclaimer",
+              "box": [0.08, 0.1, 0.94, 0.5]
+            },
+            {
+              "label": "mailing address, copyright, and footer",
+              "box": [0.08, 0.38, 0.94, 0.6]
+            }
+          ]
+        }
+      ],
+      "notes": "Only the front-matter and content pages carry region anchors. The mechanical package drawings on A30/B30 and A35/B36 are the same artwork in both revisions - a direct render differs by 0 to 14 pixels of 1.94M - so they are anchored as unchanged; they previously read as changed only because PDF.js was dropping their images for want of its WASM decoders. A37/B40 is deliberately not anchored: its only difference is a few dozen antialiased footer pixels, which lands on the sensitivity threshold and flips between runs, so it cannot state a stable expectation either way."
     }
-   ],
-   "trust": {
-    "unreadablePages": 1
-   },
-   "selfCheck": true,
-   "visualPages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "section A-A, stepped bore, and finish-turn callout",
-       "box": [
-        0.15,
-        0.04,
-        0.58,
-        0.38
-       ]
-      },
-      {
-       "label": "front view, bore, and bolt-pattern dimensions",
-       "box": [
-        0.06,
-        0.4,
-        0.55,
-        0.92
-       ]
-      },
-      {
-       "label": "quantity and finish notes",
-       "box": [
-        0.68,
-        0.42,
-        0.97,
-        0.66
-       ]
-      },
-      {
-       "label": "title block, title, and revision B",
-       "box": [
-        0.49,
-        0.77,
-        0.98,
-        0.98
-       ]
-      }
-     ]
-    }
-   ],
-   "notes": "Text is undecodable. The visual diff must find the stepped bore, revised dimensions, notes, and Rev A to Rev B title block."
-  },
-  {
-   "id": "olimexino-pcb",
-   "category": "pcb",
-   "earlier": "examples/pdf-fixtures/pcb/olimexino-stm32-rev-a.pdf",
-   "newer": "examples/pdf-fixtures/pcb/olimexino-stm32-rev-b.pdf",
-   "alignmentCoverage": "complete",
-   "pages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "kind": "matched",
-     "status": "changed"
-    }
-   ],
-   "trust": {
-    "unreadablePages": 0
-   },
-   "selfCheck": true,
-   "textAnchors": [
-    {
-     "id": "vbat",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "VBAT"
-    },
-    {
-     "id": "r34",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "R34"
-    },
-    {
-     "id": "c32",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "C32"
-    },
-    {
-     "id": "usb-old",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "removed",
-     "beforeIncludes": "MICRO_B"
-    },
-    {
-     "id": "usb-new",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "USB-MINI"
-    }
-   ],
-   "forbiddenFragments": [
-    "PO W ER",
-    "ANALO G",
-    "DIG ITAL",
-    "T RST",
-    "T DI",
-    "T DO"
-   ],
-   "visualPages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "MCU top additions, VBAT, R34/R35, and design title",
-       "box": [
-        0.26,
-        0.04,
-        0.83,
-        0.5
-       ]
-      },
-      {
-       "label": "USB device block",
-       "box": [
-        0.05,
-        0.2,
-        0.28,
-        0.51
-       ]
-      },
-      {
-       "label": "power supply, battery charger, and regulators",
-       "box": [
-        0.04,
-        0.61,
-        0.75,
-        0.94
-       ]
-      },
-      {
-       "label": "revision footer and Made in Bulgaria",
-       "box": [
-        0.74,
-        0.84,
-        0.95,
-        0.98
-       ]
-      }
-     ]
-    }
-   ],
-   "notes": "A schematic's net labels are separated by unchanged text in extraction order, so swapping one connector surfaces as a removal plus an addition rather than a single changed run. Both halves are anchored instead of asserting the merged form."
-  },
-  {
-   "id": "work-order-contract",
-   "category": "contract",
-   "earlier": "examples/pdf-fixtures/contracts/work-order-original.pdf",
-   "newer": "examples/pdf-fixtures/contracts/work-order-amended.pdf",
-   "alignmentCoverage": "complete",
-   "pages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "kind": "matched",
-     "status": "changed"
-    }
-   ],
-   "trust": {
-    "unreadablePages": 0
-   },
-   "selfCheck": true,
-   "textAnchors": [
-    {
-     "id": "title",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "changed",
-     "beforeIncludes": "Exhibit A: Sample Work Order Contract",
-     "afterIncludes": "Exhibit B: Sample Amended Work Order Contract"
-    },
-    {
-     "id": "amendment",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "AMENDMENT 1"
-    },
-    {
-     "id": "duties-removed",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "removed",
-     "beforeIncludes": "Contractor\u2019s Duties"
-    },
-    {
-     "id": "recitals",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "Recitals"
-    },
-    {
-     "id": "payment-revision",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "REVISION 2. Clause 3."
-    },
-    {
-     "id": "retainage",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "3.2.2. Retainage"
-    },
-    {
-     "id": "project-managers-removed",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "removed",
-     "beforeIncludes": "Project Managers"
-    }
-   ],
-   "visualPages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "document title and state header",
-       "box": [
-        0.14,
-        0.01,
-        0.86,
-        0.15
-       ]
-      },
-      {
-       "label": "agreement summary fields and introductory reflow",
-       "box": [
-        0.05,
-        0.14,
-        0.97,
-        0.32
-       ]
-      },
-      {
-       "label": "recitals, amendment headings, and Revision 1",
-       "box": [
-        0.06,
-        0.3,
-        0.97,
-        0.59
-       ]
-      },
-      {
-       "label": "consideration, payment, Revision 2, and footer",
-       "box": [
-        0.06,
-        0.43,
-        0.98,
-        0.99
-       ]
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "id": "sn74lv126a-datasheet",
-   "category": "datasheet",
-   "earlier": "examples/pdf-fixtures/datasheets/ti-sn74lv126a-rev-i.pdf",
-   "newer": "examples/pdf-fixtures/datasheets/ti-sn74lv126a-rev-j.pdf",
-   "alignmentCoverage": "anchors",
-   "pages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "kind": "matched"
-    },
-    {
-     "earlier": 2,
-     "newer": 2,
-     "kind": "matched"
-    },
-    {
-     "earlier": 4,
-     "newer": 3,
-     "kind": "matched"
-    },
-    {
-     "earlier": 5,
-     "newer": 4,
-     "kind": "matched"
-    },
-    {
-     "earlier": 8,
-     "newer": 7,
-     "kind": "matched"
-    },
-    {
-     "earlier": 10,
-     "newer": 9,
-     "kind": "matched"
-    },
-    {
-     "earlier": 14,
-     "newer": 13,
-     "kind": "matched"
-    },
-    {
-     "earlier": 18,
-     "newer": 20,
-     "kind": "matched"
-    },
-    {
-     "earlier": 24,
-     "newer": 27,
-     "kind": "matched"
-    }
-   ],
-   "trust": {
-    "unreadablePages": 0
-   },
-   "selfCheck": true,
-   "textAnchors": [
-    {
-     "id": "document-number",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "SCES131J"
-    },
-    {
-     "id": "sn54-removed",
-     "earlier": 12,
-     "newer": 11,
-     "kind": "added",
-     "afterIncludes": "Removed the SN54LV126A device"
-    },
-    {
-     "id": "function-table",
-     "earlier": 12,
-     "newer": 11,
-     "kind": "added",
-     "afterIncludes": "correct 126 function table"
-    }
-   ],
-   "visualPages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "header, title, and revision",
-       "box": [
-        0.08,
-        0.03,
-        0.95,
-        0.14
-       ]
-      },
-      {
-       "label": "features, applications, description, and package",
-       "box": [
-        0.08,
-        0.14,
-        0.95,
-        0.48
-       ]
-      },
-      {
-       "label": "logic diagrams",
-       "box": [
-        0.08,
-        0.48,
-        0.94,
-        0.76
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 4,
-     "newer": 3,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "header and section heading",
-       "box": [
-        0.08,
-        0.03,
-        0.95,
-        0.15
-       ]
-      },
-      {
-       "label": "specification tables",
-       "box": [
-        0.08,
-        0.15,
-        0.95,
-        0.76
-       ]
-      },
-      {
-       "label": "footnotes and footer",
-       "box": [
-        0.08,
-        0.76,
-        0.95,
-        0.94
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 5,
-     "newer": 4,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "header and continued heading",
-       "box": [
-        0.08,
-        0.03,
-        0.95,
-        0.15
-       ]
-      },
-      {
-       "label": "recommended conditions table",
-       "box": [
-        0.08,
-        0.15,
-        0.95,
-        0.32
-       ]
-      },
-      {
-       "label": "thermal and electrical tables",
-       "box": [
-        0.08,
-        0.32,
-        0.95,
-        0.77
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 8,
-     "newer": 7,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "header and section heading",
-       "box": [
-        0.08,
-        0.03,
-        0.95,
-        0.14
-       ]
-      },
-      {
-       "label": "waveform diagrams",
-       "box": [
-        0.08,
-        0.14,
-        0.95,
-        0.64
-       ]
-      },
-      {
-       "label": "notes and caption",
-       "box": [
-        0.08,
-        0.64,
-        0.95,
-        0.82
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 10,
-     "newer": 9,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "heading and note",
-       "box": [
-        0.08,
-        0.03,
-        0.95,
-        0.23
-       ]
-      },
-      {
-       "label": "application text",
-       "box": [
-        0.08,
-        0.23,
-        0.95,
-        0.35
-       ]
-      },
-      {
-       "label": "application schematic",
-       "box": [
-        0.12,
-        0.3,
-        0.88,
-        0.63
-       ]
-      },
-      {
-       "label": "design requirements",
-       "box": [
-        0.08,
-        0.57,
-        0.95,
-        0.83
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 14,
-     "newer": 13,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "addendum header and date",
-       "box": [
-        0.06,
-        0.03,
-        0.95,
-        0.2
-       ]
-      },
-      {
-       "label": "legal disclaimer body",
-       "box": [
-        0.06,
-        0.2,
-        0.95,
-        0.47
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 18,
-     "newer": 20,
-     "status": "same",
-     "regions": []
-    },
-    {
-     "earlier": 24,
-     "newer": 27,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "notice heading",
-       "box": [
-        0.08,
-        0.03,
-        0.95,
-        0.14
-       ]
-      },
-      {
-       "label": "disclaimer paragraphs",
-       "box": [
-        0.05,
-        0.14,
-        0.96,
-        0.42
-       ]
-      }
-     ]
-    }
-   ],
-   "notes": "Only high-confidence content pairs are scored; package, blank, and consolidated front-matter pages are ambiguous."
-  },
-  {
-   "id": "sn74hc595-datasheet",
-   "category": "datasheet",
-   "earlier": "examples/pdf-fixtures/datasheets/ti-sn74hc595-rev-i.pdf",
-   "newer": "examples/pdf-fixtures/datasheets/ti-sn74hc595-rev-j.pdf",
-   "alignmentCoverage": "anchors",
-   "pages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "kind": "matched"
-    },
-    {
-     "earlier": 2,
-     "newer": 2,
-     "kind": "matched"
-    },
-    {
-     "earlier": 4,
-     "newer": 3,
-     "kind": "matched"
-    },
-    {
-     "earlier": 8,
-     "newer": 7,
-     "kind": "matched"
-    },
-    {
-     "earlier": 12,
-     "newer": 11,
-     "kind": "matched"
-    },
-    {
-     "earlier": 16,
-     "newer": 15,
-     "kind": "matched"
-    },
-    {
-     "earlier": 22,
-     "newer": 21,
-     "kind": "matched"
-    },
-    {
-     "earlier": 26,
-     "newer": 27,
-     "kind": "matched"
-    },
-    {
-     "earlier": 30,
-     "newer": 30,
-     "kind": "matched"
-    },
-    {
-     "earlier": 35,
-     "newer": 36,
-     "kind": "matched"
-    },
-    {
-     "earlier": 37,
-     "newer": 40,
-     "kind": "matched"
-    },
-    {
-     "earlier": 38,
-     "newer": 41,
-     "kind": "matched"
-    }
-   ],
-   "trust": {
-    "unreadablePages": 0
-   },
-   "selfCheck": true,
-   "textAnchors": [
-    {
-     "id": "document-number",
-     "earlier": 1,
-     "newer": 1,
-     "kind": "added",
-     "afterIncludes": "SCLS041J"
-    },
-    {
-     "id": "revision-date",
-     "earlier": 2,
-     "newer": 2,
-     "kind": "changed",
-     "beforeIncludes": "REVISED SEPTEMBER 2015",
-     "afterIncludes": "REVISED OCTOBER 2021"
-    }
-   ],
-   "visualPages": [
-    {
-     "earlier": 1,
-     "newer": 1,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "header, title, and revision metadata",
-       "box": [
-        0.04,
-        0,
-        0.96,
-        0.1
-       ]
-      },
-      {
-       "label": "features, applications, description, and device table",
-       "box": [
-        0.04,
-        0.08,
-        0.96,
-        0.4
-       ]
-      },
-      {
-       "label": "logic and functional block diagrams",
-       "box": [
-        0.08,
-        0.38,
-        0.84,
-        0.9
-       ]
-      },
-      {
-       "label": "important notice and footer",
-       "box": [
-        0.04,
-        0.88,
-        0.96,
-        1
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 2,
-     "newer": 2,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "table of contents",
-       "box": [
-        0.04,
-        0.05,
-        0.96,
-        0.4
-       ]
-      },
-      {
-       "label": "revision history",
-       "box": [
-        0.04,
-        0.39,
-        0.96,
-        0.72
-       ]
-      },
-      {
-       "label": "footer and page metadata",
-       "box": [
-        0.04,
-        0.9,
-        0.96,
-        1
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 4,
-     "newer": 3,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "pin headings and package diagrams",
-       "box": [
-        0.04,
-        0.04,
-        0.96,
-        0.32
-       ]
-      },
-      {
-       "label": "pin functions table and layout reflow",
-       "box": [
-        0.04,
-        0.28,
-        0.96,
-        0.82
-       ]
-      },
-      {
-       "label": "footer and page number",
-       "box": [
-        0.04,
-        0.9,
-        0.96,
-        1
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 8,
-     "newer": 7,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "timing diagram and figure caption",
-       "box": [
-        0.08,
-        0.03,
-        0.95,
-        0.84
-       ]
-      },
-      {
-       "label": "footer and page number",
-       "box": [
-        0.04,
-        0.9,
-        0.96,
-        1
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 12,
-     "newer": 11,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "detailed description and overview",
-       "box": [
-        0.04,
-        0.04,
-        0.96,
-        0.22
-       ]
-      },
-      {
-       "label": "functional block diagram",
-       "box": [
-        0.08,
-        0.18,
-        0.84,
-        0.75
-       ]
-      },
-      {
-       "label": "figure caption and footer",
-       "box": [
-        0.04,
-        0.72,
-        0.96,
-        1
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 16,
-     "newer": 15,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "power recommendations and layout text",
-       "box": [
-        0.04,
-        0.04,
-        0.96,
-        0.37
-       ]
-      },
-      {
-       "label": "layout guideline figures",
-       "box": [
-        0.12,
-        0.35,
-        0.85,
-        0.72
-       ]
-      },
-      {
-       "label": "footer and page number",
-       "box": [
-        0.04,
-        0.9,
-        0.96,
-        1
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 22,
-     "newer": 21,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "package materials heading and date",
-       "box": [
-        0.04,
-        0.02,
-        0.96,
-        0.12
-       ]
-      },
-      {
-       "label": "package box drawing and dimensions table",
-       "box": [
-        0.06,
-        0.12,
-        0.94,
-        0.8
-       ]
-      },
-      {
-       "label": "footer and page metadata",
-       "box": [
-        0.04,
-        0.9,
-        0.96,
-        1
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 26,
-     "newer": 27,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "package outline title and identity",
-       "box": [
-        0.04,
-        0.02,
-        0.96,
-        0.12
-       ]
-      },
-      {
-       "label": "package outline drawings and dimensions",
-       "box": [
-        0.04,
-        0.1,
-        0.96,
-        0.78
-       ]
-      },
-      {
-       "label": "notes and package references",
-       "box": [
-        0.04,
-        0.75,
-        0.96,
-        0.93
-       ]
-      }
-     ]
-    },
-    {
-     "earlier": 30,
-     "newer": 30,
-     "status": "same"
-    },
-    {
-     "earlier": 35,
-     "newer": 36,
-     "status": "same"
-    },
-    {
-     "earlier": 38,
-     "newer": 41,
-     "status": "changed",
-     "regions": [
-      {
-       "label": "important notice and disclaimer",
-       "box": [
-        0.08,
-        0.1,
-        0.94,
-        0.5
-       ]
-      },
-      {
-       "label": "mailing address, copyright, and footer",
-       "box": [
-        0.08,
-        0.38,
-        0.94,
-        0.6
-       ]
-      }
-     ]
-    }
-   ],
-   "notes": "Only the front-matter and content pages carry region anchors. The mechanical package drawings on A30/B30 and A35/B36 are the same artwork in both revisions - a direct render differs by 0 to 14 pixels of 1.94M - so they are anchored as unchanged; they previously read as changed only because PDF.js was dropping their images for want of its WASM decoders. A37/B40 is deliberately not anchored: its only difference is a few dozen antialiased footer pixels, which lands on the sensitivity threshold and flips between runs, so it cannot state a stable expectation either way."
-  }
- ]
+  ]
 }

@@ -123,13 +123,28 @@
   border-radius: var(--radius-lg);
   background: hsl(var(--background));
   cursor: pointer;
-  transition: border-color 120ms, box-shadow 120ms;
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
 }
-.pdfdiff-swatch:hover { border-color: hsl(var(--foreground) / 0.35); }
-.pdfdiff-swatch:focus-visible { outline: none; box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5); }
-.pdfdiff-swatch::-webkit-color-swatch-wrapper { padding: 0; }
-.pdfdiff-swatch::-webkit-color-swatch { border: none; border-radius: 3px; }
-.pdfdiff-swatch::-moz-color-swatch { border: none; border-radius: 3px; }
+.pdfdiff-swatch:hover {
+  border-color: hsl(var(--foreground) / 0.35);
+}
+.pdfdiff-swatch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5);
+}
+.pdfdiff-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.pdfdiff-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+.pdfdiff-swatch::-moz-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
 
 .pdfdiff-range {
   appearance: none;
@@ -156,7 +171,9 @@
   border-radius: 999px;
   background: hsl(var(--background));
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
-  transition: scale 120ms, box-shadow 120ms;
+  transition:
+    scale 120ms,
+    box-shadow 120ms;
 }
 .pdfdiff-range::-moz-range-thumb {
   inline-size: 14px;
@@ -166,10 +183,18 @@
   background: hsl(var(--background));
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
 }
-.pdfdiff-range:hover::-webkit-slider-thumb { scale: 1.12; }
-.pdfdiff-range:focus-visible { outline: none; }
-.pdfdiff-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px hsl(var(--ring) / 0.3); }
-.pdfdiff-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px hsl(var(--ring) / 0.3); }
+.pdfdiff-range:hover::-webkit-slider-thumb {
+  scale: 1.12;
+}
+.pdfdiff-range:focus-visible {
+  outline: none;
+}
+.pdfdiff-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.3);
+}
+.pdfdiff-range:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.3);
+}
 
 .pdfdiff-switch {
   appearance: none;
@@ -194,6 +219,15 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
   transition: translate 150ms;
 }
-.pdfdiff-switch:checked { background: hsl(var(--primary)); }
-.pdfdiff-switch:checked::after { translate: 0.875rem 0; }
-.pdfdiff-switch:focus-visible { outline: none; box-shadow: 0 0 0 2px hsl(var(--card)), 0 0 0 4px hsl(var(--ring) / 0.6); }
+.pdfdiff-switch:checked {
+  background: hsl(var(--primary));
+}
+.pdfdiff-switch:checked::after {
+  translate: 0.875rem 0;
+}
+.pdfdiff-switch:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px hsl(var(--card)),
+    0 0 0 4px hsl(var(--ring) / 0.6);
+}

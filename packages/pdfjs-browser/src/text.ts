@@ -13,7 +13,14 @@ type PdfTextItem = {
 };
 
 function isTextItem(item: unknown): item is PdfTextItem {
-  return typeof item === "object" && item !== null && "str" in item && typeof item.str === "string" && "transform" in item && Array.isArray(item.transform);
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "str" in item &&
+    typeof item.str === "string" &&
+    "transform" in item &&
+    Array.isArray(item.transform)
+  );
 }
 
 function pageNumberError(pageNumber: number, pageCount: number): RangeError {
@@ -21,7 +28,8 @@ function pageNumberError(pageNumber: number, pageCount: number): RangeError {
 }
 
 function validatePageNumber(pageNumber: number, pageCount: number): void {
-  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount) throw pageNumberError(pageNumber, pageCount);
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount)
+    throw pageNumberError(pageNumber, pageCount);
 }
 
 /** 2D affine multiply, inlined so this extractor carries no DOM-bound import. */
@@ -73,7 +81,12 @@ function geometryForTextItem(item: PdfTextItem, pageTransform: number[]): { boun
   };
 }
 
-function positionedTextItem(item: PdfTextItem, pageNumber: number, pageTransform: number[], textStart: number): PositionedTextItem {
+function positionedTextItem(
+  item: PdfTextItem,
+  pageNumber: number,
+  pageTransform: number[],
+  textStart: number,
+): PositionedTextItem {
   const geometry = geometryForTextItem(item, pageTransform);
   return {
     pageNumber,
@@ -104,7 +117,10 @@ function itemsShareLine(previous: PositionedTextItem, current: PositionedTextIte
   const minHeight = Math.max(0.01, Math.min(previous.bounds.height, current.bounds.height));
   const previousCenter = previous.bounds.y + previous.bounds.height / 2;
   const currentCenter = current.bounds.y + current.bounds.height / 2;
-  return overlap >= minHeight * 0.25 || Math.abs(previousCenter - currentCenter) <= Math.max(previous.fontSize, current.fontSize) * 0.55;
+  return (
+    overlap >= minHeight * 0.25 ||
+    Math.abs(previousCenter - currentCenter) <= Math.max(previous.fontSize, current.fontSize) * 0.55
+  );
 }
 
 function averageCharacterWidth(previous: PositionedTextItem, current: PositionedTextItem): number {
@@ -166,12 +182,17 @@ export function extractPageText(
   pageNumber: number,
   options: Pick<DocumentTextOptions, "signal" | "metrics"> = {},
 ): Promise<PageText> {
-  return measureAsync(options.metrics, "pdf.text.page", () => extractPageTextUnmeasured(pdf, pageNumber, options), { pageNumber });
+  return measureAsync(options.metrics, "pdf.text.page", () => extractPageTextUnmeasured(pdf, pageNumber, options), {
+    pageNumber,
+  });
 }
 
 const TEXT_CONCURRENCY = 4;
 
-export async function extractDocumentText(pdf: LoadedPdf, options: DocumentTextOptions = {}): Promise<readonly PageText[]> {
+export async function extractDocumentText(
+  pdf: LoadedPdf,
+  options: DocumentTextOptions = {},
+): Promise<readonly PageText[]> {
   const pages: PageText[] = new Array(pdf.pageCount);
   let next = 1;
   let completed = 0;

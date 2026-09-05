@@ -16,7 +16,9 @@ export function percentile(values, amount) {
 export function metricSummary(runs) {
   const names = new Set(runs.flatMap((run) => run.metrics.map((metric) => metric.name)));
   return [...names].sort().map((name) => {
-    const values = runs.flatMap((run) => run.metrics.filter((metric) => metric.name === name).map((metric) => metric.durationMs));
+    const values = runs.flatMap((run) =>
+      run.metrics.filter((metric) => metric.name === name).map((metric) => metric.durationMs),
+    );
     return {
       name,
       count: values.length,

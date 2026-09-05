@@ -49,7 +49,9 @@ function Shared() {
       <path d="M56 106l34 34M90 106l-34 34" opacity={0.25} />
       <path d="M28 196h244" opacity={0.2} />
       <path d="M28 340h244M28 366h244" opacity={0.35} />
-      <text x={30} y={358} fontSize={9} fill="currentColor" stroke="none" opacity={0.6}>ASSY-4471 · SHEET 1 OF 3</text>
+      <text x={30} y={358} fontSize={9} fill="currentColor" stroke="none" opacity={0.6}>
+        ASSY-4471 · SHEET 1 OF 3
+      </text>
     </g>
   );
 }
@@ -59,16 +61,21 @@ function Only({ side }: { side: "earlier" | "newer" }) {
   return (
     <g stroke="currentColor" fill="none" strokeWidth={1.4}>
       <rect x={earlier ? 116 : 134} y={146} width={40} height={34} rx={2} />
-      <text x={earlier ? 108 : 152} y={196} fontSize={10} fill="currentColor" stroke="none">{earlier ? "24.0" : "26.5"}</text>
+      <text x={earlier ? 108 : 152} y={196} fontSize={10} fill="currentColor" stroke="none">
+        {earlier ? "24.0" : "26.5"}
+      </text>
       {earlier ? null : <circle cx={84} cy={59} r={6} />}
-      <text x={earlier ? 196 : 232} y={358} fontSize={9} fill="currentColor" stroke="none">REV {earlier ? "A" : "B"}</text>
+      <text x={earlier ? 196 : 232} y={358} fontSize={9} fill="currentColor" stroke="none">
+        REV {earlier ? "A" : "B"}
+      </text>
     </g>
   );
 }
 
 /** Without `all`, only the lines that belong to exactly one side (or to neither). */
 function Lines({ side, all }: { side?: "earlier" | "newer"; all?: boolean }) {
-  const keep = (line: (typeof LINES)[number]) => (all ? !line.only || line.only === side : side ? line.only === side : !line.only);
+  const keep = (line: (typeof LINES)[number]) =>
+    all ? !line.only || line.only === side : side ? line.only === side : !line.only;
   return (
     <g fill="currentColor" opacity={0.55}>
       {LINES.filter(keep).map((line, index) => (
@@ -96,9 +103,18 @@ function OverlayPage() {
   return (
     <svg viewBox="0 0 300 400" {...styleProps(styles.demoPage)} role="presentation">
       <rect x={0} y={0} width={300} height={400} className="fill-background" />
-      <g className="text-foreground" opacity={DEFAULT_OVERLAY.unchangedOpacity}><Shared /><Lines /></g>
-      <g color={REMOVED}><Only side="earlier" /><Lines side="earlier" /></g>
-      <g color={ADDED}><Only side="newer" /><Lines side="newer" /></g>
+      <g className="text-foreground" opacity={DEFAULT_OVERLAY.unchangedOpacity}>
+        <Shared />
+        <Lines />
+      </g>
+      <g color={REMOVED}>
+        <Only side="earlier" />
+        <Lines side="earlier" />
+      </g>
+      <g color={ADDED}>
+        <Only side="newer" />
+        <Lines side="newer" />
+      </g>
     </svg>
   );
 }
@@ -112,13 +128,35 @@ function TextPage() {
           const y = 230 + index * 14;
           return (
             <g key={index}>
-              {line.only ? <rect x={25} y={y - 4} width={line.width + 6} height={14} rx={3} fill={line.only === "earlier" ? REMOVED : ADDED} opacity={0.16} /> : null}
-              <rect x={28} y={y} width={line.width} height={6} rx={3} fill="currentColor" opacity={line.only === "earlier" ? 0.3 : 0.5} />
-              {line.only === "earlier" ? <path d={`M28 ${y + 3}h${line.width}`} stroke={REMOVED} strokeWidth={1.2} /> : null}
+              {line.only ? (
+                <rect
+                  x={25}
+                  y={y - 4}
+                  width={line.width + 6}
+                  height={14}
+                  rx={3}
+                  fill={line.only === "earlier" ? REMOVED : ADDED}
+                  opacity={0.16}
+                />
+              ) : null}
+              <rect
+                x={28}
+                y={y}
+                width={line.width}
+                height={6}
+                rx={3}
+                fill="currentColor"
+                opacity={line.only === "earlier" ? 0.3 : 0.5}
+              />
+              {line.only === "earlier" ? (
+                <path d={`M28 ${y + 3}h${line.width}`} stroke={REMOVED} strokeWidth={1.2} />
+              ) : null}
             </g>
           );
         })}
-        <g opacity={0.3}><Shared /></g>
+        <g opacity={0.3}>
+          <Shared />
+        </g>
       </g>
     </svg>
   );
@@ -134,24 +172,36 @@ export function HeroDemo() {
     return () => clearInterval(timer);
   }, [auto]);
 
-  const pick = (next: Mode) => { setAuto(false); setMode(next); };
+  const pick = (next: Mode) => {
+    setAuto(false);
+    setMode(next);
+  };
 
   return (
     <div {...styleProps(styles.demo)}>
       <div {...styleProps(styles.demoBar)}>
         <span {...styleProps(styles.demoChip)}>assy-4471-revA.pdf</span>
-        <span {...styleProps(styles.demoArrow)} aria-hidden="true">→</span>
+        <span {...styleProps(styles.demoArrow)} aria-hidden="true">
+          →
+        </span>
         <span {...styleProps(styles.demoChip)}>assy-4471-revB.pdf</span>
         <span {...styleProps(styles.demoCount)}>3 changes on this page</span>
       </div>
       <div {...styleProps(styles.demoStage)}>
         {mode === "overlay" ? <OverlayPage /> : null}
         {mode === "text" ? <TextPage /> : null}
-        {mode === "split" ? <div {...styleProps(styles.demoSplit)}><Page side="earlier" /><Page side="newer" /></div> : null}
+        {mode === "split" ? (
+          <div {...styleProps(styles.demoSplit)}>
+            <Page side="earlier" />
+            <Page side="newer" />
+          </div>
+        ) : null}
         {mode === "swipe" ? (
           <div {...styleProps(styles.demoSwipe)}>
             <Page side="earlier" />
-            <div {...styleProps(styles.demoSwipeTop)}><Page side="newer" /></div>
+            <div {...styleProps(styles.demoSwipeTop)}>
+              <Page side="newer" />
+            </div>
             <div {...styleProps(styles.demoSwipeHandle)} aria-hidden="true" />
           </div>
         ) : null}
@@ -159,7 +209,15 @@ export function HeroDemo() {
       <div {...styleProps(styles.demoFoot)}>
         <div {...styleProps(styles.demoTabs)} role="group" aria-label="Demo comparison views">
           {MODES.map((item) => (
-            <button key={item} {...styleProps(styles.demoTab, item === mode && styles.demoTabCurrent)} type="button" aria-pressed={item === mode} onClick={() => pick(item)}>{MODE_LABEL[item]}</button>
+            <button
+              key={item}
+              {...styleProps(styles.demoTab, item === mode && styles.demoTabCurrent)}
+              type="button"
+              aria-pressed={item === mode}
+              onClick={() => pick(item)}
+            >
+              {MODE_LABEL[item]}
+            </button>
           ))}
         </div>
         <p {...styleProps(styles.demoCaption)}>{MODE_CAPTION[mode]}</p>

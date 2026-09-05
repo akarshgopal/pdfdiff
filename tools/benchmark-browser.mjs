@@ -20,7 +20,12 @@ async function loadPlaywright() {
     return await import(moduleName);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error("Unable to load Playwright from " + moduleName + ". Install it with pnpm or set PDFDIFF_PLAYWRIGHT_MODULE. " + message);
+    throw new Error(
+      "Unable to load Playwright from " +
+        moduleName +
+        ". Install it with pnpm or set PDFDIFF_PLAYWRIGHT_MODULE. " +
+        message,
+    );
   }
 }
 
@@ -55,14 +60,16 @@ async function runOnce(page, url, earlierPath, newerPath) {
   };
 }
 
-const { values } = parseArgs({ options: {
-  runs: { type: "string" },
-  warmups: { type: "string" },
-  url: { type: "string", default: DEFAULT_URL },
-  earlier: { type: "string", default: DEFAULT_EARLIER },
-  newer: { type: "string", default: DEFAULT_NEWER },
-  output: { type: "string", default: DEFAULT_OUTPUT },
-} });
+const { values } = parseArgs({
+  options: {
+    runs: { type: "string" },
+    warmups: { type: "string" },
+    url: { type: "string", default: DEFAULT_URL },
+    earlier: { type: "string", default: DEFAULT_EARLIER },
+    newer: { type: "string", default: DEFAULT_NEWER },
+    output: { type: "string", default: DEFAULT_OUTPUT },
+  },
+});
 const runs = integerOption(values.runs, DEFAULT_RUNS);
 const warmups = integerOption(values.warmups, DEFAULT_WARMUPS, 0);
 const { url, earlier, newer, output } = values;
@@ -128,25 +135,37 @@ const report = {
   newer,
   runs,
   warmups,
-  scenarios: [{
-    id: "pdfjs-fixture-pair",
-    description: "PDF.js loading, rendering, comparison, encoding, and viewer readiness for one fixture pair.",
-    qualityPassed: results.every((run) => run.quality.workspaceReady && run.quality.pageCount > 0 && run.quality.metricsOk),
-    runs: results,
-    metricSummary: metricSummary(results),
-  }],
+  scenarios: [
+    {
+      id: "pdfjs-fixture-pair",
+      description: "PDF.js loading, rendering, comparison, encoding, and viewer readiness for one fixture pair.",
+      qualityPassed: results.every(
+        (run) => run.quality.workspaceReady && run.quality.pageCount > 0 && run.quality.metricsOk,
+      ),
+      runs: results,
+      metricSummary: metricSummary(results),
+    },
+  ],
 };
 
 const outputSeparator = output.lastIndexOf("/");
 await mkdir(outputSeparator >= 0 ? output.slice(0, outputSeparator) : ".", { recursive: true });
 await writeFile(output, JSON.stringify(report, null, 2) + "\n", "utf8");
-console.table([{
-  scenario: "pdfjs-fixture-pair",
-  quality: report.scenarios[0].qualityPassed ? "pass" : "FAIL",
-  medianMs: percentile(results.map((run) => run.durationMs), 0.5).toFixed(2),
-  p95Ms: percentile(results.map((run) => run.durationMs), 0.95).toFixed(2),
-  longTasks: results.reduce((total, run) => total + run.longTasks.length, 0),
-}]);
+console.table([
+  {
+    scenario: "pdfjs-fixture-pair",
+    quality: report.scenarios[0].qualityPassed ? "pass" : "FAIL",
+    medianMs: percentile(
+      results.map((run) => run.durationMs),
+      0.5,
+    ).toFixed(2),
+    p95Ms: percentile(
+      results.map((run) => run.durationMs),
+      0.95,
+    ).toFixed(2),
+    longTasks: results.reduce((total, run) => total + run.longTasks.length, 0),
+  },
+]);
 console.log("Wrote " + output);
 
 if (!report.scenarios[0].qualityPassed) process.exitCode = 1;

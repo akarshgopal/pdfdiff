@@ -49,7 +49,13 @@ function boundedRenderSize(widthPoints: number, heightPoints: number, options: R
   };
 }
 
-function beginPageRender(page: PDFPageProxy, canvas: HTMLCanvasElement, scale: number, offsetX: number, offsetY: number) {
+function beginPageRender(
+  page: PDFPageProxy,
+  canvas: HTMLCanvasElement,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+) {
   const viewport = page.getViewport({ scale, rotation: page.rotate });
   const context = createContext(canvas);
   context.save();
@@ -90,16 +96,21 @@ async function renderIntoCanvas(
   const { context, renderTask } = beginPageRender(page, canvas, scale, offsetX, offsetY);
   const detachAbort = watchRenderAbort(renderTask, options.signal);
   try {
-    await measureAsync(options.metrics, "pdf.render.canvas", async () => {
-      await renderTask.promise;
-      throwIfAborted(options.signal);
-    }, {
-      pageNumber: page.pageNumber,
-      width: canvas.width,
-      height: canvas.height,
-      pixels: canvas.width * canvas.height,
-      side: side ?? "single",
-    });
+    await measureAsync(
+      options.metrics,
+      "pdf.render.canvas",
+      async () => {
+        await renderTask.promise;
+        throwIfAborted(options.signal);
+      },
+      {
+        pageNumber: page.pageNumber,
+        width: canvas.width,
+        height: canvas.height,
+        pixels: canvas.width * canvas.height,
+        side: side ?? "single",
+      },
+    );
   } catch (error) {
     if (options.signal?.aborted) throw new PdfDiffAbortError();
     throw error;
@@ -114,11 +125,24 @@ async function renderIntoCanvas(
   // long comparison from holding one full-size canvas per rendered page.
   canvas.width = 0;
   canvas.height = 0;
-  return { pageNumber: page.pageNumber, width, height, data: imageData.data, widthPoints, heightPoints, rotation, scale };
+  return {
+    pageNumber: page.pageNumber,
+    width,
+    height,
+    data: imageData.data,
+    widthPoints,
+    heightPoints,
+    rotation,
+    scale,
+  };
 }
 
 /** Render one page into a bounded canvas. */
-export async function renderPage(pdf: LoadedPdf, pageNumber: number, options: RenderOptions = {}): Promise<RenderedPage> {
+export async function renderPage(
+  pdf: LoadedPdf,
+  pageNumber: number,
+  options: RenderOptions = {},
+): Promise<RenderedPage> {
   throwIfAborted(options.signal);
   const page = await pageFor(pdf, pageNumber);
   throwIfAborted(options.signal);
@@ -154,8 +178,28 @@ export async function renderPagePair(
   const newerOffsetX = (width - newerViewport.width * scale) / 2;
   const newerOffsetY = (height - newerViewport.height * scale) / 2;
   const [earlierRendered, newerRendered] = await Promise.all([
-    renderIntoCanvas(earlierPage, earlierCanvas, earlierViewport.width, earlierViewport.height, scale, earlierOffsetX, earlierOffsetY, options, "earlier"),
-    renderIntoCanvas(newerPage, newerCanvas, newerViewport.width, newerViewport.height, scale, newerOffsetX, newerOffsetY, options, "newer"),
+    renderIntoCanvas(
+      earlierPage,
+      earlierCanvas,
+      earlierViewport.width,
+      earlierViewport.height,
+      scale,
+      earlierOffsetX,
+      earlierOffsetY,
+      options,
+      "earlier",
+    ),
+    renderIntoCanvas(
+      newerPage,
+      newerCanvas,
+      newerViewport.width,
+      newerViewport.height,
+      scale,
+      newerOffsetX,
+      newerOffsetY,
+      options,
+      "newer",
+    ),
   ]);
   return { earlier: earlierRendered, newer: newerRendered, width, height, scale };
 }

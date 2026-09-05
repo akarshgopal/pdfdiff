@@ -101,11 +101,23 @@ test("the PCB fixture does not promote text extraction spacing to semantic chang
   const report = JSON.parse(stdout);
   const changes = report.pages[0].textChanges as Array<{ before: string; after: string }>;
   assert.ok(changes.length <= 30, `expected at most 30 meaningful changes, got ${changes.length}`);
-  assert.doesNotMatch(changes.map(({ before, after }) => `${before} → ${after}`).join("\n"), /PO W ER|ANALO G|DIG ITAL|T RST|T DI|T DO/);
+  assert.doesNotMatch(
+    changes.map(({ before, after }) => `${before} → ${after}`).join("\n"),
+    /PO W ER|ANALO G|DIG ITAL|T RST|T DI|T DO/,
+  );
 });
 
 test("every documented flag is accepted, including --no-detect-moves", async () => {
-  const { code, stderr } = await cli(EARLIER, NEWER, "--no-detect-moves", "--include-noise", "--threshold", "0.6", "--report", "json");
+  const { code, stderr } = await cli(
+    EARLIER,
+    NEWER,
+    "--no-detect-moves",
+    "--include-noise",
+    "--threshold",
+    "0.6",
+    "--report",
+    "json",
+  );
   assert.equal(code, 0, stderr);
 });
 

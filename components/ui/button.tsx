@@ -5,7 +5,8 @@ const BASE = `inline-flex cursor-pointer items-center justify-center gap-2 white
 
 const VARIANTS = {
   default: "bg-primary text-primary-foreground hover:bg-primary/90",
-  outline: "border border-border bg-card text-muted-foreground hover:border-foreground/30 hover:bg-background hover:text-foreground",
+  outline:
+    "border border-border bg-card text-muted-foreground hover:border-foreground/30 hover:bg-background hover:text-foreground",
   ghost: "text-muted-foreground hover:bg-secondary hover:text-foreground",
 } as const;
 
@@ -22,5 +23,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ className, variant = "default", size = "default", type = "button", ...props }: ButtonProps) {
-  return <button type={type} className={styleProps(BASE, VARIANTS[variant], SIZES[size], className).className} {...props} />;
+  return (
+    <button type={type} className={styleProps(BASE, VARIANTS[variant], SIZES[size], className).className} {...props} />
+  );
 }

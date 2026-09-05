@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { alignByTranslation, diffImages, overlayLayers, type RasterImage } from "@pdfdiff/core";
-import { createRasterDiffClient, resultTransfers, runRasterDiffJob, type RasterDiffJob } from "@pdfdiff/pdfjs-browser/raster-diff-worker";
+import {
+  createRasterDiffClient,
+  resultTransfers,
+  runRasterDiffJob,
+  type RasterDiffJob,
+} from "@pdfdiff/pdfjs-browser/raster-diff-worker";
 
 const WIDTH = 40;
 const HEIGHT = 30;
@@ -71,10 +76,16 @@ test("layers are built only when asked, and match an in-process build", () => {
   assert.equal(runRasterDiffJob(job(earlier, newer, { alignByTranslation: false })).layers, undefined);
 
   const actual = runRasterDiffJob(job(earlier, newer, { alignByTranslation: false, withLayers: true }));
-  const expected = overlayLayers(earlier, newer, diffImages(earlier, newer, {
-    threshold: 0.1, includeAA: false, unchangedOpacity: 0.24,
-    regionOptions: { minPixels: 4, maxRegions: 50, connectivity: 8, readingOrder: true },
-  }).directionMask);
+  const expected = overlayLayers(
+    earlier,
+    newer,
+    diffImages(earlier, newer, {
+      threshold: 0.1,
+      includeAA: false,
+      unchangedOpacity: 0.24,
+      regionOptions: { minPixels: 4, maxRegions: 50, connectivity: 8, readingOrder: true },
+    }).directionMask,
+  );
 
   assert.deepEqual(new Uint8ClampedArray(actual.layers!.base), expected.base.data);
   assert.deepEqual(new Uint8ClampedArray(actual.layers!.added), expected.added.data);
@@ -104,7 +115,9 @@ test("every returned buffer is transferable exactly once", () => {
 
 test("metrics are collected only when the host is recording them", () => {
   assert.deepEqual(runRasterDiffJob(job(page(0, 0, false), page(1, 0, true))).metrics, []);
-  const names = runRasterDiffJob(job(page(0, 0, false), page(1, 0, true), { withMetrics: true })).metrics.map((metric) => metric.name);
+  const names = runRasterDiffJob(job(page(0, 0, false), page(1, 0, true), { withMetrics: true })).metrics.map(
+    (metric) => metric.name,
+  );
   assert.ok(names.includes("core.alignment.translation"));
   assert.ok(names.includes("core.visual.pixelmatch"));
 });
@@ -115,7 +128,11 @@ test("without a worker the client compares in-process and still reports metrics"
   const earlier = page(0, 0, false);
   const newer = page(1, 1, true);
 
-  const viaClient = await client.run(job(earlier, newer, { withMetrics: true }), new AbortController().signal, (metric) => void collected.push(metric.name));
+  const viaClient = await client.run(
+    job(earlier, newer, { withMetrics: true }),
+    new AbortController().signal,
+    (metric) => void collected.push(metric.name),
+  );
   const direct = runRasterDiffJob(job(earlier, newer));
 
   assert.equal(viaClient.changedPixels, direct.changedPixels);

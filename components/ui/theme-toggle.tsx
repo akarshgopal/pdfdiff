@@ -24,13 +24,7 @@ export function ThemeToggle() {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
-      aria-label="Toggle dark mode"
-      title="Toggle dark mode"
-      onClick={toggleTheme}
-    >
+    <Button variant="outline" size="icon" aria-label="Toggle dark mode" title="Toggle dark mode" onClick={toggleTheme}>
       <Sun className="size-4 dark:hidden" aria-hidden="true" />
       <Moon className="hidden size-4 dark:block" aria-hidden="true" />
       <span className="sr-only">Toggle dark mode</span>

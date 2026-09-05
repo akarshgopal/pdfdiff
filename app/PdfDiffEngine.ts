@@ -22,7 +22,11 @@ async function imageUrl(image: RasterImage, format: "webp" | "png" = "webp", alp
   if (!context) throw new Error("Your browser does not provide a 2D canvas context.");
   context.putImageData(imageDataFromRaster(image), 0, 0);
   const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Unable to encode a comparison preview.")), format === "png" ? "image/png" : "image/webp", 0.9);
+    canvas.toBlob(
+      (value) => (value ? resolve(value) : reject(new Error("Unable to encode a comparison preview."))),
+      format === "png" ? "image/png" : "image/webp",
+      0.9,
+    );
   });
   const url = URL.createObjectURL(blob);
   canvas.width = 0;
@@ -34,20 +38,28 @@ async function imageUrl(image: RasterImage, format: "webp" | "png" = "webp", alp
 function regionsForPage(page: ComparisonPage, overlays: readonly DiffSemanticOverlay[]): DiffRegion[] {
   const width = page.width ?? 1;
   const height = page.height ?? 1;
-  return describeRegions((page.regions ?? []).map((region) => ({
-    id: String(region.id),
-    x: (region.x / width) * 100,
-    y: (region.y / height) * 100,
-    width: (region.width / width) * 100,
-    height: (region.height / height) * 100,
-    changeClass: region.changeClass,
-  })), overlays);
+  return describeRegions(
+    (page.regions ?? []).map((region) => ({
+      id: String(region.id),
+      x: (region.x / width) * 100,
+      y: (region.y / height) * 100,
+      width: (region.width / width) * 100,
+      height: (region.height / height) * 100,
+      changeClass: region.changeClass,
+    })),
+    overlays,
+  );
 }
 
 function textChangesForPage(page: ComparisonPage): DiffTextChange[] {
   return (page.semantic?.changes ?? []).slice(0, MAX_VIEWER_TEXT_CHANGES).map((change) => ({
     id: change.id,
-    text: change.kind === "changed" ? `${change.before} → ${change.after}` : change.kind === "removed" ? change.before : change.after,
+    text:
+      change.kind === "changed"
+        ? `${change.before} → ${change.after}`
+        : change.kind === "removed"
+          ? change.before
+          : change.after,
     kind: change.kind,
     beforeText: change.before || undefined,
     afterText: change.after || undefined,
@@ -68,7 +80,7 @@ function normalizedQuad(
 }
 
 function semanticOverlaysForPage(page: ComparisonPage, side: "earlier" | "newer"): DiffSemanticOverlay[] {
-  const overlays = side === "earlier" ? page.semantic?.beforeOverlays ?? [] : page.semantic?.afterOverlays ?? [];
+  const overlays = side === "earlier" ? (page.semantic?.beforeOverlays ?? []) : (page.semantic?.afterOverlays ?? []);
   const geometry = page.visualGeometry?.[side];
   return overlays.slice(0, MAX_VIEWER_SEMANTIC_OVERLAYS).map((overlay) => ({
     id: overlay.id,
@@ -120,13 +132,30 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
 }
 
 function pageUrls(page: DiffPage): string[] {
-  return [page.beforeSrc, page.afterSrc, page.diffSrc, page.layers?.base, page.layers?.added, page.layers?.removed, page.layers?.modified]
-    .filter((url): url is string => Boolean(url));
+  return [
+    page.beforeSrc,
+    page.afterSrc,
+    page.diffSrc,
+    page.layers?.base,
+    page.layers?.added,
+    page.layers?.removed,
+    page.layers?.modified,
+  ].filter((url): url is string => Boolean(url));
 }
 
-type RawPagePairResolver = (request: { earlierPageIndex: number; newerPageIndex: number; quality?: RenderQuality; signal: AbortSignal }) => Promise<ComparisonPage>;
+type RawPagePairResolver = (request: {
+  earlierPageIndex: number;
+  newerPageIndex: number;
+  quality?: RenderQuality;
+  signal: AbortSignal;
+}) => Promise<ComparisonPage>;
 
-async function toViewerComparison(result: ComparisonResult, resolveRawPagePair?: RawPagePairResolver, convertedPages = new Map<number, DiffPage>(), urls = new Set<string>()): Promise<DiffComparison> {
+async function toViewerComparison(
+  result: ComparisonResult,
+  resolveRawPagePair?: RawPagePairResolver,
+  convertedPages = new Map<number, DiffPage>(),
+  urls = new Set<string>(),
+): Promise<DiffComparison> {
   const pages = await Promise.all(result.pages.map((page) => convertedPages.get(page.index) ?? toViewerPage(page)));
   const pairCache = new Map<string, DiffPage>();
   let disposed = false;
@@ -142,20 +171,22 @@ async function toViewerComparison(result: ComparisonResult, resolveRawPagePair?:
     newerName: result.newerName ?? "Newer PDF",
     pages,
     elapsedMs: result.elapsedMs,
-    comparePagePair: resolveRawPagePair ? async (request) => {
-      if (request.signal.aborted) throw new DOMException("The page comparison was aborted.", "AbortError");
-      const key = `${request.earlierPageIndex}:${request.newerPageIndex}:${request.quality ?? "standard"}`;
-      const cached = pairCache.get(key);
-      if (cached) return cached;
-      const page = await toViewerPage(await resolveRawPagePair(request));
-      if (request.signal.aborted) {
-        for (const url of pageUrls(page)) URL.revokeObjectURL(url);
-        throw new DOMException("The page comparison was aborted.", "AbortError");
-      }
-      trackPageUrls(page);
-      pairCache.set(key, page);
-      return page;
-    } : undefined,
+    comparePagePair: resolveRawPagePair
+      ? async (request) => {
+          if (request.signal.aborted) throw new DOMException("The page comparison was aborted.", "AbortError");
+          const key = `${request.earlierPageIndex}:${request.newerPageIndex}:${request.quality ?? "standard"}`;
+          const cached = pairCache.get(key);
+          if (cached) return cached;
+          const page = await toViewerPage(await resolveRawPagePair(request));
+          if (request.signal.aborted) {
+            for (const url of pageUrls(page)) URL.revokeObjectURL(url);
+            throw new DOMException("The page comparison was aborted.", "AbortError");
+          }
+          trackPageUrls(page);
+          pairCache.set(key, page);
+          return page;
+        }
+      : undefined,
     dispose: () => {
       if (disposed) return;
       disposed = true;
@@ -183,13 +214,14 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
     try {
       const result = await engine.compare({
         ...request,
-        onReady: (event) => request.onReady?.({
-          earlierName: event.earlierName ?? "Earlier PDF",
-          newerName: event.newerName ?? "Newer PDF",
-          earlierPageCount: event.earlierPageCount,
-          newerPageCount: event.newerPageCount,
-          total: event.total,
-        }),
+        onReady: (event) =>
+          request.onReady?.({
+            earlierName: event.earlierName ?? "Earlier PDF",
+            newerName: event.newerName ?? "Newer PDF",
+            earlierPageCount: event.earlierPageCount,
+            newerPageCount: event.newerPageCount,
+            total: event.total,
+          }),
         onPage: async (rawPage) => {
           const page = await toViewerPage(rawPage);
           if (request.signal.aborted) {
@@ -201,20 +233,32 @@ export const browserPdfDiffEngine: PdfDiffEngine = {
           request.onPage?.(page);
         },
       });
-      const comparison = await toViewerComparison(result, ({ earlierPageIndex, newerPageIndex, quality, signal }) => engine.comparePagePair({
-        earlier: request.earlier,
-        newer: request.newer,
-        earlierPageIndex,
-        newerPageIndex,
-        options: request.options,
-        quality,
-        signal,
-        onMetric: request.onMetric,
-      }), convertedPages, urls);
+      const comparison = await toViewerComparison(
+        result,
+        ({ earlierPageIndex, newerPageIndex, quality, signal }) =>
+          engine.comparePagePair({
+            earlier: request.earlier,
+            newer: request.newer,
+            earlierPageIndex,
+            newerPageIndex,
+            options: request.options,
+            quality,
+            signal,
+            onMetric: request.onMetric,
+          }),
+        convertedPages,
+        urls,
+      );
       return {
         ...comparison,
-        earlierPageCount: result.pages.reduce((count, page) => page.earlierPageNumber !== undefined ? count + 1 : count, 0),
-        newerPageCount: result.pages.reduce((count, page) => page.newerPageNumber !== undefined ? count + 1 : count, 0),
+        earlierPageCount: result.pages.reduce(
+          (count, page) => (page.earlierPageNumber !== undefined ? count + 1 : count),
+          0,
+        ),
+        newerPageCount: result.pages.reduce(
+          (count, page) => (page.newerPageNumber !== undefined ? count + 1 : count),
+          0,
+        ),
       };
     } catch (error) {
       urls.forEach((url) => URL.revokeObjectURL(url));

@@ -48,7 +48,10 @@ test("the threshold is adjustable", () => {
 });
 
 test("a page diff over undecodable text reports that, instead of reporting no changes", () => {
-  const diff = diffSemanticPages(page(GLYPH_CODES, { decodable: false }), page(GLYPH_CODES + "\u0009", { decodable: false }));
+  const diff = diffSemanticPages(
+    page(GLYPH_CODES, { decodable: false }),
+    page(GLYPH_CODES + "\u0009", { decodable: false }),
+  );
   assert.equal(diff.textUndecodable, true);
   assert.equal(diff.hasBeforeText, false);
   assert.equal(diff.hasAfterText, false);

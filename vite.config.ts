@@ -34,12 +34,14 @@ function absoluteMetadata(origin: string | null): Plugin {
   return {
     name: "pdfdiff-absolute-metadata",
     transformIndexHtml(html) {
-      const metadata = origin ? [
-        `<link rel="canonical" href="${origin}/" />`,
-        `<meta property="og:url" content="${origin}/" />`,
-        `<meta property="og:image" content="${origin}/og.png" />`,
-        `<meta name="twitter:image" content="${origin}/og.png" />`,
-      ].join("\n    ") : "";
+      const metadata = origin
+        ? [
+            `<link rel="canonical" href="${origin}/" />`,
+            `<meta property="og:url" content="${origin}/" />`,
+            `<meta property="og:image" content="${origin}/og.png" />`,
+            `<meta name="twitter:image" content="${origin}/og.png" />`,
+          ].join("\n    ")
+        : "";
       return html.replace("<!-- absolute-site-metadata -->", metadata);
     },
   };
@@ -49,10 +51,6 @@ export default defineConfig(({ mode }) => {
   stagePdfJsAssets();
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    plugins: [
-      tailwindcss(),
-      react(),
-      absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL)),
-    ],
+    plugins: [tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
   };
 });

@@ -1,13 +1,4 @@
-import {
-  type ChangeEvent,
-  type DragEvent,
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ChangeEvent, type DragEvent, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { DiffMetricSink, DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
 import type { DiffComparison } from "@pdfdiff/viewer-react";
 
@@ -79,7 +70,12 @@ interface ComparisonInput {
 
 function viewerOverlay(options: DiffOptions) {
   const overlay = { ...readOverlaySettings(), ...options.overlay };
-  return { addedColor: toHex(overlay.addedColor), removedColor: toHex(overlay.removedColor), modifiedColor: toHex(overlay.modifiedColor), unchangedOpacity: overlay.unchangedOpacity };
+  return {
+    addedColor: toHex(overlay.addedColor),
+    removedColor: toHex(overlay.removedColor),
+    modifiedColor: toHex(overlay.modifiedColor),
+    unchangedOpacity: overlay.unchangedOpacity,
+  };
 }
 
 function comparisonErrorMessage(error: unknown): string {
@@ -101,7 +97,12 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   const [error, setError] = useState<string | null>(null);
   const [pageProgress, setPageProgress] = useState<{ completed: number; total: number } | null>(null);
   const [activeDrop, setActiveDrop] = useState<"earlier" | "newer" | null>(null);
-  const [options, setOptions] = useState<DiffOptions>(() => ({ sensitivity: 28, alignment: "translation", matchPages: true, overlay: readOverlaySettings() }));
+  const [options, setOptions] = useState<DiffOptions>(() => ({
+    sensitivity: 28,
+    alignment: "translation",
+    matchPages: true,
+    overlay: readOverlaySettings(),
+  }));
   const [history, setHistory] = useState<ComparisonHistorySummary[]>([]);
   const [rememberFiles, setRememberFiles] = useState(false);
   const inputEarlier = useRef<HTMLInputElement>(null);
@@ -117,14 +118,17 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
     }
   }, []);
 
-  const setFile = useCallback((side: "earlier" | "newer", file: File | null) => {
-    comparison?.dispose?.();
-    if (side === "earlier") setEarlierFile(file);
-    else setNewerFile(file);
-    setError(null);
-    setComparison(null);
-    setPhase("upload");
-  }, [comparison]);
+  const setFile = useCallback(
+    (side: "earlier" | "newer", file: File | null) => {
+      comparison?.dispose?.();
+      if (side === "earlier") setEarlierFile(file);
+      else setNewerFile(file);
+      setError(null);
+      setComparison(null);
+      setPhase("upload");
+    },
+    [comparison],
+  );
 
   const chooseFile = (side: "earlier" | "newer") => {
     if (side === "earlier") inputEarlier.current?.click();
@@ -168,7 +172,12 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
    * comparison time. Persisting the viewer's choice keeps the next run's
    * thumbnails in the same colours the reviewer just picked.
    */
-  const setOverlay = (style: { addedColor: string; removedColor: string; modifiedColor: string; unchangedOpacity: number }) => {
+  const setOverlay = (style: {
+    addedColor: string;
+    removedColor: string;
+    modifiedColor: string;
+    unchangedOpacity: number;
+  }) => {
     const current = { ...readOverlaySettings(), ...options.overlay };
     const overlay = {
       addedColor: fromHex(style.addedColor, current.addedColor),
@@ -219,10 +228,14 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
         },
         onPage: (page) => {
           if (abortRef.current !== abortController || abortController.signal.aborted) return;
-          setComparison((current) => current ? {
-            ...current,
-            pages: current.pages.map((existing) => existing.index === page.index ? page : existing),
-          } : current);
+          setComparison((current) =>
+            current
+              ? {
+                  ...current,
+                  pages: current.pages.map((existing) => (existing.index === page.index ? page : existing)),
+                }
+              : current,
+          );
         },
         onProgress: ({ completed, total }) => {
           if (abortRef.current !== abortController || abortController.signal.aborted) return;
@@ -248,7 +261,9 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
       try {
         input.historyId = await rememberComparison(input, refreshHistory);
       } catch {
-        setError("These PDFs could not be saved in this browser. Free some site storage or compare without remembering them.");
+        setError(
+          "These PDFs could not be saved in this browser. Free some site storage or compare without remembering them.",
+        );
         return;
       }
     }
@@ -293,13 +308,19 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
     setPageProgress(null);
   };
 
-  useEffect(() => () => {
-    abortRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    [],
+  );
 
-  useEffect(() => () => {
-    comparison?.dispose?.();
-  }, [comparison]);
+  useEffect(
+    () => () => {
+      comparison?.dispose?.();
+    },
+    [comparison],
+  );
 
   useEffect(() => {
     let active = true;
@@ -317,7 +338,29 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   }, []);
 
   if (phase === "upload") {
-    return <UploadScreen earlierFile={earlierFile} newerFile={newerFile} activeDrop={activeDrop} error={error} history={history} rememberFiles={rememberFiles} onRememberFilesChange={setRememberFiles} onChoose={chooseFile} onRemove={(side) => setFile(side, null)} onActive={(side, active) => setActiveDrop(active ? side : null)} onDrop={handleDrop} onDropAnywhere={dropAnywhere} onInput={handleInput} onSwap={swapFiles} onCompare={() => void runSelectedComparison()} onRepeat={(id) => void repeatComparison(id)} onClearHistory={() => void clearHistory()} inputEarlier={inputEarlier} inputNewer={inputNewer} />;
+    return (
+      <UploadScreen
+        earlierFile={earlierFile}
+        newerFile={newerFile}
+        activeDrop={activeDrop}
+        error={error}
+        history={history}
+        rememberFiles={rememberFiles}
+        onRememberFilesChange={setRememberFiles}
+        onChoose={chooseFile}
+        onRemove={(side) => setFile(side, null)}
+        onActive={(side, active) => setActiveDrop(active ? side : null)}
+        onDrop={handleDrop}
+        onDropAnywhere={dropAnywhere}
+        onInput={handleInput}
+        onSwap={swapFiles}
+        onCompare={() => void runSelectedComparison()}
+        onRepeat={(id) => void repeatComparison(id)}
+        onClearHistory={() => void clearHistory()}
+        inputEarlier={inputEarlier}
+        inputNewer={inputNewer}
+      />
+    );
   }
 
   if (phase === "loading") {
@@ -325,7 +368,24 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
   }
 
   if (!comparison) return null;
-  return <Suspense fallback={<LoadingScreen onCancel={reset} />}><main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} defaultOverlay={viewerOverlay(options)} onOverlayChange={setOverlay} matchPages={options.matchPages !== false} onMatchPagesChange={setMatchPages} /></div></main></Suspense>;
+  return (
+    <Suspense fallback={<LoadingScreen onCancel={reset} />}>
+      <main {...styleProps(styles.root)}>
+        <div {...styleProps(styles.shell)}>
+          <PdfDiffViewer
+            comparison={comparison}
+            processingProgress={pageProgress ?? undefined}
+            headerActions={<ThemeToggle />}
+            onNewComparison={reset}
+            defaultOverlay={viewerOverlay(options)}
+            onOverlayChange={setOverlay}
+            matchPages={options.matchPages !== false}
+            onMatchPagesChange={setMatchPages}
+          />
+        </div>
+      </main>
+    </Suspense>
+  );
 }
 
 export { PdfDiffApp };

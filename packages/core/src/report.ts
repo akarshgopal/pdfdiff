@@ -93,7 +93,14 @@ function reportPage(page: ComparisonPage): ReportPage {
 }
 
 function totalsFor(pages: readonly ReportPage[]): ReportTotals {
-  let changedPages = 0, addedPages = 0, removedPages = 0, movedPages = 0, noisePages = 0, textChanges = 0, pagesWithoutText = 0, pagesWithUnreadableText = 0;
+  let changedPages = 0,
+    addedPages = 0,
+    removedPages = 0,
+    movedPages = 0,
+    noisePages = 0,
+    textChanges = 0,
+    pagesWithoutText = 0,
+    pagesWithUnreadableText = 0;
   let classes = EMPTY_CLASSES;
   for (const page of pages) {
     if (page.alignment === "moved") movedPages += 1;
@@ -113,7 +120,18 @@ function totalsFor(pages: readonly ReportPage[]): ReportTotals {
       graphic: classes.graphic + page.classes.graphic,
     };
   }
-  return { pages: pages.length, changedPages, addedPages, removedPages, movedPages, noisePages, textChanges, classes, pagesWithoutText, pagesWithUnreadableText };
+  return {
+    pages: pages.length,
+    changedPages,
+    addedPages,
+    removedPages,
+    movedPages,
+    noisePages,
+    textChanges,
+    classes,
+    pagesWithoutText,
+    pagesWithUnreadableText,
+  };
 }
 
 export function buildReport(input: BuildReportInput): ComparisonReport {
@@ -153,11 +171,17 @@ export function reportToCsv(report: ComparisonReport): string {
   for (const page of report.pages) {
     if (page.textChanges.length === 0) {
       if (page.status === "same" && page.alignment !== "moved") continue;
-      rows.push([page.earlierPage, page.newerPage, page.alignment, page.status, "visual", "", ""].map(csvField).join(","));
+      rows.push(
+        [page.earlierPage, page.newerPage, page.alignment, page.status, "visual", "", ""].map(csvField).join(","),
+      );
       continue;
     }
     for (const change of page.textChanges) {
-      rows.push([page.earlierPage, page.newerPage, page.alignment, page.status, change.kind, change.before, change.after].map(csvField).join(","));
+      rows.push(
+        [page.earlierPage, page.newerPage, page.alignment, page.status, change.kind, change.before, change.after]
+          .map(csvField)
+          .join(","),
+      );
     }
   }
   return `${rows.join("\n")}\n`;
@@ -169,7 +193,9 @@ export function reportToJson(report: ComparisonReport): string {
 
 function pageLabel(page: ReportPage): string {
   if (page.earlierPage !== undefined && page.newerPage !== undefined) {
-    return page.earlierPage === page.newerPage ? `Page ${page.newerPage}` : `A ${page.earlierPage} → B ${page.newerPage}`;
+    return page.earlierPage === page.newerPage
+      ? `Page ${page.newerPage}`
+      : `A ${page.earlierPage} → B ${page.newerPage}`;
   }
   return page.earlierPage !== undefined ? `A ${page.earlierPage} (removed)` : `B ${page.newerPage} (added)`;
 }
@@ -192,8 +218,12 @@ export function reportToText(report: ComparisonReport, _options: { readonly incl
     `${totals.textChanges} text changes · ${CLASS_ORDER.map((name) => `${totals.classes[name]} ${name}`).join(" · ")}`,
   ];
   if (totals.noisePages) lines.push(`${totals.noisePages} pages may include reflow or formatting`);
-  if (totals.pagesWithUnreadableText) lines.push(`WARNING: ${totals.pagesWithUnreadableText} pages embed fonts with no Unicode mapping. Their text extracts as glyph codes, so no text change on those pages can be detected.`);
-  else if (totals.pagesWithoutText) lines.push(`${totals.pagesWithoutText} pages have no selectable text; those compared visually only`);
+  if (totals.pagesWithUnreadableText)
+    lines.push(
+      `WARNING: ${totals.pagesWithUnreadableText} pages embed fonts with no Unicode mapping. Their text extracts as glyph codes, so no text change on those pages can be detected.`,
+    );
+  else if (totals.pagesWithoutText)
+    lines.push(`${totals.pagesWithoutText} pages have no selectable text; those compared visually only`);
   lines.push("");
 
   for (const page of report.pages) {

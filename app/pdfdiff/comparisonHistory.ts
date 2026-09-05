@@ -46,21 +46,27 @@ async function withDatabase<T>(operation: (database: IDBDatabase) => Promise<T>)
 }
 
 function readRequest<T>(createRequest: (store: IDBObjectStore) => IDBRequest<T>, errorMessage: string): Promise<T> {
-  return withDatabase((database) => new Promise((resolve, reject) => {
-    const request = createRequest(database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME));
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error(errorMessage));
-  }));
+  return withDatabase(
+    (database) =>
+      new Promise((resolve, reject) => {
+        const request = createRequest(database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME));
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error(errorMessage));
+      }),
+  );
 }
 
 function writeTransaction(operation: (store: IDBObjectStore) => void, errorMessage: string): Promise<void> {
-  return withDatabase((database) => new Promise((resolve, reject) => {
-    const transaction = database.transaction(STORE_NAME, "readwrite");
-    operation(transaction.objectStore(STORE_NAME));
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error(errorMessage));
-    transaction.onabort = () => reject(transaction.error ?? new Error(errorMessage));
-  }));
+  return withDatabase(
+    (database) =>
+      new Promise((resolve, reject) => {
+        const transaction = database.transaction(STORE_NAME, "readwrite");
+        operation(transaction.objectStore(STORE_NAME));
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error(errorMessage));
+        transaction.onabort = () => reject(transaction.error ?? new Error(errorMessage));
+      }),
+  );
 }
 
 async function readAll(): Promise<SavedComparison[]> {
@@ -110,7 +116,9 @@ export async function saveComparisonHistory(input: {
     newerFile: input.newerFile,
   };
 
-  await writeTransaction((store) => { store.put(record); }, "Unable to save comparison history.");
+  await writeTransaction((store) => {
+    store.put(record);
+  }, "Unable to save comparison history.");
 
   const records = await readAll();
   const expiredIds = records
@@ -126,5 +134,7 @@ export async function saveComparisonHistory(input: {
 }
 
 export async function clearComparisonHistory(): Promise<void> {
-  await writeTransaction((store) => { store.clear(); }, "Unable to clear comparison history.");
+  await writeTransaction((store) => {
+    store.clear();
+  }, "Unable to clear comparison history.");
 }

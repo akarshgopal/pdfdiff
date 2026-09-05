@@ -25,10 +25,14 @@ function App() {
 if (route === "/privacy" || route === "/terms") {
   const privacy = route === "/privacy";
   document.title = `${privacy ? "Privacy Policy" : "Terms of Service"} — pdfdiff`;
-  document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute(
-    "content",
-    privacy ? "How pdfdiff handles PDF files, browser storage, and technical data." : "The terms that govern use of the pdfdiff browser-based PDF comparison service.",
-  );
+  document
+    .querySelector<HTMLMetaElement>('meta[name="description"]')
+    ?.setAttribute(
+      "content",
+      privacy
+        ? "How pdfdiff handles PDF files, browser storage, and technical data."
+        : "The terms that govern use of the pdfdiff browser-based PDF comparison service.",
+    );
 }
 
 createRoot(document.getElementById("root")!).render(

@@ -1,0 +1,7 @@
+dist
+.next
+.wrangler
+public/pdfjs
+pnpm-lock.yaml
+tsconfig.tsbuildinfo
+tests/fixtures

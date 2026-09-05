@@ -13,7 +13,10 @@ async function clientBundleText() {
 test("builds a static private PDF comparison experience", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
   assert.match(html, /<title>pdfdiff — see what changed between two PDFs<\/title>/i);
-  assert.match(html, /name="description" content="Compare two PDF revisions page by page[^"]*never leave your device\."/i);
+  assert.match(
+    html,
+    /name="description" content="Compare two PDF revisions page by page[^"]*never leave your device\."/i,
+  );
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
   assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/i);
   assert.match(html, /rel="manifest" href="\/site\.webmanifest"/i);

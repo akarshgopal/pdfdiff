@@ -10,8 +10,23 @@ import {
   useState,
 } from "react";
 import { styles, styleProps, ui, type TailwindClass } from "./styles.js";
-import type { DiffPage, DiffRegion, DiffSemanticOverlay, DiffViewMode, PdfDiffViewerProps, SourceSide, ViewerSettings } from "./types.js";
-import { PageRail, PairingDialog, SettingsDialog, StatusFooter, ViewerToolbar, WorkspaceHeader } from "./ViewerChrome.js";
+import type {
+  DiffPage,
+  DiffRegion,
+  DiffSemanticOverlay,
+  DiffViewMode,
+  PdfDiffViewerProps,
+  SourceSide,
+  ViewerSettings,
+} from "./types.js";
+import {
+  PageRail,
+  PairingDialog,
+  SettingsDialog,
+  StatusFooter,
+  ViewerToolbar,
+  WorkspaceHeader,
+} from "./ViewerChrome.js";
 import { summarizeComparison } from "./summary.js";
 import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
@@ -20,7 +35,12 @@ import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
 import type { OverlayStyle } from "./types.js";
 
-export const DEFAULT_OVERLAY_STYLE: OverlayStyle = { addedColor: "#10bebe", removedColor: "#ee4856", modifiedColor: "#b87edc", unchangedOpacity: 0.24 };
+export const DEFAULT_OVERLAY_STYLE: OverlayStyle = {
+  addedColor: "#10bebe",
+  removedColor: "#ee4856",
+  modifiedColor: "#b87edc",
+  unchangedOpacity: 0.24,
+};
 
 function getRegionStyle(region: DiffRegion): CSSProperties {
   return {
@@ -33,16 +53,48 @@ function getRegionStyle(region: DiffRegion): CSSProperties {
 
 function PaperFallback({ label }: { label: string }) {
   if (label.startsWith("No ")) return <div {...styleProps(styles.paperEmpty)}>{label}</div>;
-  return <div {...styleProps(styles.paperEmpty)} role="status" aria-label={label}><div {...styleProps(styles.paperSkeleton)} aria-hidden="true"><span {...styleProps(styles.paperSkeletonLine)} /><span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} /><span {...styleProps(styles.paperSkeletonBlock)} /><span {...styleProps(styles.paperSkeletonLine)} /><span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} /></div></div>;
+  return (
+    <div {...styleProps(styles.paperEmpty)} role="status" aria-label={label}>
+      <div {...styleProps(styles.paperSkeleton)} aria-hidden="true">
+        <span {...styleProps(styles.paperSkeletonLine)} />
+        <span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} />
+        <span {...styleProps(styles.paperSkeletonBlock)} />
+        <span {...styleProps(styles.paperSkeletonLine)} />
+        <span {...styleProps(styles.paperSkeletonLine, styles.paperSkeletonLineShort)} />
+      </div>
+    </div>
+  );
 }
 
 function CanvasNotice({ pending, error }: { pending: boolean; error: string | null }) {
   if (!pending && !error) return null;
-  return <div {...styleProps(styles.canvasNotice, Boolean(error) && styles.canvasNoticeError)} role="status" aria-live="polite">{error ?? "Comparing…"}</div>;
+  return (
+    <div
+      {...styleProps(styles.canvasNotice, Boolean(error) && styles.canvasNoticeError)}
+      role="status"
+      aria-live="polite"
+    >
+      {error ?? "Comparing…"}
+    </div>
+  );
 }
 
-function PageImage({ source, alt, imageStyle = styles.pageImage, missingLabel = "Preview is still rendering" }: { source?: string; alt: string; imageStyle?: TailwindClass; missingLabel?: string }) {
-  return source ? <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} /> : <PaperFallback label={missingLabel} />;
+function PageImage({
+  source,
+  alt,
+  imageStyle = styles.pageImage,
+  missingLabel = "Preview is still rendering",
+}: {
+  source?: string;
+  alt: string;
+  imageStyle?: TailwindClass;
+  missingLabel?: string;
+}) {
+  return source ? (
+    <img {...styleProps(imageStyle)} src={source} alt={alt} draggable={false} />
+  ) : (
+    <PaperFallback label={missingLabel} />
+  );
 }
 
 function semanticPolygonPoints(quad: ReadonlyArray<{ x: number; y: number }>): string {
@@ -67,29 +119,55 @@ function SemanticNativePane({
   const label = side === "earlier" ? "Earlier" : "Newer";
   return (
     <article {...styleProps(styles.semanticColumn)} aria-label={`${label} native PDF page`}>
-      <header {...styleProps(styles.semanticHeader)}><span>{label}</span></header>
+      <header {...styleProps(styles.semanticHeader)}>
+        <span>{label}</span>
+      </header>
       <div {...styleProps(styles.semanticViewport)}>
-        {source ? <img {...styleProps(styles.semanticPageImage)} src={source} alt={`${label} version of this page`} draggable={false} /> : <PaperFallback label={`No ${label.toLowerCase()} page`} />}
+        {source ? (
+          <img
+            {...styleProps(styles.semanticPageImage)}
+            src={source}
+            alt={`${label} version of this page`}
+            draggable={false}
+          />
+        ) : (
+          <PaperFallback label={`No ${label.toLowerCase()} page`} />
+        )}
         {source && showHighlights && overlays.length ? (
-          <svg {...styleProps(styles.semanticOverlay)} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${label} semantic text changes`}>
-            {overlays.flatMap((overlay) => overlay.quads.map((quad, index) => (
-              <polygon
-                key={`${overlay.id}-${index}`}
-                {...styleProps(styles.semanticOverlayPolygon, overlay.kind === "added" && styles.semanticOverlayAdded, overlay.kind === "removed" && styles.semanticOverlayRemoved, overlay.kind === "changed" && styles.semanticOverlayChanged, selectedRegion === overlay.id && styles.semanticOverlayCurrent)}
-                points={semanticPolygonPoints(quad)}
-                data-semantic-change-id={overlay.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`${overlay.kind} text: ${overlay.text}`}
-                onClick={() => onSelectChange(overlay.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onSelectChange(overlay.id);
-                  }
-                }}
-              ><title>{overlay.text}</title></polygon>
-            )))}
+          <svg
+            {...styleProps(styles.semanticOverlay)}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-label={`${label} semantic text changes`}
+          >
+            {overlays.flatMap((overlay) =>
+              overlay.quads.map((quad, index) => (
+                <polygon
+                  key={`${overlay.id}-${index}`}
+                  {...styleProps(
+                    styles.semanticOverlayPolygon,
+                    overlay.kind === "added" && styles.semanticOverlayAdded,
+                    overlay.kind === "removed" && styles.semanticOverlayRemoved,
+                    overlay.kind === "changed" && styles.semanticOverlayChanged,
+                    selectedRegion === overlay.id && styles.semanticOverlayCurrent,
+                  )}
+                  points={semanticPolygonPoints(quad)}
+                  data-semantic-change-id={overlay.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${overlay.kind} text: ${overlay.text}`}
+                  onClick={() => onSelectChange(overlay.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onSelectChange(overlay.id);
+                    }
+                  }}
+                >
+                  <title>{overlay.text}</title>
+                </polygon>
+              )),
+            )}
           </svg>
         ) : null}
       </div>
@@ -97,13 +175,30 @@ function SemanticNativePane({
   );
 }
 
-function semanticSummary(semantic: DiffPage["semantic"]): { changes: string; tokens: string; missingText: boolean; undecodable: boolean } {
-  if (!semantic) return { changes: "No semantic text changes", tokens: "Native PDF rendering", missingText: false, undecodable: false };
+function semanticSummary(semantic: DiffPage["semantic"]): {
+  changes: string;
+  tokens: string;
+  missingText: boolean;
+  undecodable: boolean;
+} {
+  if (!semantic)
+    return {
+      changes: "No semantic text changes",
+      tokens: "Native PDF rendering",
+      missingText: false,
+      undecodable: false,
+    };
   const count = semantic.changes.length;
   const undecodable = semantic.textUndecodable === true;
   return {
-    changes: undecodable ? "Text could not be read" : count ? `${count} text change${count === 1 ? "" : "s"}` : "No semantic text changes",
-    tokens: undecodable ? "Embedded font has no Unicode mapping" : `${semantic.beforeTokenCount} → ${semantic.afterTokenCount} tokens`,
+    changes: undecodable
+      ? "Text could not be read"
+      : count
+        ? `${count} text change${count === 1 ? "" : "s"}`
+        : "No semantic text changes",
+    tokens: undecodable
+      ? "Embedded font has no Unicode mapping"
+      : `${semantic.beforeTokenCount} → ${semantic.afterTokenCount} tokens`,
     missingText: !semantic.hasBeforeText && !semantic.hasAfterText,
     undecodable,
   };
@@ -132,24 +227,82 @@ function SemanticPdfPreview({
 
   useEffect(() => {
     if (!selectedRegion || !showHighlights) return;
-    const escapedId = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(selectedRegion) : selectedRegion.replace(/"/g, '\\"');
-    previewRef.current?.querySelector<SVGPolygonElement>(`[data-semantic-change-id="${escapedId}"]`)?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    const escapedId =
+      typeof CSS !== "undefined" && CSS.escape ? CSS.escape(selectedRegion) : selectedRegion.replace(/"/g, '\\"');
+    previewRef.current
+      ?.querySelector<SVGPolygonElement>(`[data-semantic-change-id="${escapedId}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
   }, [selectedRegion, showHighlights]);
 
   return (
     <div ref={previewRef} {...styleProps(styles.paper, styles.paperTwoUp, styles.semanticPaper)}>
       <CanvasNotice pending={pending} error={error} />
-      {!waiting ? <><div {...styleProps(styles.semanticSummary)}><span>{summary.changes}</span><span>{summary.tokens}</span></div><div {...styleProps(styles.semanticLegend)}><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />Removed</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />Added</span><span><i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />Changed</span><span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span></div></> : null}
+      {!waiting ? (
+        <>
+          <div {...styleProps(styles.semanticSummary)}>
+            <span>{summary.changes}</span>
+            <span>{summary.tokens}</span>
+          </div>
+          <div {...styleProps(styles.semanticLegend)}>
+            <span>
+              <i {...styleProps(styles.semanticLegendDot, styles.semanticLegendRemoved)} />
+              Removed
+            </span>
+            <span>
+              <i {...styleProps(styles.semanticLegendDot, styles.semanticLegendAdded)} />
+              Added
+            </span>
+            <span>
+              <i {...styleProps(styles.semanticLegendDot, styles.semanticLegendChanged)} />
+              Changed
+            </span>
+            <span {...styleProps(styles.semanticLegendNote)}>Original PDF rendering · anchored highlights</span>
+          </div>
+        </>
+      ) : null}
       <div {...styleProps(styles.semanticGrid)}>
-        <SemanticNativePane side="earlier" source={page.beforeSrc} overlays={beforeOverlays} selectedRegion={selectedRegion} showHighlights={showHighlights} onSelectChange={onSelectChange} />
-        <SemanticNativePane side="newer" source={page.afterSrc} overlays={afterOverlays} selectedRegion={selectedRegion} showHighlights={showHighlights} onSelectChange={onSelectChange} />
+        <SemanticNativePane
+          side="earlier"
+          source={page.beforeSrc}
+          overlays={beforeOverlays}
+          selectedRegion={selectedRegion}
+          showHighlights={showHighlights}
+          onSelectChange={onSelectChange}
+        />
+        <SemanticNativePane
+          side="newer"
+          source={page.afterSrc}
+          overlays={afterOverlays}
+          selectedRegion={selectedRegion}
+          showHighlights={showHighlights}
+          onSelectChange={onSelectChange}
+        />
       </div>
-      {summary.missingText && !summary.undecodable ? <div {...styleProps(styles.semanticNoText)}><strong>No selectable text found</strong><span>Run OCR to calculate semantic text changes.</span></div> : null}
+      {summary.missingText && !summary.undecodable ? (
+        <div {...styleProps(styles.semanticNoText)}>
+          <strong>No selectable text found</strong>
+          <span>Run OCR to calculate semantic text changes.</span>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function SwipePreview({ before, after, swipe, onSwipeChange, pending, error }: { before?: string; after?: string; swipe: number; onSwipeChange: (value: number) => void; pending: boolean; error: string | null }) {
+function SwipePreview({
+  before,
+  after,
+  swipe,
+  onSwipeChange,
+  pending,
+  error,
+}: {
+  before?: string;
+  after?: string;
+  swipe: number;
+  onSwipeChange: (value: number) => void;
+  pending: boolean;
+  error: string | null;
+}) {
   const setSwipeFromPointer = (event: PointerEvent<HTMLDivElement>): void => {
     const paper = event.currentTarget.parentElement;
     if (!paper) return;
@@ -168,17 +321,70 @@ function SwipePreview({ before, after, swipe, onSwipeChange, pending, error }: {
     setSwipeFromPointer(event);
   };
   const handlePointerEnd = (event: PointerEvent<HTMLDivElement>): void => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
   };
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const step = event.shiftKey ? 10 : 1;
-    const next = event.key === "ArrowLeft" ? Math.max(0, swipe - step) : event.key === "ArrowRight" ? Math.min(100, swipe + step) : event.key === "Home" ? 0 : event.key === "End" ? 100 : null;
+    const next =
+      event.key === "ArrowLeft"
+        ? Math.max(0, swipe - step)
+        : event.key === "ArrowRight"
+          ? Math.min(100, swipe + step)
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? 100
+              : null;
     if (next === null) return;
     event.preventDefault();
     onSwipeChange(next);
   };
   const sizingSource = before ?? after;
-  return <div {...styleProps(styles.paper, styles.swipeWrap)}>{sizingSource ? <img {...styleProps(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} /> : <PaperFallback label="Preview is still rendering" />}{before ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}><img {...styleProps(styles.swipeLayerImage)} src={before} alt="Earlier version of this page" draggable={false} /></div> : null}{after ? <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}><img {...styleProps(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} /></div> : null}<div {...styleProps(styles.swipeHandle)} style={{ left: `${swipe}%` }} role="slider" aria-label="Swipe position" aria-valuemin={0} aria-valuemax={100} aria-valuenow={swipe} aria-valuetext={`${swipe}%`} aria-disabled={pending || Boolean(error)} tabIndex={pending || error ? -1 : 0} onKeyDown={handleKeyDown} onPointerDown={pending || error ? undefined : handlePointerDown} onPointerMove={pending || error ? undefined : handlePointerMove} onPointerUp={pending || error ? undefined : handlePointerEnd} onPointerCancel={pending || error ? undefined : handlePointerEnd}><span {...styleProps(styles.swipeDivider)} aria-hidden="true" /></div><CanvasNotice pending={pending} error={error} /></div>;
+  return (
+    <div {...styleProps(styles.paper, styles.swipeWrap)}>
+      {sizingSource ? (
+        <img {...styleProps(styles.swipeSizer)} src={sizingSource} alt="" aria-hidden="true" draggable={false} />
+      ) : (
+        <PaperFallback label="Preview is still rendering" />
+      )}
+      {before ? (
+        <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 ${100 - swipe}% 0 0)` }}>
+          <img
+            {...styleProps(styles.swipeLayerImage)}
+            src={before}
+            alt="Earlier version of this page"
+            draggable={false}
+          />
+        </div>
+      ) : null}
+      {after ? (
+        <div {...styleProps(styles.swipeLayer)} style={{ clipPath: `inset(0 0 0 ${swipe}%)` }}>
+          <img {...styleProps(styles.swipeLayerImage)} src={after} alt="Newer version of this page" draggable={false} />
+        </div>
+      ) : null}
+      <div
+        {...styleProps(styles.swipeHandle)}
+        style={{ left: `${swipe}%` }}
+        role="slider"
+        aria-label="Swipe position"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={swipe}
+        aria-valuetext={`${swipe}%`}
+        aria-disabled={pending || Boolean(error)}
+        tabIndex={pending || error ? -1 : 0}
+        onKeyDown={handleKeyDown}
+        onPointerDown={pending || error ? undefined : handlePointerDown}
+        onPointerMove={pending || error ? undefined : handlePointerMove}
+        onPointerUp={pending || error ? undefined : handlePointerEnd}
+        onPointerCancel={pending || error ? undefined : handlePointerEnd}
+      >
+        <span {...styleProps(styles.swipeDivider)} aria-hidden="true" />
+      </div>
+      <CanvasNotice pending={pending} error={error} />
+    </div>
+  );
 }
 
 function PagePreview({
@@ -211,16 +417,134 @@ function PagePreview({
   const before = page.beforeSrc;
   const after = page.afterSrc;
   const diff = page.diffSrc;
-  if (mode === "semantic-text") return <SemanticPdfPreview page={page} pending={pairComparisonPending} error={pairError} selectedRegion={selectedRegion} showHighlights={showSemanticHighlights} onSelectChange={onSelectChange} />;
+  if (mode === "semantic-text")
+    return (
+      <SemanticPdfPreview
+        page={page}
+        pending={pairComparisonPending}
+        error={pairError}
+        selectedRegion={selectedRegion}
+        showHighlights={showSemanticHighlights}
+        onSelectChange={onSelectChange}
+      />
+    );
 
-  if (mode === "side-by-side") return <div {...styleProps(styles.paper, styles.paperTwoUp)}><CanvasNotice pending={pairComparisonPending} error={pairError} /><div {...styleProps(styles.sideBySide)}><div {...styleProps(styles.sidePanel)}><PageImage source={before} alt="Earlier version of this page" missingLabel={page.status === "added" ? "No earlier page — added page" : undefined} /></div><div {...styleProps(styles.sidePanel)}><PageImage source={after} alt="Newer version of this page" missingLabel={page.status === "removed" ? "No newer page — removed page" : undefined} /></div></div></div>;
-  if (mode === "swipe") return <SwipePreview before={before} after={after} swipe={swipe} onSwipeChange={onSwipeChange} pending={pairComparisonPending} error={pairError} />;
-  return <DiffPreview page={page} source={diff ?? before} hasDiff={Boolean(diff)} overlay={overlay} showBoundingBoxes={showBoundingBoxes} selectedRegion={selectedRegion} onRegionClick={onRegionClick} pending={pairComparisonPending} error={pairError} />;
+  if (mode === "side-by-side")
+    return (
+      <div {...styleProps(styles.paper, styles.paperTwoUp)}>
+        <CanvasNotice pending={pairComparisonPending} error={pairError} />
+        <div {...styleProps(styles.sideBySide)}>
+          <div {...styleProps(styles.sidePanel)}>
+            <PageImage
+              source={before}
+              alt="Earlier version of this page"
+              missingLabel={page.status === "added" ? "No earlier page — added page" : undefined}
+            />
+          </div>
+          <div {...styleProps(styles.sidePanel)}>
+            <PageImage
+              source={after}
+              alt="Newer version of this page"
+              missingLabel={page.status === "removed" ? "No newer page — removed page" : undefined}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  if (mode === "swipe")
+    return (
+      <SwipePreview
+        before={before}
+        after={after}
+        swipe={swipe}
+        onSwipeChange={onSwipeChange}
+        pending={pairComparisonPending}
+        error={pairError}
+      />
+    );
+  return (
+    <DiffPreview
+      page={page}
+      source={diff ?? before}
+      hasDiff={Boolean(diff)}
+      overlay={overlay}
+      showBoundingBoxes={showBoundingBoxes}
+      selectedRegion={selectedRegion}
+      onRegionClick={onRegionClick}
+      pending={pairComparisonPending}
+      error={pairError}
+    />
+  );
 }
 
-function DiffPreview({ page, source, hasDiff, overlay, showBoundingBoxes, selectedRegion, onRegionClick, pending, error }: { page: DiffPage; source?: string; hasDiff: boolean; overlay: OverlayStyle; showBoundingBoxes: boolean; selectedRegion: string | null; onRegionClick: (region: DiffRegion) => void; pending: boolean; error: string | null }) {
+function DiffPreview({
+  page,
+  source,
+  hasDiff,
+  overlay,
+  showBoundingBoxes,
+  selectedRegion,
+  onRegionClick,
+  pending,
+  error,
+}: {
+  page: DiffPage;
+  source?: string;
+  hasDiff: boolean;
+  overlay: OverlayStyle;
+  showBoundingBoxes: boolean;
+  selectedRegion: string | null;
+  onRegionClick: (region: DiffRegion) => void;
+  pending: boolean;
+  error: string | null;
+}) {
   const regions = (page.regions ?? []).filter((region) => showBoundingBoxes || region.id === selectedRegion);
-  return <div {...styleProps(styles.paper)}>{page.layers ? <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" /> : <PageImage source={source} alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"} imageStyle={hasDiff ? styles.diffImage : styles.pageImage} />}<CanvasNotice pending={pending} error={error} />{page.status === "changed" ? <div {...styleProps(styles.changeOverlayLegend)} aria-label="Overlay colours"><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />Added</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />Removed</span><span {...styleProps(styles.changeOverlayKey)}><i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />Modified</span></div> : null}{regions.map((region) => <button key={region.id} type="button" aria-label={region.label ?? `${region.kind ?? "changed"} region`} title={region.label} {...styleProps(styles.changeOverlay, region.kind === "added" && styles.changeOverlayAdded, region.kind === "removed" && styles.changeOverlayRemoved, selectedRegion === region.id && styles.changeOverlayCurrent)} onClick={() => onRegionClick(region)} style={getRegionStyle(region)} />)}</div>;
+  return (
+    <div {...styleProps(styles.paper)}>
+      {page.layers ? (
+        <OverlayLayerStack page={page} overlay={overlay} alt="Visual diff of this page" />
+      ) : (
+        <PageImage
+          source={source}
+          alt={hasDiff ? "Visual diff of this page" : "Earlier version of this page"}
+          imageStyle={hasDiff ? styles.diffImage : styles.pageImage}
+        />
+      )}
+      <CanvasNotice pending={pending} error={error} />
+      {page.status === "changed" ? (
+        <div {...styleProps(styles.changeOverlayLegend)} aria-label="Overlay colours">
+          <span {...styleProps(styles.changeOverlayKey)}>
+            <i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.addedColor }} />
+            Added
+          </span>
+          <span {...styleProps(styles.changeOverlayKey)}>
+            <i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.removedColor }} />
+            Removed
+          </span>
+          <span {...styleProps(styles.changeOverlayKey)}>
+            <i {...styleProps(styles.changeOverlayDot)} style={{ backgroundColor: overlay.modifiedColor }} />
+            Modified
+          </span>
+        </div>
+      ) : null}
+      {regions.map((region) => (
+        <button
+          key={region.id}
+          type="button"
+          aria-label={region.label ?? `${region.kind ?? "changed"} region`}
+          title={region.label}
+          {...styleProps(
+            styles.changeOverlay,
+            region.kind === "added" && styles.changeOverlayAdded,
+            region.kind === "removed" && styles.changeOverlayRemoved,
+            selectedRegion === region.id && styles.changeOverlayCurrent,
+          )}
+          onClick={() => onRegionClick(region)}
+          style={getRegionStyle(region)}
+        />
+      ))}
+    </div>
+  );
 }
 
 /** The stage's content box: its padding keeps the page clear of the toolbar edges. */
@@ -236,11 +560,23 @@ function fitScale(stage: HTMLElement, content: HTMLElement): number {
   return Math.min(width / content.offsetWidth, height / content.offsetHeight);
 }
 
-function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number; onZoomChange: (zoom: number) => void; resetKey: string; children: ReactNode }) {
+function PanZoomStage({
+  zoom,
+  onZoomChange,
+  resetKey,
+  children,
+}: {
+  zoom: number;
+  onZoomChange: (zoom: number) => void;
+  resetKey: string;
+  children: ReactNode;
+}) {
   const stageRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const panRef = useRef({ x: 0, y: 0 });
-  const dragRef = useRef<{ pointerId: number; clientX: number; clientY: number; panX: number; panY: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; clientX: number; clientY: number; panX: number; panY: number } | null>(
+    null,
+  );
   const [panning, setPanning] = useState(false);
 
   // The transform is written straight to the node. Scaling a composited layer
@@ -250,7 +586,7 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
     const content = contentRef.current;
     if (!stage || !content) return;
     const { width, height } = stageBox(stage);
-    const scale = fitScale(stage, content) * zoomPercent / 100;
+    const scale = (fitScale(stage, content) * zoomPercent) / 100;
     const overflowX = Math.max(0, (content.offsetWidth * scale - width) / 2);
     const overflowY = Math.max(0, content.offsetHeight * scale - height);
     const { x, y } = panRef.current;
@@ -288,12 +624,12 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
     const content = contentRef.current;
     if (!content) return;
     if (!event.ctrlKey && !event.metaKey) {
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? stageRef.current?.clientHeight ?? 1 : 1;
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? (stageRef.current?.clientHeight ?? 1) : 1;
       panRef.current = { x: panRef.current.x - event.deltaX * unit, y: panRef.current.y - event.deltaY * unit };
       applyTransform(zoom);
       return;
     }
-    const nextZoom = clampZoom(Math.round(zoom * Math.exp(-event.deltaY * 0.0015) / 5) * 5);
+    const nextZoom = clampZoom(Math.round((zoom * Math.exp(-event.deltaY * 0.0015)) / 5) * 5);
     if (nextZoom === zoom) return;
     // Hold the point under the cursor still. The shift is its distance from
     // the transform origin times the scale change — and the origin is the
@@ -329,7 +665,13 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
     if (!stage) return;
     event.preventDefault();
     stage.setPointerCapture(event.pointerId);
-    dragRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, panX: panRef.current.x, panY: panRef.current.y };
+    dragRef.current = {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      panX: panRef.current.x,
+      panY: panRef.current.y,
+    };
     setPanning(true);
   };
 
@@ -359,7 +701,11 @@ function PanZoomStage({ zoom, onZoomChange, resetKey, children }: { zoom: number
       onPointerUp={stopPanning}
       onPointerCancel={stopPanning}
     >
-      <div {...styleProps(styles.stageCenter)}><div ref={contentRef} {...styleProps(styles.stageContent)}>{children}</div></div>
+      <div {...styleProps(styles.stageCenter)}>
+        <div ref={contentRef} {...styleProps(styles.stageContent)}>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
@@ -368,53 +714,182 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeButtonRef.current?.focus();
-    const onKeyDown = (event: globalThis.KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } };
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
   return (
-    <div {...styleProps(styles.dialogBackdrop)} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div
+      {...styleProps(styles.dialogBackdrop)}
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <section {...styleProps(styles.helpDialog)} role="dialog" aria-modal="true" aria-labelledby="viewer-help-title">
-        <header {...styleProps(styles.helpHeader)}><h2 id="viewer-help-title" {...styleProps(styles.helpTitle)}>How to compare PDFs</h2><button ref={closeButtonRef} {...styleProps(styles.iconButton)} type="button" aria-label="Close help" onClick={onClose}>×</button></header>
+        <header {...styleProps(styles.helpHeader)}>
+          <h2 id="viewer-help-title" {...styleProps(styles.helpTitle)}>
+            How to compare PDFs
+          </h2>
+          <button
+            ref={closeButtonRef}
+            {...styleProps(styles.iconButton)}
+            type="button"
+            aria-label="Close help"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </header>
         <div {...styleProps(styles.helpBody)}>
-          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-start"><h3 id="viewer-help-start" {...styleProps(styles.helpSectionTitle)}>In the workspace</h3><ol {...styleProps(styles.helpSteps)}>{helpSteps.map((step) => <li key={step.number} {...styleProps(styles.helpStep)}><span {...styleProps(styles.helpKey)}>{step.number}</span><h4 {...styleProps(styles.helpStepTitle)}>{step.title}</h4><p {...styleProps(styles.helpStepCopy)}>{step.copy}</p></li>)}</ol></section>
-          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-modes"><h3 id="viewer-help-modes" {...styleProps(styles.helpSectionTitle)}>View modes</h3><div {...styleProps(styles.helpModeList)}>{helpModes.map(([name, copy]) => <p key={name} {...styleProps(styles.helpMode)}><strong {...styleProps(styles.helpModeName)}>{name}</strong> — {copy}</p>)}</div></section>
-          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-shortcuts"><h3 id="viewer-help-shortcuts" {...styleProps(styles.helpSectionTitle)}>Shortcuts</h3><div {...styleProps(styles.helpShortcutGrid)}>{helpShortcuts.map(([shortcut, copy]) => <p key={shortcut} {...styleProps(styles.helpShortcut)}><kbd {...styleProps(styles.helpKey)}>{shortcut}</kbd><span>{copy}</span></p>)}</div></section>
-          <p {...styleProps(styles.helpNote)}><strong>Colours and view filters apply immediately.</strong> Changing page matching runs the comparison again.</p>
+          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-start">
+            <h3 id="viewer-help-start" {...styleProps(styles.helpSectionTitle)}>
+              In the workspace
+            </h3>
+            <ol {...styleProps(styles.helpSteps)}>
+              {helpSteps.map((step) => (
+                <li key={step.number} {...styleProps(styles.helpStep)}>
+                  <span {...styleProps(styles.helpKey)}>{step.number}</span>
+                  <h4 {...styleProps(styles.helpStepTitle)}>{step.title}</h4>
+                  <p {...styleProps(styles.helpStepCopy)}>{step.copy}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-modes">
+            <h3 id="viewer-help-modes" {...styleProps(styles.helpSectionTitle)}>
+              View modes
+            </h3>
+            <div {...styleProps(styles.helpModeList)}>
+              {helpModes.map(([name, copy]) => (
+                <p key={name} {...styleProps(styles.helpMode)}>
+                  <strong {...styleProps(styles.helpModeName)}>{name}</strong> — {copy}
+                </p>
+              ))}
+            </div>
+          </section>
+          <section {...styleProps(styles.helpSection)} aria-labelledby="viewer-help-shortcuts">
+            <h3 id="viewer-help-shortcuts" {...styleProps(styles.helpSectionTitle)}>
+              Shortcuts
+            </h3>
+            <div {...styleProps(styles.helpShortcutGrid)}>
+              {helpShortcuts.map(([shortcut, copy]) => (
+                <p key={shortcut} {...styleProps(styles.helpShortcut)}>
+                  <kbd {...styleProps(styles.helpKey)}>{shortcut}</kbd>
+                  <span>{copy}</span>
+                </p>
+              ))}
+            </div>
+          </section>
+          <p {...styleProps(styles.helpNote)}>
+            <strong>Colours and view filters apply immediately.</strong> Changing page matching runs the comparison
+            again.
+          </p>
         </div>
-        <footer {...styleProps(styles.helpFooter)}><button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>Back to comparison</button></footer>
+        <footer {...styleProps(styles.helpFooter)}>
+          <button {...styleProps(styles.quietButton)} type="button" onClick={onClose}>
+            Back to comparison
+          </button>
+        </footer>
       </section>
     </div>
   );
 }
 
-function ChangeInspector({ page, selected, onSelect }: { page: DiffPage; selected: string | null; onSelect: (id: string | null) => void }) {
+function ChangeInspector({
+  page,
+  selected,
+  onSelect,
+}: {
+  page: DiffPage;
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+}) {
   const regions = page.regions ?? [];
   const index = regions.findIndex((region) => region.id === selected);
   const region = regions[index];
   if (!regions.length) return null;
-  const width = page.width ?? 100, height = page.height ?? 100;
-  const x = region ? Math.max(0, region.x - 2) * width / 100 : 0;
-  const y = region ? Math.max(0, region.y - 2) * height / 100 : 0;
-  const cropWidth = region ? Math.min(width - x, (region.width + 4) * width / 100) : width;
-  const cropHeight = region ? Math.min(height - y, (region.height + 4) * height / 100) : height;
-  return <section className="shrink-0 border-t border-border bg-card px-4 py-2" aria-label="Changed areas">
-    <div className="flex items-center gap-3 text-xs">
-      <button {...styleProps(styles.quietButton)} disabled={index <= 0} onClick={() => onSelect(regions[index - 1]!.id)}>Previous area</button>
-      <span className="text-muted-foreground">{region ? `Area ${index + 1} of ${regions.length} on this page` : `${regions.length} changed areas on this page`}</span>
-      <button {...styleProps(styles.quietButton)} disabled={index >= regions.length - 1} onClick={() => onSelect(regions[index + 1]!.id)}>{region ? "Next area" : "Inspect changes"}</button>
-      {region ? <button {...styleProps(styles.quietButton)} onClick={() => onSelect(null)}>Close inspection</button> : null}
-    </div>
-    {region ? <div className="mt-2 grid grid-cols-2 gap-3">{([["Earlier", page.beforeSrc], ["Newer", page.afterSrc]] as const).map(([label, source]) => <figure key={label} className="min-w-0">
-      <figcaption className={`${ui.caps} mb-1`}>{label}</figcaption>
-      {source ? <svg className="h-32 w-full rounded-lg border border-border bg-background" viewBox={`${x} ${y} ${cropWidth} ${cropHeight}`} role="img" aria-label={`${label} selected area`}><image href={source} width={width} height={height} /></svg> : <p className="text-xs text-muted-foreground">No {label.toLowerCase()} page</p>}
-    </figure>)}</div> : null}
-  </section>;
+  const width = page.width ?? 100,
+    height = page.height ?? 100;
+  const x = region ? (Math.max(0, region.x - 2) * width) / 100 : 0;
+  const y = region ? (Math.max(0, region.y - 2) * height) / 100 : 0;
+  const cropWidth = region ? Math.min(width - x, ((region.width + 4) * width) / 100) : width;
+  const cropHeight = region ? Math.min(height - y, ((region.height + 4) * height) / 100) : height;
+  return (
+    <section className="shrink-0 border-t border-border bg-card px-4 py-2" aria-label="Changed areas">
+      <div className="flex items-center gap-3 text-xs">
+        <button
+          {...styleProps(styles.quietButton)}
+          disabled={index <= 0}
+          onClick={() => onSelect(regions[index - 1]!.id)}
+        >
+          Previous area
+        </button>
+        <span className="text-muted-foreground">
+          {region
+            ? `Area ${index + 1} of ${regions.length} on this page`
+            : `${regions.length} changed areas on this page`}
+        </span>
+        <button
+          {...styleProps(styles.quietButton)}
+          disabled={index >= regions.length - 1}
+          onClick={() => onSelect(regions[index + 1]!.id)}
+        >
+          {region ? "Next area" : "Inspect changes"}
+        </button>
+        {region ? (
+          <button {...styleProps(styles.quietButton)} onClick={() => onSelect(null)}>
+            Close inspection
+          </button>
+        ) : null}
+      </div>
+      {region ? (
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          {(
+            [
+              ["Earlier", page.beforeSrc],
+              ["Newer", page.afterSrc],
+            ] as const
+          ).map(([label, source]) => (
+            <figure key={label} className="min-w-0">
+              <figcaption className={`${ui.caps} mb-1`}>{label}</figcaption>
+              {source ? (
+                <svg
+                  className="h-32 w-full rounded-lg border border-border bg-background"
+                  viewBox={`${x} ${y} ${cropWidth} ${cropHeight}`}
+                  role="img"
+                  aria-label={`${label} selected area`}
+                >
+                  <image href={source} width={width} height={height} />
+                </svg>
+              ) : (
+                <p className="text-xs text-muted-foreground">No {label.toLowerCase()} page</p>
+              )}
+            </figure>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 const DEFAULT_SETTINGS: ViewerSettings = { showBoundingBoxes: false, onlyChanged: false };
 
-export function PdfDiffViewer({ comparison, processingProgress, headerActions, onNewComparison, defaultOverlay, onOverlayChange, matchPages, onMatchPagesChange }: PdfDiffViewerProps) {
+export function PdfDiffViewer({
+  comparison,
+  processingProgress,
+  headerActions,
+  onNewComparison,
+  defaultOverlay,
+  onOverlayChange,
+  matchPages,
+  onMatchPagesChange,
+}: PdfDiffViewerProps) {
   // The save shortcut needs the live overlay settings, which are owned below;
   // the ref keeps the keyboard hook from depending on render order.
   const saveRef = useRef<() => void>(() => undefined);
@@ -427,17 +902,46 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [showPairing, setShowPairing] = useState(false);
-  const viewer = useViewerState({ comparison, onSave: () => saveRef.current(), onlyChanged: settings.onlyChanged, modalOpen: showSettings || showPairing });
+  const viewer = useViewerState({
+    comparison,
+    onSave: () => saveRef.current(),
+    onlyChanged: settings.onlyChanged,
+    modalOpen: showSettings || showPairing,
+  });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const summary = useMemo(() => summarizeComparison(comparison), [comparison]);
   const {
-    pages, pageIndex, mode, zoom, swipe, selectedRegion,
-    showHelp, earlierPageCount, newerPageCount, pairComparisonPending, pairError, currentPage, previewPage,
-    pair, pairKey, manualPair, changePair, hasPreviousPage, hasNextPage,
-    selectPage, stepPage, changeMode, setZoom, setSwipe, setSelectedRegion, setShowHelp,
+    pages,
+    pageIndex,
+    mode,
+    zoom,
+    swipe,
+    selectedRegion,
+    showHelp,
+    earlierPageCount,
+    newerPageCount,
+    pairComparisonPending,
+    pairError,
+    currentPage,
+    previewPage,
+    pair,
+    pairKey,
+    manualPair,
+    changePair,
+    hasPreviousPage,
+    hasNextPage,
+    selectPage,
+    stepPage,
+    changeMode,
+    setZoom,
+    setSwipe,
+    setSelectedRegion,
+    setShowHelp,
   } = viewer;
   useEffect(() => {
-    saveRef.current = () => { if (previewPage) void downloadPageImage(comparison, previewPage, overlay); };
+    saveRef.current = () => {
+      if (previewPage) void downloadPageImage(comparison, previewPage, overlay);
+    };
   });
   // Fullscreen can also be left with Escape or the browser's own chrome, so the
   // button follows the document rather than its own state.
@@ -449,28 +953,105 @@ export function PdfDiffViewer({ comparison, processingProgress, headerActions, o
   if (!currentPage || !previewPage) return null;
   return (
     <section {...styleProps(styles.viewerRoot)} aria-label="PDF comparison workspace">
-      <WorkspaceHeader comparison={comparison} summary={summary} processingProgress={processingProgress} onNewComparison={onNewComparison} headerActions={headerActions} />
+      <WorkspaceHeader
+        comparison={comparison}
+        summary={summary}
+        processingProgress={processingProgress}
+        onNewComparison={onNewComparison}
+        headerActions={headerActions}
+      />
       <div {...styleProps(styles.workspaceMain, pages.length <= 1 && styles.workspaceMainSinglePage)}>
-        <PageRail onlyChanged={settings.onlyChanged} pages={pages} pageIndex={pageIndex} onSelectPage={selectPage} onOnlyChanged={(onlyChanged) => setSettings((current) => ({ ...current, onlyChanged }))} />
+        <PageRail
+          onlyChanged={settings.onlyChanged}
+          pages={pages}
+          pageIndex={pageIndex}
+          onSelectPage={selectPage}
+          onOnlyChanged={(onlyChanged) => setSettings((current) => ({ ...current, onlyChanged }))}
+        />
         <section {...styleProps(styles.canvasColumn)} aria-label="PDF comparison">
-          <ViewerToolbar mode={mode} onModeChange={changeMode} zoom={zoom} onZoomChange={setZoom} textUnavailable={previewPage.semantic?.textUndecodable} isFullscreen={isFullscreen} onToggleFullscreen={toggleFullscreen} onSettings={() => setShowSettings(true)} onHelp={() => setShowHelp(true)} canExportImage={canDownloadPageImage(previewPage)} onExport={(choice) => { if (choice === "page-image") void downloadPageImage(comparison, previewPage, overlay); else downloadReport(comparison, choice); }} navigation={
-            <div {...styleProps(styles.toolbarNavigation)} aria-label="Page navigation">
-              <button {...styleProps(styles.quietButton)} disabled={!hasPreviousPage} onClick={() => stepPage(-1)}>← Previous page</button>
-              <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
-                <span className="text-center text-xs text-foreground">{manualPair ? "Temporary · " : ""}{pagePairLabel(previewPage, pageIndex)}</span>
-                {comparison.comparePagePair ? <button {...styleProps(styles.quietButton)} onClick={() => setShowPairing(true)}>Change pairing</button> : null}
-                {manualPair ? <button {...styleProps(styles.quietButton)} onClick={() => selectPage(pageIndex)}>Return to document</button> : null}
+          <ViewerToolbar
+            mode={mode}
+            onModeChange={changeMode}
+            zoom={zoom}
+            onZoomChange={setZoom}
+            textUnavailable={previewPage.semantic?.textUndecodable}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+            onSettings={() => setShowSettings(true)}
+            onHelp={() => setShowHelp(true)}
+            canExportImage={canDownloadPageImage(previewPage)}
+            onExport={(choice) => {
+              if (choice === "page-image") void downloadPageImage(comparison, previewPage, overlay);
+              else downloadReport(comparison, choice);
+            }}
+            navigation={
+              <div {...styleProps(styles.toolbarNavigation)} aria-label="Page navigation">
+                <button {...styleProps(styles.quietButton)} disabled={!hasPreviousPage} onClick={() => stepPage(-1)}>
+                  ← Previous page
+                </button>
+                <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
+                  <span className="text-center text-xs text-foreground">
+                    {manualPair ? "Temporary · " : ""}
+                    {pagePairLabel(previewPage, pageIndex)}
+                  </span>
+                  {comparison.comparePagePair ? (
+                    <button {...styleProps(styles.quietButton)} onClick={() => setShowPairing(true)}>
+                      Change pairing
+                    </button>
+                  ) : null}
+                  {manualPair ? (
+                    <button {...styleProps(styles.quietButton)} onClick={() => selectPage(pageIndex)}>
+                      Return to document
+                    </button>
+                  ) : null}
+                </div>
+                <button {...styleProps(styles.quietButton)} disabled={!hasNextPage} onClick={() => stepPage(1)}>
+                  Next page →
+                </button>
               </div>
-              <button {...styleProps(styles.quietButton)} disabled={!hasNextPage} onClick={() => stepPage(1)}>Next page →</button>
-            </div>
-          } />
-          <PanZoomStage zoom={zoom} onZoomChange={setZoom} resetKey={`${mode}:${pairKey}`}><PagePreview page={previewPage} mode={mode} swipe={swipe} overlay={overlay} showBoundingBoxes={settings.showBoundingBoxes} showSemanticHighlights selectedRegion={selectedRegion} onRegionClick={(region) => setSelectedRegion(region.id)} onSelectChange={setSelectedRegion} onSwipeChange={setSwipe} pairComparisonPending={pairComparisonPending} pairError={pairError} /></PanZoomStage>
+            }
+          />
+          <PanZoomStage zoom={zoom} onZoomChange={setZoom} resetKey={`${mode}:${pairKey}`}>
+            <PagePreview
+              page={previewPage}
+              mode={mode}
+              swipe={swipe}
+              overlay={overlay}
+              showBoundingBoxes={settings.showBoundingBoxes}
+              showSemanticHighlights
+              selectedRegion={selectedRegion}
+              onRegionClick={(region) => setSelectedRegion(region.id)}
+              onSelectChange={setSelectedRegion}
+              onSwipeChange={setSwipe}
+              pairComparisonPending={pairComparisonPending}
+              pairError={pairError}
+            />
+          </PanZoomStage>
           <ChangeInspector page={previewPage} selected={selectedRegion} onSelect={setSelectedRegion} />
           <StatusFooter processingProgress={processingProgress} />
         </section>
       </div>
-      {showPairing ? <PairingDialog earlier={pair.earlier} newer={pair.newer} earlierCount={earlierPageCount} newerCount={newerPageCount} onApply={changePair} onClose={() => setShowPairing(false)} /> : null}
-      {showSettings ? <SettingsDialog overlay={overlay} onOverlayChange={changeOverlay} settings={settings} onSettingsChange={setSettings} matchPages={matchPages} onMatchPagesChange={onMatchPagesChange} onClose={() => setShowSettings(false)} /> : null}
+      {showPairing ? (
+        <PairingDialog
+          earlier={pair.earlier}
+          newer={pair.newer}
+          earlierCount={earlierPageCount}
+          newerCount={newerPageCount}
+          onApply={changePair}
+          onClose={() => setShowPairing(false)}
+        />
+      ) : null}
+      {showSettings ? (
+        <SettingsDialog
+          overlay={overlay}
+          onOverlayChange={changeOverlay}
+          settings={settings}
+          onSettingsChange={setSettings}
+          matchPages={matchPages}
+          onMatchPagesChange={onMatchPagesChange}
+          onClose={() => setShowSettings(false)}
+        />
+      ) : null}
       {showHelp ? <HelpDialog onClose={() => setShowHelp(false)} /> : null}
     </section>
   );

@@ -17,7 +17,13 @@ export const DEFAULT_OVERLAY: OverlayStyle = {
 };
 
 export function toHex([red, green, blue]: RgbColor): string {
-  return `#${[red, green, blue].map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, "0")).join("")}`;
+  return `#${[red, green, blue]
+    .map((channel) =>
+      Math.max(0, Math.min(255, Math.round(channel)))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
 }
 
 export function fromHex(value: string, fallback: RgbColor): RgbColor {
@@ -28,7 +34,11 @@ export function fromHex(value: string, fallback: RgbColor): RgbColor {
 }
 
 function isRgb(value: unknown): value is RgbColor {
-  return Array.isArray(value) && value.length === 3 && value.every((channel) => typeof channel === "number" && Number.isFinite(channel));
+  return (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every((channel) => typeof channel === "number" && Number.isFinite(channel))
+  );
 }
 
 /** Anything unreadable falls back to the defaults; a bad stored value must never block a comparison. */
@@ -41,9 +51,10 @@ export function readOverlaySettings(): OverlayStyle {
       addedColor: isRgb(addedColor) ? addedColor : DEFAULT_OVERLAY.addedColor,
       removedColor: isRgb(removedColor) ? removedColor : DEFAULT_OVERLAY.removedColor,
       modifiedColor: isRgb(modifiedColor) ? modifiedColor : DEFAULT_OVERLAY.modifiedColor,
-      unchangedOpacity: typeof unchangedOpacity === "number" && unchangedOpacity >= 0 && unchangedOpacity <= 1
-        ? unchangedOpacity
-        : DEFAULT_OVERLAY.unchangedOpacity,
+      unchangedOpacity:
+        typeof unchangedOpacity === "number" && unchangedOpacity >= 0 && unchangedOpacity <= 1
+          ? unchangedOpacity
+          : DEFAULT_OVERLAY.unchangedOpacity,
     };
   } catch {
     return DEFAULT_OVERLAY;

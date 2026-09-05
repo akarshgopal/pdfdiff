@@ -55,7 +55,12 @@ const backwardKeys = new Set(["arrowleft", "pageup", "k"]);
 
 function isEditableTarget(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
-  return element?.tagName === "INPUT" || element?.tagName === "SELECT" || Boolean(element?.isContentEditable) || element?.getAttribute("role") === "slider";
+  return (
+    element?.tagName === "INPUT" ||
+    element?.tagName === "SELECT" ||
+    Boolean(element?.isContentEditable) ||
+    element?.getAttribute("role") === "slider"
+  );
 }
 
 function stepDirection(key: string): 1 | -1 | null {
@@ -101,8 +106,21 @@ function handleBoundary(event: KeyboardEvent, options: ViewerKeyboardOptions): b
 }
 
 function handleKeyDown(event: KeyboardEvent, options: ViewerKeyboardOptions): void {
-  if (isEditableTarget(event.target) || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey && event.key.startsWith("Arrow")) return;
-  if (handlePageStep(event, options) || handleModeChange(event, options) || handleBoundary(event, options) || handleViewerAction(event, options)) return;
+  if (
+    isEditableTarget(event.target) ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.altKey ||
+    (event.shiftKey && event.key.startsWith("Arrow"))
+  )
+    return;
+  if (
+    handlePageStep(event, options) ||
+    handleModeChange(event, options) ||
+    handleBoundary(event, options) ||
+    handleViewerAction(event, options)
+  )
+    return;
   if (event.key === "Escape") options.onClearSelection();
 }
 

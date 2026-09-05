@@ -19,7 +19,8 @@ export function summaryHeadline(summary: ComparisonSummary): string {
   if (summary.changedPages + summary.addedPages + summary.removedPages + summary.movedPages === 0) {
     return "No differences detected at current settings";
   }
-  if (summary.pages === 1 && summary.changedPages === 1 && !summary.addedPages && !summary.removedPages) return "1 page changed";
+  if (summary.pages === 1 && summary.changedPages === 1 && !summary.addedPages && !summary.removedPages)
+    return "1 page changed";
   const parts = [`${summary.changedPages} changed`];
   if (summary.addedPages) parts.push(`${summary.addedPages} added`);
   if (summary.removedPages) parts.push(`${summary.removedPages} removed`);

@@ -23,7 +23,9 @@
     "test": "pnpm run build:packages && node --experimental-strip-types --test tests/*.test.ts",
     "test:dist": "pnpm run build && node --test tests/rendered-html.test.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ignore-pattern dist"
+    "lint": "eslint . --ignore-pattern dist",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@pdfdiff/core": "workspace:*",
@@ -47,6 +49,7 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "16.4.0",
     "playwright": "1.62.0",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
     "typescript-eslint": "8.59.3",

@@ -7,7 +7,10 @@ function pages(...texts: readonly string[]) {
 }
 
 function shape(pairs: readonly AlignedPagePair[]): string[] {
-  return pairs.map((pair) => `${pair.earlierPageNumber ?? "-"}${pair.kind === "matched" ? "=" : pair.kind === "moved" ? "~" : ">"}${pair.newerPageNumber ?? "-"}`);
+  return pairs.map(
+    (pair) =>
+      `${pair.earlierPageNumber ?? "-"}${pair.kind === "matched" ? "=" : pair.kind === "moved" ? "~" : ">"}${pair.newerPageNumber ?? "-"}`,
+  );
 }
 
 const TERMS = "Term of contract effective date expiration obligations fulfilled";
@@ -84,7 +87,10 @@ test("pages without extractable text neither match nor derail the alignment", ()
 });
 
 test("alignment survives an insertion near the start of a long document", () => {
-  const body = Array.from({ length: 40 }, (_, index) => `section ${index} clause text about obligation number ${index}`);
+  const body = Array.from(
+    { length: 40 },
+    (_, index) => `section ${index} clause text about obligation number ${index}`,
+  );
   const earlier = pages(...body);
   const newer = pages(body[0]!, NEW_PAGE, ...body.slice(1));
   const pairs = alignPages(earlier, newer);
@@ -97,11 +103,14 @@ test("alignment survives an insertion near the start of a long document", () => 
 
 test("sequential pairing ignores content and pairs by position", () => {
   const pairs = alignPages(pages(TERMS, NEW_PAGE), pages(NEW_PAGE, TERMS, TERMS), { sequential: true });
-  assert.deepEqual(pairs.map((pair) => [pair.earlierPageNumber, pair.newerPageNumber, pair.kind]), [
-    [1, 1, "matched"],
-    [2, 2, "matched"],
-    [undefined, 3, "added"],
-  ]);
+  assert.deepEqual(
+    pairs.map((pair) => [pair.earlierPageNumber, pair.newerPageNumber, pair.kind]),
+    [
+      [1, 1, "matched"],
+      [2, 2, "matched"],
+      [undefined, 3, "added"],
+    ],
+  );
 });
 
 test("dot leaders do not fuse into the word in front of them", () => {

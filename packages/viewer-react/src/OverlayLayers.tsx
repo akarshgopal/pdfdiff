@@ -25,10 +25,32 @@ export function OverlayLayerStack({ page, overlay, alt }: { page: DiffPage; over
   if (!layers) return null;
   return (
     <div {...styleProps(styles.layerStack)} data-overlay-stack="">
-      <img {...styleProps(styles.layerBase)} data-layer="base" src={layers.base} alt={alt} draggable={false} style={{ opacity: overlay.unchangedOpacity }} />
-      <div {...styleProps(styles.layerTint)} data-layer="removed" aria-hidden="true" style={tintStyle(layers.removed, overlay.removedColor)} />
-      <div {...styleProps(styles.layerTint)} data-layer="modified" aria-hidden="true" style={tintStyle(layers.modified, overlay.modifiedColor)} />
-      <div {...styleProps(styles.layerTint)} data-layer="added" aria-hidden="true" style={tintStyle(layers.added, overlay.addedColor)} />
+      <img
+        {...styleProps(styles.layerBase)}
+        data-layer="base"
+        src={layers.base}
+        alt={alt}
+        draggable={false}
+        style={{ opacity: overlay.unchangedOpacity }}
+      />
+      <div
+        {...styleProps(styles.layerTint)}
+        data-layer="removed"
+        aria-hidden="true"
+        style={tintStyle(layers.removed, overlay.removedColor)}
+      />
+      <div
+        {...styleProps(styles.layerTint)}
+        data-layer="modified"
+        aria-hidden="true"
+        style={tintStyle(layers.modified, overlay.modifiedColor)}
+      />
+      <div
+        {...styleProps(styles.layerTint)}
+        data-layer="added"
+        aria-hidden="true"
+        style={tintStyle(layers.added, overlay.addedColor)}
+      />
     </div>
   );
 }

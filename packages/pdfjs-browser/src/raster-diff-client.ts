@@ -33,7 +33,10 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
   let proven = false;
   let nextId = 1;
   // The batch pass keeps a page of lookahead, so two jobs can be in flight.
-  const pending = new Map<number, { resolve: (result: RasterDiffJobResult) => void; reject: (error: unknown) => void }>();
+  const pending = new Map<
+    number,
+    { resolve: (result: RasterDiffJobResult) => void; reject: (error: unknown) => void }
+  >();
 
   const ensureWorker = (): Worker | null => {
     if (unavailable) return null;
@@ -79,8 +82,14 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
           };
           signal.addEventListener("abort", onAbort, { once: true });
           pending.set(id, {
-            resolve: (value) => { signal.removeEventListener("abort", onAbort); resolve(value); },
-            reject: (error) => { signal.removeEventListener("abort", onAbort); reject(error); },
+            resolve: (value) => {
+              signal.removeEventListener("abort", onAbort);
+              resolve(value);
+            },
+            reject: (error) => {
+              signal.removeEventListener("abort", onAbort);
+              reject(error);
+            },
           });
           active.postMessage({ id, ...job } satisfies RasterDiffRequest, proven ? [job.earlier, job.newer] : []);
         });

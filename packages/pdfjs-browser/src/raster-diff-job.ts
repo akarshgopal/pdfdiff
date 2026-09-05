@@ -63,7 +63,8 @@ export function rasterImage(width: number, height: number, buffer: ArrayBuffer):
 /** Every buffer the result owns, so postMessage can hand them over rather than copy. */
 export function resultTransfers(result: RasterDiffJobResult): ArrayBuffer[] {
   const buffers = [result.earlier, result.newer, result.overlay];
-  if (result.layers) buffers.push(result.layers.base, result.layers.added, result.layers.removed, result.layers.modified);
+  if (result.layers)
+    buffers.push(result.layers.base, result.layers.added, result.layers.removed, result.layers.modified);
   return buffers;
 }
 

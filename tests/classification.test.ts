@@ -124,7 +124,13 @@ test("a page's verdict survives the display cap: real edits outrank bulk reflow"
 
   const shown = limitRegions(classified.regions, 80);
   assert.equal(shown.length, 80);
-  assert.ok(shown.some((region) => region.id === 900), "the small content region is not crowded out by bulk reflow");
-  assert.deepEqual(shown.map((region) => region.id), [...shown.map((region) => region.id)].sort((a, b) => a - b), "reading order is preserved");
+  assert.ok(
+    shown.some((region) => region.id === 900),
+    "the small content region is not crowded out by bulk reflow",
+  );
+  assert.deepEqual(
+    shown.map((region) => region.id),
+    [...shown.map((region) => region.id)].sort((a, b) => a - b),
+    "reading order is preserved",
+  );
 });
-

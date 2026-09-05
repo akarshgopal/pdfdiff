@@ -1,10 +1,5 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import type {
-  DiffMetricSink,
-  PageText,
-  ProgressEvent,
-  RenderedPage as CoreRenderedPage,
-} from "@pdfdiff/core";
+import type { DiffMetricSink, PageText, ProgressEvent, RenderedPage as CoreRenderedPage } from "@pdfdiff/core";
 
 export type PdfSource = File | ArrayBuffer | Uint8Array;
 

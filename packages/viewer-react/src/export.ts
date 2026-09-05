@@ -1,4 +1,11 @@
-import { buildReport, reportToCsv, reportToJson, reportToText, type ComparisonReport, type ComparisonPage } from "@pdfdiff/core";
+import {
+  buildReport,
+  reportToCsv,
+  reportToJson,
+  reportToText,
+  type ComparisonReport,
+  type ComparisonPage,
+} from "@pdfdiff/core";
 import type { DiffComparison, DiffPage, OverlayStyle } from "./types.js";
 import { pageStatus } from "./viewer-utils.js";
 
@@ -44,7 +51,10 @@ export function serializeReport(report: ComparisonReport, format: ExportFormat):
 }
 
 function baseName(name: string): string {
-  return name.replace(/\.pdf$/i, "").replace(/[^\w.-]+/g, "-").slice(0, 40);
+  return name
+    .replace(/\.pdf$/i, "")
+    .replace(/[^\w.-]+/g, "-")
+    .slice(0, 40);
 }
 
 export function reportFileName(report: ComparisonReport, format: ExportFormat): string {
@@ -73,9 +83,16 @@ export function downloadReport(comparison: DiffComparison, format: ExportFormat)
 export function pageImageFileName(comparison: DiffComparison, page: DiffPage): string {
   const earlier = page.earlierPageNumber;
   const newer = page.newerPageNumber;
-  const label = earlier !== undefined && newer !== undefined
-    ? (earlier === newer ? `page-${newer}` : `page-A${earlier}-B${newer}`)
-    : earlier !== undefined ? `page-A${earlier}` : newer !== undefined ? `page-B${newer}` : `page-${page.index + 1}`;
+  const label =
+    earlier !== undefined && newer !== undefined
+      ? earlier === newer
+        ? `page-${newer}`
+        : `page-A${earlier}-B${newer}`
+      : earlier !== undefined
+        ? `page-A${earlier}`
+        : newer !== undefined
+          ? `page-B${newer}`
+          : `page-${page.index + 1}`;
   return `${baseName(comparison.earlierName)}-vs-${baseName(comparison.newerName)}-${label}.png`;
 }
 
@@ -142,7 +159,11 @@ async function composeOverlay(page: DiffPage, overlay: OverlayStyle): Promise<Bl
   return blob;
 }
 
-export async function downloadPageImage(comparison: DiffComparison, page: DiffPage, overlay: OverlayStyle): Promise<void> {
+export async function downloadPageImage(
+  comparison: DiffComparison,
+  page: DiffPage,
+  overlay: OverlayStyle,
+): Promise<void> {
   const composed = await composeOverlay(page, overlay);
   const fileName = pageImageFileName(comparison, page);
   if (composed) {

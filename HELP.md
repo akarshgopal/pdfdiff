@@ -49,7 +49,7 @@ JSON. The app does not edit or merge PDFs.
 - Home / End: first or last visible pair.
 - 1–4: Overlay, Split, Swipe, Text.
 - Brackets or M / Shift+M: cycle views.
-- + / − / 0: zoom in, out, or fit the page.
+- - / − / 0: zoom in, out, or fit the page.
 - F: fullscreen. S: save the displayed diff image. ?: help.
 - Escape: close a dialog or clear the selected area.
 

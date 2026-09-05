@@ -96,7 +96,6 @@ effectively required for accurate results: without it PDF.js drops JBIG2 and
 JPX images from the render and guesses metrics for non-embedded base-14 fonts,
 and the raster diff reports the difference as a real change.
 
-
 ## Useful commands
 
 - `pnpm dev`: start local development
@@ -110,7 +109,6 @@ and the raster diff reports the difference as a real change.
 - `pnpm bench:core`: run deterministic core performance and quality scenarios
 - `pnpm bench:browser`: run the app through Playwright and Chromium
 - `pnpm run bench:report -- --baseline=... --current=...`: compare benchmark JSON
-
 
 ## Deployment
 

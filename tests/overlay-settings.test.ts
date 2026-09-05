@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_OVERLAY, fromHex, readOverlaySettings, toHex, writeOverlaySettings } from "../app/pdfdiff/overlaySettings.ts";
+import {
+  DEFAULT_OVERLAY,
+  fromHex,
+  readOverlaySettings,
+  toHex,
+  writeOverlaySettings,
+} from "../app/pdfdiff/overlaySettings.ts";
 
 function withStorage(initial: string | null, run: () => void): void {
   let value = initial;
   (globalThis as { localStorage?: unknown }).localStorage = {
     getItem: () => value,
-    setItem: (_key: string, next: string) => { value = next; },
+    setItem: (_key: string, next: string) => {
+      value = next;
+    },
   };
   try {
     run();
@@ -32,8 +40,18 @@ test("a malformed colour keeps the previous one rather than painting garbage", (
 test("settings persist across sessions", () => {
   withStorage(null, () => {
     assert.deepEqual(readOverlaySettings(), DEFAULT_OVERLAY, "an empty device gets the defaults");
-    writeOverlaySettings({ addedColor: [1, 2, 3], removedColor: [4, 5, 6], modifiedColor: [7, 8, 9], unchangedOpacity: 0.5 });
-    assert.deepEqual(readOverlaySettings(), { addedColor: [1, 2, 3], removedColor: [4, 5, 6], modifiedColor: [7, 8, 9], unchangedOpacity: 0.5 });
+    writeOverlaySettings({
+      addedColor: [1, 2, 3],
+      removedColor: [4, 5, 6],
+      modifiedColor: [7, 8, 9],
+      unchangedOpacity: 0.5,
+    });
+    assert.deepEqual(readOverlaySettings(), {
+      addedColor: [1, 2, 3],
+      removedColor: [4, 5, 6],
+      modifiedColor: [7, 8, 9],
+      unchangedOpacity: 0.5,
+    });
   });
 });
 
@@ -41,7 +59,11 @@ test("a corrupt or out-of-range stored value can never block a comparison", () =
   withStorage("not json", () => assert.deepEqual(readOverlaySettings(), DEFAULT_OVERLAY));
   withStorage('{"addedColor":"teal"}', () => assert.deepEqual(readOverlaySettings(), DEFAULT_OVERLAY));
   withStorage('{"unchangedOpacity":9}', () => {
-    assert.equal(readOverlaySettings().unchangedOpacity, DEFAULT_OVERLAY.unchangedOpacity, "opacity outside 0..1 is rejected");
+    assert.equal(
+      readOverlaySettings().unchangedOpacity,
+      DEFAULT_OVERLAY.unchangedOpacity,
+      "opacity outside 0..1 is rejected",
+    );
   });
   withStorage('{"addedColor":[1,2,3]}', () => {
     const overlay = readOverlaySettings();
@@ -53,8 +75,12 @@ test("a corrupt or out-of-range stored value can never block a comparison", () =
 
 test("storage that throws is survivable", () => {
   (globalThis as { localStorage?: unknown }).localStorage = {
-    getItem: () => { throw new Error("denied"); },
-    setItem: () => { throw new Error("denied"); },
+    getItem: () => {
+      throw new Error("denied");
+    },
+    setItem: () => {
+      throw new Error("denied");
+    },
   };
   try {
     assert.deepEqual(readOverlaySettings(), DEFAULT_OVERLAY);

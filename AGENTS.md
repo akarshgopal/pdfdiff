@@ -1,6 +1,7 @@
 # Project conventions
 
 - Use `pnpm` for installing dependencies and running scripts. Keep `pnpm-lock.yaml` as the only package-manager lockfile; do not use npm or Yarn in this repository.
+- Prettier owns formatting (120 columns). Run `pnpm format` before committing, or `pnpm format:check` to see what it would change. Do not hand-wrap code to taste.
 
 ## Design system
 

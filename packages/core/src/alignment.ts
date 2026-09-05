@@ -51,7 +51,12 @@ export interface TranslationAlignment {
 }
 
 /** Find and apply a small translation so two raster pages share their content grid. */
-export function alignByTranslation(earlier: RasterImage, newer: RasterImage, signal?: AbortSignalLike, metrics?: DiffMetricSink): TranslationAlignment {
+export function alignByTranslation(
+  earlier: RasterImage,
+  newer: RasterImage,
+  signal?: AbortSignalLike,
+  metrics?: DiffMetricSink,
+): TranslationAlignment {
   return measure(metrics, "core.alignment.translation", () => alignByTranslationUnmeasured(earlier, newer, signal), {
     width: earlier.width,
     height: earlier.height,
@@ -59,7 +64,11 @@ export function alignByTranslation(earlier: RasterImage, newer: RasterImage, sig
   });
 }
 
-function alignByTranslationUnmeasured(earlier: RasterImage, newer: RasterImage, signal?: AbortSignalLike): TranslationAlignment {
+function alignByTranslationUnmeasured(
+  earlier: RasterImage,
+  newer: RasterImage,
+  signal?: AbortSignalLike,
+): TranslationAlignment {
   let bestX = 0;
   let bestY = 0;
   const initialScore = translationScore(earlier, newer, 0, 0);

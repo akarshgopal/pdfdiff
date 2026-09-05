@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import { hasSubstantiveChanges, hasUnreadableText, reportToCsv, reportToJson, reportToText, type ComparisonReport } from "@pdfdiff/core";
+import {
+  hasSubstantiveChanges,
+  hasUnreadableText,
+  reportToCsv,
+  reportToJson,
+  reportToText,
+  type ComparisonReport,
+} from "@pdfdiff/core";
 import { comparePdfText } from "./compare.js";
 
 const FORMATS = ["text", "json", "csv"] as const;
@@ -100,7 +107,9 @@ async function main(argv: readonly string[]): Promise<number> {
   const unreadable = hasUnreadableText(report);
   if (unreadable) {
     // A clean result over text we could not read is the one failure a pipeline must never trust.
-    process.stderr.write(`warning: ${report.totals.pagesWithUnreadableText} of ${report.totals.pages} pages embed fonts with no Unicode mapping; text changes on those pages cannot be detected.\n`);
+    process.stderr.write(
+      `warning: ${report.totals.pagesWithUnreadableText} of ${report.totals.pages} pages embed fonts with no Unicode mapping; text changes on those pages cannot be detected.\n`,
+    );
   }
   if (options.failOnUnreadable && unreadable) return 1;
   return options.failOnChange && hasSubstantiveChanges(report) ? 1 : 0;
