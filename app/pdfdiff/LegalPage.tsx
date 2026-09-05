@@ -4,7 +4,7 @@ import { styles } from "./styles";
 
 type LegalPageKind = "privacy" | "terms";
 
-const updatedAt = "August 31, 2026";
+const updatedAt = "September 5, 2026";
 
 function LegalSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -20,13 +20,12 @@ function PrivacyPolicy() {
     <>
       <p className={styles.legalCallout}>
         <strong>Short version:</strong> your PDFs are processed locally in your browser and never uploaded. If you
-        explicitly choose to remember a comparison, local copies are saved only on your device.
+        choose to remember a comparison, local copies stay on that device.
       </p>
 
       <LegalSection title="Who is responsible">
         <p>
-          pdfdiff is the operator responsible for the website described in this policy. For privacy questions or
-          requests, email{" "}
+          pdfdiff is operated by Akarsh Gopal. For privacy questions or requests, email{" "}
           <a className={styles.legalLink} href="mailto:feedback@pdfdiff.app?subject=Privacy%20request">
             feedback@pdfdiff.app
           </a>
@@ -37,33 +36,38 @@ function PrivacyPolicy() {
       <LegalSection title="PDF processing">
         <p>
           When you select PDFs, the files are opened, rendered, and compared by code running on your device. Their
-          contents are not sent to pdfdiff or its hosting provider. Unless you opt in to remembering them, the active
-          comparison remains only in browser memory while you use the page and is released when you start over or close
-          the page.
+          contents stay there. Unless you opt in to remembering them, the active comparison remains only in browser
+          memory while you use the page and is released when you start over or close the page.
         </p>
         <p>
-          You are responsible for making sure you are permitted to process the documents you select, particularly
-          documents containing confidential or personal information.
+          Files compared in the browser never reach the operator, so they cannot be accessed, corrected, deleted, or
+          produced from here. You are responsible for making sure you are permitted to process the documents you select,
+          particularly documents containing confidential or personal information.
         </p>
       </LegalSection>
 
       <LegalSection title="Information stored on your device">
-        <p>pdfdiff uses browser storage for two functional purposes:</p>
+        <p>pdfdiff uses browser storage for three functional purposes:</p>
         <ul className={styles.legalList}>
           <li>
-            <strong className="text-foreground">Saved comparisons:</strong> if you select “Remember these PDFs on this
-            device,” IndexedDB stores local copies of both PDFs together with their filenames, sizes, settings, and save
-            date. Up to six comparisons are kept. You can withdraw your choice and delete every copy with “Clear
-            history” or your browser’s site-data controls.
+            <strong className="text-foreground">Saved comparisons:</strong> if you select “Remember these PDFs in this
+            browser,” IndexedDB stores local copies of both PDFs together with their filenames, sizes, settings, and
+            save date. Up to six comparisons are kept. You can delete every copy with “Clear history” or your browser’s
+            site-data controls.
           </li>
           <li>
             <strong className="text-foreground">Theme:</strong> local storage remembers whether you selected light or
-            dark mode. You can change the setting at any time or remove it through your browser.
+            dark mode.
+          </li>
+          <li>
+            <strong className="text-foreground">Overlay colours:</strong> local storage remembers the highlight colours
+            you chose for added, removed, and unchanged regions.
           </li>
         </ul>
         <p>
-          Saved comparisons are strictly opt in and the checkbox is off by default. pdfdiff does not use cookies,
-          advertising identifiers, or tracking pixels.
+          Saved comparisons are opt in and the checkbox is off by default. Theme and overlay choices stay on your
+          device. pdfdiff has no advertising identifiers, tracking pixels, or analytics cookies. The host may set
+          strictly necessary security cookies to deliver and protect the site.
         </p>
       </LegalSection>
 
@@ -75,8 +79,8 @@ function PrivacyPolicy() {
           included in these requests.
         </p>
         <p>
-          pdfdiff does not include a product-analytics or advertising service. Cloudflare describes its processing and
-          international transfer safeguards in its{" "}
+          The site has no product-analytics or advertising service, and personal information is not sold or shared for
+          targeted advertising. Cloudflare describes its processing and international transfer safeguards in its{" "}
           <a
             className={styles.legalLink}
             href="https://www.cloudflare.com/privacypolicy/"
@@ -91,23 +95,22 @@ function PrivacyPolicy() {
 
       <LegalSection title="Messages you send">
         <p>
-          If you email us, we receive your email address and the information you include. We use it to respond, resolve
-          issues, and maintain appropriate business records. Please do not attach confidential PDFs to a feedback
-          message. Messages are kept only for as long as reasonably necessary for those purposes or to meet legal
-          obligations.
+          Email to the address above includes your email address and whatever you write. It is used to respond, resolve
+          issues, and keep records reasonably needed for those purposes or for legal obligations. Leave confidential
+          PDFs out of feedback messages.
         </p>
       </LegalSection>
 
       <LegalSection title="Legal bases and sharing">
         <p>
           Where the GDPR applies, technical data is processed as necessary to provide the service and for the legitimate
-          interests of operating, securing, and improving it. Messages are processed to respond to your request and for
-          those same legitimate interests. Information may also be processed where required by law.
+          interests of operating and securing the site. Messages are processed to respond to your request and for those
+          same legitimate interests. Information may also be processed where required by law.
         </p>
         <p>
-          We do not sell personal information or share it for targeted advertising. Information is disclosed only to
-          service providers needed to operate the website or email, when required by law, or to protect rights and
-          security.
+          Information is disclosed only to the providers needed to operate the website or email, when required by law,
+          or to protect rights and security. A lawful request can be considered when it concerns information actually
+          held here — for example an email you sent. Compared PDFs never become those records.
         </p>
       </LegalSection>
 
@@ -115,19 +118,15 @@ function PrivacyPolicy() {
         <p>
           Depending on where you live, you may have rights to access, correct, delete, restrict, or object to processing
           of your personal data, and to receive portable data. You may also complain to your local data-protection
-          authority. Contact us to exercise a right.
+          authority. Contact the address above to exercise a right in data held by the operator.
         </p>
-        <p>
-          Data kept only in your browser is not accessible to us. You can manage it directly using “Clear history” or
-          your browser’s site-data controls.
-        </p>
+        <p>Data kept only in your browser can be managed with “Clear history” or your browser’s site-data controls.</p>
       </LegalSection>
 
       <LegalSection title="Children and changes">
         <p>
-          pdfdiff is not directed to children under 16, and we do not knowingly collect their personal information. We
-          may update this policy when the service or applicable requirements change. The date above shows the latest
-          revision.
+          pdfdiff is intended for people 16 and older. The policy may be updated when the service or applicable
+          requirements change. The date above shows the latest revision.
         </p>
       </LegalSection>
     </>
@@ -138,66 +137,85 @@ function TermsOfService() {
   return (
     <>
       <p className={styles.legalLead}>
-        These terms govern your use of pdfdiff. By using the service, you agree to them. If you do not agree, do not use
-        the service.
+        These terms govern your use of pdfdiff. By using the site, you agree to them. If you do not agree, do not use
+        the site.
       </p>
 
       <LegalSection title="The service">
         <p>
           pdfdiff is a browser-based tool for comparing two PDF revisions. It can highlight visual and textual
-          differences, align pages, and export a summary. Processing happens on your device and the service does not
-          receive your PDF contents.
+          differences, align pages, and export a summary. Processing happens on your device.
         </p>
         <p>
-          The service is provided without an account and currently without charge. We may improve, change, suspend, or
-          discontinue any part of it.
+          The site is provided without an account and currently without charge. It may be improved, changed, suspended,
+          or discontinued. Support and uptime are not promised.
+        </p>
+        <p>
+          These terms apply to this website. Source code is offered separately under the MIT License; running your own
+          copy is covered by that licence.
         </p>
       </LegalSection>
 
-      <LegalSection title="Your documents and responsibilities">
+      <LegalSection title="Your documents">
         <p>
-          You keep all rights in the documents you select. Selecting a file does not grant pdfdiff rights to it because
-          the file is not uploaded to the service.
+          You keep all rights in the documents you select. Selecting a file grants no rights in it to the operator,
+          because the file stays on your device.
         </p>
         <p>
-          You may use pdfdiff only with documents you are legally permitted to access and process. You are responsible
-          for protecting confidential information on your device and for reviewing the comparison before relying on it.
+          Use pdfdiff only with documents you are legally permitted to access and process. You are responsible for
+          protecting confidential information on your device, for the files you choose to open, and for reviewing the
+          comparison before relying on it. Opening a PDF still runs a renderer on your device.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Notices">
+        <p>
+          Compared PDFs are never hosted, stored, or transmitted to the site. There is nothing here to take down or
+          produce, and no copy from which to decide who may use a document. Complaints about a file someone compared
+          belong with the person who has that file.
+        </p>
+        <p>
+          If the pdfdiff website or software itself is the issue, email{" "}
+          <a className={styles.legalLink} href="mailto:feedback@pdfdiff.app?subject=Legal%20notice">
+            feedback@pdfdiff.app
+          </a>{" "}
+          with enough detail to identify the material. Incomplete, automated, or bulk notices may go unanswered.
         </p>
       </LegalSection>
 
       <LegalSection title="Acceptable use">
         <p>
-          You must not misuse the service, attempt to disrupt or bypass its security, interfere with other users, use
-          automated traffic that burdens the site, reverse engineer non-public parts of the hosted service except where
-          law permits it, or use the service in violation of law or another person’s rights.
+          Do not misuse the site, attempt to disrupt or bypass its security, interfere with other people using it, send
+          automated traffic that burdens the host, or use the site in violation of law or another person’s rights.
         </p>
       </LegalSection>
 
       <LegalSection title="Accuracy and professional review">
         <p>
-          PDF comparison is inherently imperfect. Differences may be missed, misclassified, or shown because of
-          rendering, fonts, scans, layout, or document structure. pdfdiff is a review aid, not a substitute for checking
-          the source documents.
+          PDF comparison is imperfect. Differences may be missed, misclassified, or shown because of rendering, fonts,
+          scans, layout, or document structure. Treat the output as a review aid and check the source documents before
+          you rely on a result.
         </p>
         <p>
-          The service does not provide legal, engineering, financial, compliance, or other professional advice. Do not
-          use its output as the sole basis for a safety-critical, legal, regulatory, or financial decision.
+          The site offers no legal, engineering, financial, compliance, or other professional advice, and using it
+          creates no professional relationship. Do not use its output as the sole basis for a safety-critical, legal,
+          regulatory, or financial decision. Disputes about a document stay with the people who have it.
         </p>
       </LegalSection>
 
-      <LegalSection title="Our content and software">
+      <LegalSection title="The site and software">
         <p>
-          The service, branding, interface, and original content are owned by pdfdiff or its licensors and are protected
-          by applicable intellectual-property laws. These terms give you a limited, revocable, non-exclusive right to
-          use the hosted service for its intended purpose. Third-party and open-source components remain subject to
-          their own licence terms.
+          The hosted site, branding, and original content belong to Akarsh Gopal or to licensors, and are protected by
+          applicable intellectual-property laws. These terms give you a limited, revocable, non-exclusive right to use
+          the hosted site for its intended purpose. Third-party and open-source components remain subject to their own
+          licence terms.
         </p>
       </LegalSection>
 
       <LegalSection title="No warranties">
         <p>
-          To the extent permitted by law, the service is provided “as is” and “as available.” We do not promise that it
-          will be uninterrupted, error-free, secure, or suitable for a particular purpose, or that every document
+          To the extent permitted by law, the service is provided “as is” and “as available.” There is no promise that
+          it will be uninterrupted, error-free, secure, or suitable for a particular purpose, or that every document
           difference will be detected. Nothing in these terms limits warranties or consumer rights that cannot legally
           be excluded.
         </p>
@@ -205,9 +223,10 @@ function TermsOfService() {
 
       <LegalSection title="Limitation of liability">
         <p>
-          To the extent permitted by law, pdfdiff is not liable for indirect, incidental, special, consequential, or
-          punitive loss, or for lost profits, data, business, or opportunities arising from use of the service.
-          pdfdiff’s total liability relating to the free service will not exceed €100.
+          To the extent permitted by law, the operator is not liable for indirect, incidental, special, consequential,
+          or punitive loss, or for lost profits, data, business, or opportunities arising from use of the service. The
+          operator’s total liability relating to the service will not exceed €100, or the amount paid for it if that is
+          higher. The hosted site is currently free.
         </p>
         <p>
           These limits do not apply to liability that cannot legally be limited, including liability for intent, gross
@@ -215,13 +234,21 @@ function TermsOfService() {
         </p>
       </LegalSection>
 
+      <LegalSection title="If your use causes a claim">
+        <p>
+          If your use of pdfdiff causes a claim against the operator — for example because you compared documents you
+          were not allowed to process, or you relied on a comparison in a dispute — you will cover that claim to the
+          extent the law allows, including reasonable costs of responding to it.
+        </p>
+      </LegalSection>
+
       <LegalSection title="Changes and ending use">
         <p>
-          You may stop using pdfdiff at any time. Because there are no accounts, there is no account to cancel. We may
-          restrict access when reasonably necessary to protect the service, comply with law, or address misuse.
+          You may stop using pdfdiff at any time. There are no accounts to cancel. Access may be restricted when
+          reasonably necessary to protect the site, comply with law, or address misuse.
         </p>
         <p>
-          We may update these terms. Material changes apply prospectively and will be identified by a new date at the
+          These terms may be updated. Material changes apply prospectively and will be identified by a new date at the
           top of this page. Continued use after an update means you accept the revised terms, to the extent permitted by
           law.
         </p>
@@ -229,8 +256,9 @@ function TermsOfService() {
 
       <LegalSection title="Applicable law and contact">
         <p>
-          Applicable law governs these terms. Mandatory protections and the courts available to consumers in their
-          country of residence are not affected.
+          These terms are governed by the laws of the operator’s place of residence, without giving effect to
+          conflict-of-law rules. Mandatory protections and the courts available to consumers in their country of
+          residence are unaffected.
         </p>
         <p>
           Questions about these terms can be sent to{" "}

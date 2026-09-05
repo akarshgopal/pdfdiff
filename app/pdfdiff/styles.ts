@@ -64,7 +64,8 @@ export const styles = {
   /** Two lines are reserved so a longer caption cannot resize the card. */
   demoCaption: "mt-2 min-h-[2lh] text-2xs leading-normal text-muted-foreground",
   footer: `${gutter} mt-auto border-t border-border bg-card`,
-  footerInner: `${container} flex min-h-16 items-center justify-end`,
+  footerInner: `${container} flex min-h-16 flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center`,
+  footerCredit: "text-xs text-muted-foreground",
   footerLinks: "flex flex-wrap items-center gap-x-5 gap-y-2",
   footerLink: `${ui.focus} text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-offset-2 focus-visible:ring-offset-card`,
   loading: "grid min-h-[440px] flex-1 place-items-center p-8",
