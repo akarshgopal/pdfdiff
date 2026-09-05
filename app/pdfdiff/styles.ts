@@ -50,18 +50,19 @@ export const styles = {
   demoArrow: "shrink-0 text-primary",
   demoCount: "ml-auto shrink-0 rounded-lg bg-primary/10 px-2 py-1 hidden font-medium text-primary sm:inline",
   /** One stage height for every mode, so switching view never moves the page. */
-  demoStage: "grid h-[360px] place-items-center bg-stage p-[clamp(10px,2vw,22px)] sm:h-[444px]",
+  demoStage:
+    "grid h-[360px] grid-rows-[minmax(0,1fr)] place-items-center bg-stage p-[clamp(10px,2vw,22px)] sm:h-[444px]",
   demoPage: "block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm",
   demoSplit: "grid h-full w-full grid-cols-2 place-items-center gap-2",
-  demoSwipe: "relative w-full max-w-[300px]",
+  demoSwipe: "relative aspect-[3/4] h-full w-auto max-w-[300px]",
   demoSwipeTop: "pdfdiff-swipe-top absolute inset-0",
   demoSwipeHandle: "pdfdiff-swipe-handle absolute inset-y-0 w-px -translate-x-1/2 bg-primary",
-  demoFoot: "flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border bg-card px-3 py-2.5",
+  demoFoot: "border-t border-border bg-card px-3 py-2.5",
   demoTabs: "inline-flex gap-1",
   demoTab: cx(ui.control, ui.focus, "min-h-7 border-transparent bg-transparent px-2.5 text-2xs"),
   demoTabCurrent: "border-border bg-background text-foreground",
   /** Two lines are reserved so a longer caption cannot resize the card. */
-  demoCaption: "min-h-[2lh] min-w-0 flex-1 basis-full text-2xs leading-normal text-muted-foreground sm:basis-auto",
+  demoCaption: "mt-2 min-h-[2lh] text-2xs leading-normal text-muted-foreground",
   footer: `${gutter} mt-auto border-t border-border bg-card`,
   footerInner: `${container} flex min-h-16 items-center justify-end`,
   footerLinks: "flex flex-wrap items-center gap-x-5 gap-y-2",
