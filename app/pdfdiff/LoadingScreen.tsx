@@ -4,25 +4,25 @@ import { Button } from "../../components/ui/button";
 
 export function LoadingScreen({ onCancel }: { onCancel: () => void }) {
   return (
-    <main className={cx(styles.root)}>
-      <div className={cx(styles.shell)}>
+    <main className={styles.root}>
+      <div className={styles.shell}>
         <AppHeader />
-        <section className={cx(styles.loading)} aria-live="polite" aria-busy="true">
-          <div className={cx(styles.loadingCard)}>
-            <div className={cx(styles.loadingPreview)} aria-hidden="true">
-              <div className={cx(styles.loadingPage)}>
-                <span className={cx(styles.loadingLine)} />
+        <section className={styles.loading} aria-live="polite" aria-busy="true">
+          <div className={styles.loadingCard}>
+            <div className={styles.loadingPreview} aria-hidden="true">
+              <div className={styles.loadingPage}>
+                <span className={styles.loadingLine} />
                 <span className={cx(styles.loadingLine, styles.loadingLineShort)} />
-                <span className={cx(styles.loadingBlock)} />
+                <span className={styles.loadingBlock} />
               </div>
               <div className={cx(styles.loadingPage, styles.loadingPageAfter)}>
-                <span className={cx(styles.loadingLine)} />
+                <span className={styles.loadingLine} />
                 <span className={cx(styles.loadingLine, styles.loadingLineShort)} />
-                <span className={cx(styles.loadingChange)} />
+                <span className={styles.loadingChange} />
               </div>
             </div>
-            <h1 className={cx(styles.loadingTitle)}>Opening your PDFs</h1>
-            <p className={cx(styles.loadingCopy)}>Reading pages and aligning both documents on this device.</p>
+            <h1 className={styles.loadingTitle}>Opening your PDFs</h1>
+            <p className={styles.loadingCopy}>Reading pages and aligning both documents on this device.</p>
             <Button variant="ghost" size="sm" className={styles.loadingCancel} onClick={onCancel}>
               Cancel
             </Button>

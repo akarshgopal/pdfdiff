@@ -1,4 +1,4 @@
-import { ui } from "@pdfdiff/viewer-react/ui";
+import { cx, ui } from "@pdfdiff/viewer-react/ui";
 
 export { cx, type TailwindClass } from "@pdfdiff/viewer-react/ui";
 export { ui };
@@ -15,26 +15,25 @@ export const styles = {
   logoMark: "grid size-[26px] place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground",
   intro: `${gutter} ${container} grid grid-cols-1 items-center gap-x-14 gap-y-10 pb-12 pt-10 text-center lg:pb-16 lg:pt-[clamp(36px,4.5vw,60px)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:text-left`,
   introMain: "flex flex-col items-center xl:items-start",
-  eyebrow: `${ui.caps} m-0 text-primary`,
+  eyebrow: cx(ui.caps, "m-0 text-primary"),
   headline: "text-[clamp(32px,4vw,48px)] font-semibold leading-display tracking-tighter",
   headlineAccent: "not-italic text-primary",
-  /** With both PDFs chosen the pitch has landed; the action takes the room back. */
-  headlineCompact: "text-[clamp(24px,2.6vw,30px)]",
   uploadGrid: "mt-8 grid w-full grid-cols-1 gap-3.5 lg:grid-cols-[1fr_auto_1fr]",
-  swapUpload: `${ui.control} ${ui.focus} z-[1] -my-1 mx-auto size-[42px] self-center rounded-full bg-background text-lg font-bold text-primary transition-transform duration-150 hover:rotate-180 hover:bg-accent hover:text-primary lg:mx-0 lg:my-0`,
+  swapUpload: cx(
+    ui.control,
+    ui.focus,
+    "z-[1] mx-auto -my-1 size-[42px] self-center rounded-full bg-background text-lg font-bold text-primary transition-transform duration-150 hover:rotate-180 hover:bg-accent hover:text-primary lg:mx-0 lg:my-0",
+  ),
   rememberOption: `${ui.focus} flex cursor-pointer items-center gap-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground`,
   rememberCheckbox: `${ui.focus} pdfdiff-switch`,
   introActions: "mt-5 flex w-full flex-col items-center gap-3 xl:items-start",
   compareButton: "min-h-12 px-6",
-  compareButtonReady: "w-full",
   privacyNote: "inline-flex items-center gap-2 text-xs leading-relaxed text-muted-foreground",
   privacyDot: "size-1.5 shrink-0 rounded-full bg-success",
   errorBox:
     "mt-4 w-full rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left text-xs leading-normal text-destructive",
   pageDropActive: "outline-dashed outline-2 -outline-offset-4 outline-primary",
-  facts: `${gutter} ${container} mb-16 grid grid-cols-1 gap-x-10 gap-y-6 border-t border-border pt-8 text-xs leading-relaxed text-muted-foreground lg:grid-cols-3`,
-  factTitle: "mb-1 block text-sm font-medium tracking-tight text-foreground",
-  history: `${gutter} ${container} mb-16 w-full text-left`,
+  history: cx(gutter, container, "mb-16 text-left"),
   historyHeader: "flex items-end justify-between gap-4",
   historyTitle: "m-0 text-[clamp(19px,2.2vw,24px)] font-semibold leading-tight tracking-tight",
   historyList: "mt-5 grid gap-2.5",
@@ -59,7 +58,7 @@ export const styles = {
   demoSwipeHandle: "pdfdiff-swipe-handle absolute inset-y-0 w-px -translate-x-1/2 bg-primary",
   demoFoot: "flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border bg-card px-3 py-2.5",
   demoTabs: "inline-flex gap-1",
-  demoTab: `${ui.control} ${ui.focus} min-h-7 border-transparent bg-transparent px-2.5 text-2xs`,
+  demoTab: cx(ui.control, ui.focus, "min-h-7 border-transparent bg-transparent px-2.5 text-2xs"),
   demoTabCurrent: "border-border bg-background text-foreground",
   /** Two lines are reserved so a longer caption cannot resize the card. */
   demoCaption: "min-h-[2lh] min-w-0 flex-1 basis-full text-2xs leading-normal text-muted-foreground sm:basis-auto",

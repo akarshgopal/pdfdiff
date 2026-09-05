@@ -88,7 +88,7 @@ function Lines({ side, all }: { side?: "earlier" | "newer"; all?: boolean }) {
 /** One full page in a single ink colour: everything that revision contains. */
 function Page({ side }: { side: "earlier" | "newer" }) {
   return (
-    <svg viewBox="0 0 300 400" className={cx(styles.demoPage)} role="presentation">
+    <svg viewBox="0 0 300 400" className={styles.demoPage} role="presentation">
       <rect x={0} y={0} width={300} height={400} className="fill-background" />
       <g className="text-foreground">
         <Shared />
@@ -101,7 +101,7 @@ function Page({ side }: { side: "earlier" | "newer" }) {
 
 function OverlayPage() {
   return (
-    <svg viewBox="0 0 300 400" className={cx(styles.demoPage)} role="presentation">
+    <svg viewBox="0 0 300 400" className={styles.demoPage} role="presentation">
       <rect x={0} y={0} width={300} height={400} className="fill-background" />
       <g className="text-foreground" opacity={DEFAULT_OVERLAY.unchangedOpacity}>
         <Shared />
@@ -121,7 +121,7 @@ function OverlayPage() {
 
 function TextPage() {
   return (
-    <svg viewBox="0 0 300 400" className={cx(styles.demoPage)} role="presentation">
+    <svg viewBox="0 0 300 400" className={styles.demoPage} role="presentation">
       <rect x={0} y={0} width={300} height={400} className="fill-background" />
       <g className="text-foreground">
         {LINES.map((line, index) => {
@@ -178,36 +178,36 @@ export function HeroDemo() {
   };
 
   return (
-    <div className={cx(styles.demo)}>
-      <div className={cx(styles.demoBar)}>
-        <span className={cx(styles.demoChip)}>assy-4471-revA.pdf</span>
-        <span className={cx(styles.demoArrow)} aria-hidden="true">
+    <div className={styles.demo}>
+      <div className={styles.demoBar}>
+        <span className={styles.demoChip}>assy-4471-revA.pdf</span>
+        <span className={styles.demoArrow} aria-hidden="true">
           →
         </span>
-        <span className={cx(styles.demoChip)}>assy-4471-revB.pdf</span>
-        <span className={cx(styles.demoCount)}>3 changes on this page</span>
+        <span className={styles.demoChip}>assy-4471-revB.pdf</span>
+        <span className={styles.demoCount}>3 changes on this page</span>
       </div>
-      <div className={cx(styles.demoStage)}>
+      <div className={styles.demoStage}>
         {mode === "overlay" ? <OverlayPage /> : null}
         {mode === "text" ? <TextPage /> : null}
         {mode === "split" ? (
-          <div className={cx(styles.demoSplit)}>
+          <div className={styles.demoSplit}>
             <Page side="earlier" />
             <Page side="newer" />
           </div>
         ) : null}
         {mode === "swipe" ? (
-          <div className={cx(styles.demoSwipe)}>
+          <div className={styles.demoSwipe}>
             <Page side="earlier" />
-            <div className={cx(styles.demoSwipeTop)}>
+            <div className={styles.demoSwipeTop}>
               <Page side="newer" />
             </div>
-            <div className={cx(styles.demoSwipeHandle)} aria-hidden="true" />
+            <div className={styles.demoSwipeHandle} aria-hidden="true" />
           </div>
         ) : null}
       </div>
-      <div className={cx(styles.demoFoot)}>
-        <div className={cx(styles.demoTabs)} role="group" aria-label="Demo comparison views">
+      <div className={styles.demoFoot}>
+        <div className={styles.demoTabs} role="group" aria-label="Demo comparison views">
           {MODES.map((item) => (
             <button
               key={item}
@@ -220,7 +220,7 @@ export function HeroDemo() {
             </button>
           ))}
         </div>
-        <p className={cx(styles.demoCaption)}>{MODE_CAPTION[mode]}</p>
+        <p className={styles.demoCaption}>{MODE_CAPTION[mode]}</p>
       </div>
     </div>
   );

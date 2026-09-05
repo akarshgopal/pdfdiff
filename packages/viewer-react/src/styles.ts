@@ -1,5 +1,14 @@
 import { twMerge } from "tailwind-merge";
 
+export type TailwindClass = string | false | null | undefined;
+
+/**
+ * Compose classes; later arguments win. The style tables below are already
+ * merged at import, so an element that needs no composition can use one
+ * directly as its className.
+ */
+export const cx = (...values: TailwindClass[]) => twMerge(values.filter(Boolean).join(" "));
+
 /**
  * Design system, such as it is: tokens live in theme.css, these five strings are
  * the shared patterns, and every style below composes them. Nothing else should
@@ -28,7 +37,7 @@ export const styles = {
   documentPair: "hidden min-w-0 items-center gap-2 lg:flex",
   documentChip:
     "flex min-w-0 max-w-[220px] items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium",
-  documentChipLabel: `${ui.caps} text-accent-foreground`,
+  documentChipLabel: cx(ui.caps, "text-accent-foreground"),
   documentChipName: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
   pairArrow: "text-base font-bold text-primary/80",
   headerSummary: "ml-auto flex min-w-0 items-center gap-2 text-2xs",
@@ -45,14 +54,17 @@ export const styles = {
   pageRail:
     "order-2 flex min-h-0 items-center gap-2 overflow-x-auto overflow-y-hidden border-t border-sidebar-border bg-sidebar px-2 py-2 lg:order-none lg:block lg:overflow-x-hidden lg:overflow-y-auto lg:border-t-0 lg:border-r lg:px-2.5 lg:py-4",
   railHeader: "flex shrink-0 flex-col gap-2 lg:mb-3",
-  railHeading: `${ui.caps} m-0 hidden px-0.5 text-sidebar-foreground lg:block`,
+  railHeading: cx(ui.caps, "m-0 hidden px-0.5 text-sidebar-foreground lg:block"),
   pageButton: `${ui.focus} w-[72px] shrink-0 cursor-pointer rounded-xl border border-transparent bg-transparent p-1.5 text-left text-sidebar-foreground transition-colors hover:bg-card/75 lg:mb-2 lg:w-full`,
   pageButtonCurrent: "border-primary/60 bg-accent",
   exportWrap: "relative",
-  exportMenu: `${ui.card} absolute right-0 top-full z-20 mt-1 flex w-56 flex-col overflow-hidden bg-popover shadow-lg`,
+  exportMenu: cx(
+    ui.card,
+    "absolute top-full right-0 z-20 mt-1 flex w-56 flex-col overflow-hidden bg-popover shadow-lg",
+  ),
   exportItem: `${ui.focus} cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-2xs font-medium text-foreground transition-colors hover:bg-accent focus-visible:bg-accent`,
   railNote: "shrink-0 px-1 py-2 text-center text-3xs text-muted-foreground",
-  filterChip: `${ui.control} ${ui.focus} min-h-7 bg-background px-2.5 hover:bg-accent`,
+  filterChip: cx(ui.control, ui.focus, "min-h-7 bg-background px-2.5 hover:bg-accent"),
   filterChipOn: "border-primary/60 bg-accent text-foreground",
   pageBadge:
     "absolute left-1 top-1 rounded-md bg-foreground/75 px-1.5 py-0.5 text-3xs font-bold uppercase tracking-caps text-background",
@@ -75,9 +87,9 @@ export const styles = {
   toolbarNavigation:
     "order-3 flex min-w-0 flex-1 basis-full items-center justify-center gap-2 2xl:order-none 2xl:basis-auto",
   modeGroup: "flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border border-border bg-muted p-0.5",
-  modeButton: `${ui.control} ${ui.focus} min-h-8 border-transparent bg-transparent px-2 disabled:opacity-35`,
+  modeButton: cx(ui.control, ui.focus, "min-h-8 border-transparent bg-transparent px-2 disabled:opacity-35"),
   modeButtonCurrent: "border-border bg-card text-foreground",
-  iconButton: `${ui.control} ${ui.focus} size-8 p-0 text-sm`,
+  iconButton: cx(ui.control, ui.focus, "size-8 p-0 text-sm"),
   /** Fullscreen, reset-zoom, and a shortcut list have no job on a touch screen. */
   toolbarDesktopOnly: "hidden sm:inline-flex",
   zoomLabel: "min-w-[45px] text-center text-2xs tabular-nums text-muted-foreground",
@@ -159,7 +171,10 @@ export const styles = {
   settingsRow: "mt-3 flex items-center justify-between gap-3 text-xs font-medium text-foreground",
   settingsNote: "mt-2 text-2xs leading-relaxed text-muted-foreground",
   settingsCheckbox: `${ui.focus} pdfdiff-switch`,
-  helpDialog: `${ui.dialog} h-full max-h-full w-full rounded-none sm:h-auto sm:max-h-[min(88vh,780px)] sm:w-[min(92vw,820px)] sm:rounded-xl`,
+  helpDialog: cx(
+    ui.dialog,
+    "h-full max-h-full w-full rounded-none sm:h-auto sm:max-h-[min(88vh,780px)] sm:w-[min(92vw,820px)] sm:rounded-xl",
+  ),
   helpHeader: "flex shrink-0 items-start justify-between gap-5 border-b border-border bg-card px-4 py-5 sm:px-6",
   helpTitle: "m-0 text-xl font-semibold tracking-tight",
   helpBody: "min-h-0 overflow-y-auto px-4 py-6 sm:px-6",
@@ -179,11 +194,3 @@ export const styles = {
   helpNote: "mt-6 rounded-xl border border-success/25 bg-success/5 px-3.5 py-3 text-xs leading-normal text-success-ink",
   helpFooter: "flex shrink-0 items-center justify-end border-t border-border bg-secondary px-4 py-3 sm:px-6",
 } as const;
-
-export type TailwindClass = string | false | null | undefined;
-/**
- * Compose classes. Later arguments win, and conflicts inside a single string
- * are resolved too — several styles below layer `ui.control` under their own
- * background, and rely on that.
- */
-export const cx = (...values: TailwindClass[]) => twMerge(values.filter(Boolean).join(" "));

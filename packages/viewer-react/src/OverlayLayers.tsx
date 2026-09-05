@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { styles, cx } from "./styles.js";
+import { styles } from "./styles.js";
 import type { DiffPage, OverlayStyle } from "./types.js";
 
 /**
@@ -24,9 +24,9 @@ export function OverlayLayerStack({ page, overlay, alt }: { page: DiffPage; over
   const layers = page.layers;
   if (!layers) return null;
   return (
-    <div className={cx(styles.layerStack)} data-overlay-stack="">
+    <div className={styles.layerStack} data-overlay-stack="">
       <img
-        className={cx(styles.layerBase)}
+        className={styles.layerBase}
         data-layer="base"
         src={layers.base}
         alt={alt}
@@ -34,19 +34,19 @@ export function OverlayLayerStack({ page, overlay, alt }: { page: DiffPage; over
         style={{ opacity: overlay.unchangedOpacity }}
       />
       <div
-        className={cx(styles.layerTint)}
+        className={styles.layerTint}
         data-layer="removed"
         aria-hidden="true"
         style={tintStyle(layers.removed, overlay.removedColor)}
       />
       <div
-        className={cx(styles.layerTint)}
+        className={styles.layerTint}
         data-layer="modified"
         aria-hidden="true"
         style={tintStyle(layers.modified, overlay.modifiedColor)}
       />
       <div
-        className={cx(styles.layerTint)}
+        className={styles.layerTint}
         data-layer="added"
         aria-hidden="true"
         style={tintStyle(layers.added, overlay.addedColor)}

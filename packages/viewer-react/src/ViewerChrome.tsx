@@ -19,10 +19,10 @@ import type { ExportChoice } from "./export.js";
 
 function ThumbPlaceholder() {
   return (
-    <div className={cx(styles.thumbPlaceholder)} aria-hidden="true">
-      <span className={cx(styles.thumbLine)} />
+    <div className={styles.thumbPlaceholder} aria-hidden="true">
+      <span className={styles.thumbLine} />
       <span className={cx(styles.thumbLine, styles.thumbLineShort)} />
-      <span className={cx(styles.thumbDiagram)} />
+      <span className={styles.thumbDiagram} />
       <span className={cx(styles.thumbLine, styles.thumbLineShort)} />
     </div>
   );
@@ -46,52 +46,52 @@ export function WorkspaceHeader({
     ? `Comparing ${processingProgress.completed} of ${processingProgress.total} pages…`
     : summaryHeadline(summary);
   return (
-    <header className={cx(styles.workspaceBar)}>
-      <div className={cx(styles.logo)}>
-        <span className={cx(styles.logoMark)} aria-hidden="true">
+    <header className={styles.workspaceBar}>
+      <div className={styles.logo}>
+        <span className={styles.logoMark} aria-hidden="true">
           ◐
         </span>
-        <span className={cx(styles.logoWord)}>pdfdiff</span>
+        <span className={styles.logoWord}>pdfdiff</span>
       </div>
-      <div className={cx(styles.documentPair)} aria-label="Compared documents">
-        <div className={cx(styles.documentChip)}>
-          <span className={cx(styles.documentChipLabel)}>A</span>
-          <span className={cx(styles.documentChipName)} title={comparison.earlierName}>
+      <div className={styles.documentPair} aria-label="Compared documents">
+        <div className={styles.documentChip}>
+          <span className={styles.documentChipLabel}>A</span>
+          <span className={styles.documentChipName} title={comparison.earlierName}>
             {comparison.earlierName}
           </span>
         </div>
-        <span className={cx(styles.pairArrow)} aria-hidden="true">
+        <span className={styles.pairArrow} aria-hidden="true">
           ↔
         </span>
-        <div className={cx(styles.documentChip)}>
-          <span className={cx(styles.documentChipLabel)}>B</span>
-          <span className={cx(styles.documentChipName)} title={comparison.newerName}>
+        <div className={styles.documentChip}>
+          <span className={styles.documentChipLabel}>B</span>
+          <span className={styles.documentChipName} title={comparison.newerName}>
             {comparison.newerName}
           </span>
         </div>
       </div>
-      <div className={cx(styles.headerSummary)} aria-label="Comparison summary">
-        <strong className={cx(styles.headerHeadline)}>{headline}</strong>
+      <div className={styles.headerSummary} aria-label="Comparison summary">
+        <strong className={styles.headerHeadline}>{headline}</strong>
         {!processingProgress && summary.pagesWithUnreadableText ? (
           <span
-            className={cx(styles.headerWarning)}
+            className={styles.headerWarning}
             title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR."
           >
             ⚠ Text unavailable on {summary.pagesWithUnreadableText} of {summary.pages} pages
           </span>
         ) : !processingProgress && summary.pagesWithoutText ? (
           <span
-            className={cx(styles.headerWarning)}
+            className={styles.headerWarning}
             title="These pages have no selectable text, so only the visual comparison applies."
           >
             ⚠ No text on {summary.pagesWithoutText} of {summary.pages} pages
           </span>
         ) : null}
       </div>
-      <div className={cx(styles.workspaceActions)}>
+      <div className={styles.workspaceActions}>
         {headerActions}
         {onNewComparison ? (
-          <button className={cx(styles.quietButton)} type="button" onClick={onNewComparison}>
+          <button className={styles.quietButton} type="button" onClick={onNewComparison}>
             New comparison
           </button>
         ) : null}
@@ -110,7 +110,7 @@ function ExportMenu({
   const [open, setOpen] = useState(false);
   const choices = canExportImage ? exportOptions : exportOptions.filter(([choice]) => choice !== "page-image");
   return (
-    <div className={cx(styles.exportWrap)}>
+    <div className={styles.exportWrap}>
       <IconButton
         label="Export"
         active={open}
@@ -119,11 +119,11 @@ function ExportMenu({
         expanded={open}
       />
       {open ? (
-        <div className={cx(styles.exportMenu)} role="menu">
+        <div className={styles.exportMenu} role="menu">
           {choices.map(([choice, label]) => (
             <button
               key={choice}
-              className={cx(styles.exportItem)}
+              className={styles.exportItem}
               type="button"
               role="menuitem"
               onClick={() => {
@@ -213,10 +213,10 @@ function PageRailItem({
       aria-current={selected ? "page" : undefined}
       onClick={() => onSelect(index)}
     >
-      <div className={cx(styles.pageThumb)}>
+      <div className={styles.pageThumb}>
         {thumbnail ? (
           <img
-            className={cx(styles.pageThumbImage)}
+            className={styles.pageThumbImage}
             src={thumbnail}
             alt="Comparison overlay preview"
             loading="lazy"
@@ -226,9 +226,9 @@ function PageRailItem({
         ) : (
           <ThumbPlaceholder />
         )}
-        {page.alignment === "moved" ? <span className={cx(styles.pageBadge)}>moved</span> : null}
+        {page.alignment === "moved" ? <span className={styles.pageBadge}>moved</span> : null}
       </div>
-      <div className={cx(styles.pageNumber)}>
+      <div className={styles.pageNumber}>
         <span>{pagePairLabel(page, index)}</span>
         <span className={cx(styles.pageStatus, pageStatusStyle(state))}>{status}</span>
       </div>
@@ -252,9 +252,9 @@ export function PageRail({
   const visible = visiblePageIndexes(pages, onlyChanged, pageIndex);
   if (pages.length <= 1) return null;
   return (
-    <aside className={cx(styles.pageRail)} aria-label="Pages">
-      <div className={cx(styles.railHeader)}>
-        <h2 className={cx(styles.railHeading)}>Pages</h2>
+    <aside className={styles.pageRail} aria-label="Pages">
+      <div className={styles.railHeader}>
+        <h2 className={styles.railHeading}>Pages</h2>
         <label className="flex items-center gap-2 text-2xs text-muted-foreground">
           <input
             className={`${ui.focus} pdfdiff-switch`}
@@ -344,10 +344,10 @@ export function PairingDialog({
           </label>
         ))}
         <div className="flex justify-end gap-2">
-          <button className={cx(styles.quietButton)} type="button" onClick={onClose}>
+          <button className={styles.quietButton} type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className={cx(styles.quietButton)} type="submit">
+          <button className={styles.quietButton} type="submit">
             Compare these pages
           </button>
         </div>
@@ -384,8 +384,8 @@ export function ViewerToolbar({
   navigation?: ReactNode;
 }) {
   return (
-    <div className={cx(styles.toolbar)}>
-      <div className={cx(styles.modeGroup)} role="toolbar" aria-label="View mode">
+    <div className={styles.toolbar}>
+      <div className={styles.modeGroup} role="toolbar" aria-label="View mode">
         {viewModes.map((item) => {
           const disabled = item.id === "semantic-text" && textUnavailable;
           return (
@@ -409,14 +409,14 @@ export function ViewerToolbar({
         })}
       </div>
       {navigation}
-      <div className={cx(styles.toolbarGroup)}>
+      <div className={styles.toolbarGroup}>
         <IconButton
           label="Zoom out"
           icon={<ZoomOut size={16} />}
           disabled={zoom <= MIN_ZOOM}
           onClick={() => onZoomChange(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))}
         />
-        <span className={cx(styles.zoomLabel)}>{zoom}%</span>
+        <span className={styles.zoomLabel}>{zoom}%</span>
         <IconButton
           label="Zoom in"
           icon={<ZoomIn size={16} />}
@@ -450,18 +450,18 @@ export function StatusFooter({ processingProgress }: { processingProgress?: { co
     ? Math.round((processingProgress.completed / processingProgress.total) * 100)
     : 0;
   return (
-    <div className={cx(styles.statusFooter)} aria-live="polite">
+    <div className={styles.statusFooter} aria-live="polite">
       <div
-        className={cx(styles.statusProgress)}
+        className={styles.statusProgress}
         role="progressbar"
         aria-label="Comparison progress"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
       >
-        <div className={cx(styles.statusProgressFill)} style={{ width: `${percent}%` }} />
+        <div className={styles.statusProgressFill} style={{ width: `${percent}%` }} />
       </div>
-      <span className={cx(styles.statusAccent)}>
+      <span className={styles.statusAccent}>
         Comparing page {Math.min(processingProgress.completed + 1, processingProgress.total)} of{" "}
         {processingProgress.total}
       </span>
@@ -480,10 +480,10 @@ function SettingsCheckbox({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className={cx(styles.settingsRow)}>
+    <label className={styles.settingsRow}>
       {label}
       <input
-        className={cx(styles.settingsCheckbox)}
+        className={styles.settingsCheckbox}
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
@@ -523,25 +523,25 @@ export function SettingsDialog({
   }, [onClose]);
   return (
     <div
-      className={cx(styles.dialogBackdrop)}
+      className={styles.dialogBackdrop}
       role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
-        className={cx(styles.settingsDialog)}
+        className={styles.settingsDialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby="viewer-settings-title"
       >
-        <header className={cx(styles.helpHeader)}>
-          <h2 id="viewer-settings-title" className={cx(styles.helpTitle)}>
+        <header className={styles.helpHeader}>
+          <h2 id="viewer-settings-title" className={styles.helpTitle}>
             Settings
           </h2>
           <button
             ref={closeButtonRef}
-            className={cx(styles.iconButton)}
+            className={styles.iconButton}
             type="button"
             aria-label="Close settings"
             onClick={onClose}
@@ -549,43 +549,43 @@ export function SettingsDialog({
             ×
           </button>
         </header>
-        <div className={cx(styles.settingsBody)}>
-          <section className={cx(styles.settingsGroup)}>
-            <h3 className={cx(styles.settingsGroupTitle)}>Overlay colours</h3>
-            <label className={cx(styles.settingsRow)}>
+        <div className={styles.settingsBody}>
+          <section className={styles.settingsGroup}>
+            <h3 className={styles.settingsGroupTitle}>Overlay colours</h3>
+            <label className={styles.settingsRow}>
               Newer content
               <input
-                className={cx(styles.overlaySwatch)}
+                className={styles.overlaySwatch}
                 type="color"
                 value={overlay.addedColor}
                 aria-label="Colour for newer content"
                 onChange={(event) => onOverlayChange({ ...overlay, addedColor: event.target.value })}
               />
             </label>
-            <label className={cx(styles.settingsRow)}>
+            <label className={styles.settingsRow}>
               Earlier content
               <input
-                className={cx(styles.overlaySwatch)}
+                className={styles.overlaySwatch}
                 type="color"
                 value={overlay.removedColor}
                 aria-label="Colour for earlier content"
                 onChange={(event) => onOverlayChange({ ...overlay, removedColor: event.target.value })}
               />
             </label>
-            <label className={cx(styles.settingsRow)}>
+            <label className={styles.settingsRow}>
               Modified content
               <input
-                className={cx(styles.overlaySwatch)}
+                className={styles.overlaySwatch}
                 type="color"
                 value={overlay.modifiedColor}
                 aria-label="Colour for modified content"
                 onChange={(event) => onOverlayChange({ ...overlay, modifiedColor: event.target.value })}
               />
             </label>
-            <label className={cx(styles.settingsRow)}>
+            <label className={styles.settingsRow}>
               Unchanged {Math.round(overlay.unchangedOpacity * 100)}%
               <input
-                className={cx(styles.overlayRange)}
+                className={styles.overlayRange}
                 style={{ "--range-fill": `${Math.round(overlay.unchangedOpacity * 100)}%` } as CSSProperties}
                 type="range"
                 min={0}
@@ -598,8 +598,8 @@ export function SettingsDialog({
               />
             </label>
           </section>
-          <section className={cx(styles.settingsGroup)}>
-            <h3 className={cx(styles.settingsGroupTitle)}>View</h3>
+          <section className={styles.settingsGroup}>
+            <h3 className={styles.settingsGroupTitle}>View</h3>
             <SettingsCheckbox
               label="Outline changed regions"
               checked={settings.showBoundingBoxes}
@@ -607,22 +607,22 @@ export function SettingsDialog({
             />
           </section>
           {onMatchPagesChange ? (
-            <section className={cx(styles.settingsGroup)}>
-              <h3 className={cx(styles.settingsGroupTitle)}>Comparison</h3>
+            <section className={styles.settingsGroup}>
+              <h3 className={styles.settingsGroupTitle}>Comparison</h3>
               <SettingsCheckbox
                 label="Match pages automatically"
                 checked={matchPages !== false}
                 onChange={onMatchPagesChange}
               />
-              <p className={cx(styles.settingsNote)}>
+              <p className={styles.settingsNote}>
                 Pairs pages by content so inserted or removed pages stay aligned. Off compares page 1 with page 1.
                 Changing this compares the PDFs again.
               </p>
             </section>
           ) : null}
         </div>
-        <footer className={cx(styles.helpFooter)}>
-          <button className={cx(styles.quietButton)} type="button" onClick={onClose}>
+        <footer className={styles.helpFooter}>
+          <button className={styles.quietButton} type="button" onClick={onClose}>
             Done
           </button>
         </footer>

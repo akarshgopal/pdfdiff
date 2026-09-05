@@ -1,6 +1,6 @@
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
-import { styles, cx } from "./styles";
+import { styles } from "./styles";
 
 type LegalPageKind = "privacy" | "terms";
 
@@ -8,9 +8,9 @@ const updatedAt = "August 31, 2026";
 
 function LegalSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className={cx(styles.legalSection)}>
-      <h2 className={cx(styles.legalSectionTitle)}>{title}</h2>
-      <div className={cx(styles.legalProse)}>{children}</div>
+    <section className={styles.legalSection}>
+      <h2 className={styles.legalSectionTitle}>{title}</h2>
+      <div className={styles.legalProse}>{children}</div>
     </section>
   );
 }
@@ -18,7 +18,7 @@ function LegalSection({ title, children }: { title: string; children: React.Reac
 function PrivacyPolicy() {
   return (
     <>
-      <p className={cx(styles.legalCallout)}>
+      <p className={styles.legalCallout}>
         <strong>Short version:</strong> your PDFs are processed locally in your browser and never uploaded. If you
         explicitly choose to remember a comparison, local copies are saved only on your device.
       </p>
@@ -27,7 +27,7 @@ function PrivacyPolicy() {
         <p>
           pdfdiff is the operator responsible for the website described in this policy. For privacy questions or
           requests, email{" "}
-          <a className={cx(styles.legalLink)} href="mailto:feedback@pdfdiff.app?subject=Privacy%20request">
+          <a className={styles.legalLink} href="mailto:feedback@pdfdiff.app?subject=Privacy%20request">
             feedback@pdfdiff.app
           </a>
           .
@@ -49,7 +49,7 @@ function PrivacyPolicy() {
 
       <LegalSection title="Information stored on your device">
         <p>pdfdiff uses browser storage for two functional purposes:</p>
-        <ul className={cx(styles.legalList)}>
+        <ul className={styles.legalList}>
           <li>
             <strong className="text-foreground">Saved comparisons:</strong> if you select “Remember these PDFs on this
             device,” IndexedDB stores local copies of both PDFs together with their filenames, sizes, settings, and save
@@ -78,7 +78,7 @@ function PrivacyPolicy() {
           pdfdiff does not include a product-analytics or advertising service. Cloudflare describes its processing and
           international transfer safeguards in its{" "}
           <a
-            className={cx(styles.legalLink)}
+            className={styles.legalLink}
             href="https://www.cloudflare.com/privacypolicy/"
             target="_blank"
             rel="noreferrer"
@@ -137,7 +137,7 @@ function PrivacyPolicy() {
 function TermsOfService() {
   return (
     <>
-      <p className={cx(styles.legalLead)}>
+      <p className={styles.legalLead}>
         These terms govern your use of pdfdiff. By using the service, you agree to them. If you do not agree, do not use
         the service.
       </p>
@@ -234,7 +234,7 @@ function TermsOfService() {
         </p>
         <p>
           Questions about these terms can be sent to{" "}
-          <a className={cx(styles.legalLink)} href="mailto:feedback@pdfdiff.app?subject=Terms%20question">
+          <a className={styles.legalLink} href="mailto:feedback@pdfdiff.app?subject=Terms%20question">
             feedback@pdfdiff.app
           </a>
           .
@@ -247,19 +247,19 @@ function TermsOfService() {
 export function LegalPage({ kind }: { kind: LegalPageKind }) {
   const isPrivacy = kind === "privacy";
   return (
-    <main className={cx(styles.root)}>
-      <div className={cx(styles.shell)}>
+    <main className={styles.root}>
+      <div className={styles.shell}>
         <AppHeader href="/" />
-        <article className={cx(styles.legalArticle)}>
-          <a className={cx(styles.legalBack)} href="/">
+        <article className={styles.legalArticle}>
+          <a className={styles.legalBack} href="/">
             ← Back to pdfdiff
           </a>
-          <header className={cx(styles.legalHeader)}>
-            <p className={cx(styles.eyebrow)}>Legal</p>
-            <h1 className={cx(styles.legalTitle)}>{isPrivacy ? "Privacy Policy" : "Terms of Service"}</h1>
-            <p className={cx(styles.legalUpdated)}>Last updated {updatedAt}</p>
+          <header className={styles.legalHeader}>
+            <p className={styles.eyebrow}>Legal</p>
+            <h1 className={styles.legalTitle}>{isPrivacy ? "Privacy Policy" : "Terms of Service"}</h1>
+            <p className={styles.legalUpdated}>Last updated {updatedAt}</p>
           </header>
-          <div className={cx(styles.legalBody)}>{isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}</div>
+          <div className={styles.legalBody}>{isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}</div>
         </article>
         <AppFooter />
       </div>

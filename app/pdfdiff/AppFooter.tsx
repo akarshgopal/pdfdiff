@@ -1,17 +1,17 @@
-import { styles, cx } from "./styles";
+import { styles } from "./styles";
 
 export function AppFooter() {
   return (
-    <footer className={cx(styles.footer)}>
-      <div className={cx(styles.footerInner)}>
-        <nav className={cx(styles.footerLinks)} aria-label="Footer">
-          <a className={cx(styles.footerLink)} href="/terms">
+    <footer className={styles.footer}>
+      <div className={styles.footerInner}>
+        <nav className={styles.footerLinks} aria-label="Footer">
+          <a className={styles.footerLink} href="/terms">
             Terms of service
           </a>
-          <a className={cx(styles.footerLink)} href="/privacy">
+          <a className={styles.footerLink} href="/privacy">
             Privacy policy
           </a>
-          <a className={cx(styles.footerLink)} href="mailto:feedback@pdfdiff.app?subject=PDF%20Diff%20feedback">
+          <a className={styles.footerLink} href="mailto:feedback@pdfdiff.app?subject=PDF%20Diff%20feedback">
             Feedback
           </a>
         </nav>
