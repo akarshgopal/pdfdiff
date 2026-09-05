@@ -10,7 +10,7 @@ const container = "mx-auto w-full max-w-[1120px]";
 export const styles = {
   root: "min-h-screen bg-background font-sans tracking-tight text-foreground",
   shell: "flex min-h-screen w-full flex-col",
-  topbar: `${gutter} flex min-h-[72px] items-center justify-between gap-5 border-b border-border bg-card`,
+  topbar: `${gutter} flex min-h-[56px] items-center justify-between gap-5 border-b border-border bg-card`,
   logo: "inline-flex items-center gap-2.5 whitespace-nowrap text-base font-semibold tracking-tight text-foreground no-underline",
   logoMark: "grid size-[26px] place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground",
   intro: `${gutter} ${container} grid grid-cols-[minmax(0,460px)_minmax(0,1fr)] items-center gap-x-14 gap-y-10 pb-16 pt-[clamp(36px,4.5vw,60px)] max-[980px]:grid-cols-1 max-[980px]:text-center max-[820px]:pb-12 max-[820px]:pt-10`,
@@ -49,9 +49,10 @@ export const styles = {
   demoChip: "min-w-0 truncate rounded-lg border border-border bg-background px-2 py-1 font-medium",
   demoArrow: "shrink-0 text-primary",
   demoCount: "ml-auto shrink-0 rounded-lg bg-primary/10 px-2 py-1 font-medium text-primary max-[560px]:hidden",
-  demoStage: "grid place-items-center bg-stage p-[clamp(10px,2vw,22px)]",
-  demoPage: "block h-auto w-full max-w-[300px] rounded-sm border border-border shadow-sm",
-  demoSplit: "grid w-full grid-cols-2 gap-2",
+  /** One stage height for every mode, so switching view never moves the page. */
+  demoStage: "grid h-[444px] place-items-center bg-stage p-[clamp(10px,2vw,22px)] max-[560px]:h-[360px]",
+  demoPage: "block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm",
+  demoSplit: "grid h-full w-full grid-cols-2 place-items-center gap-2",
   demoSwipe: "relative w-full max-w-[300px]",
   demoSwipeTop: "pdfdiff-swipe-top absolute inset-0",
   demoSwipeHandle: "pdfdiff-swipe-handle absolute inset-y-0 w-px -translate-x-1/2 bg-primary",
@@ -59,7 +60,8 @@ export const styles = {
   demoTabs: "inline-flex gap-1",
   demoTab: `${ui.control} ${ui.focus} min-h-7 border-transparent bg-transparent px-2.5 text-2xs`,
   demoTabCurrent: "border-border bg-background text-foreground",
-  demoCaption: "min-w-0 flex-1 text-2xs leading-[1.5] text-muted-foreground max-[560px]:basis-full",
+  /** Two lines are reserved so a longer caption cannot resize the card. */
+  demoCaption: "min-h-[2lh] min-w-0 flex-1 text-2xs leading-[1.5] text-muted-foreground max-[560px]:basis-full",
   footer: `${gutter} mt-auto border-t border-border bg-card`,
   footerInner: `${container} flex min-h-16 items-center justify-end`,
   footerLinks: "flex flex-wrap items-center gap-x-5 gap-y-2",
