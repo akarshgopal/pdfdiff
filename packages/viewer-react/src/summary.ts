@@ -1,17 +1,34 @@
 import type { ReportTotals } from "@pdfdiff/core";
-import type { DiffComparison } from "./types.js";
+import type { DiffComparison, DiffPage } from "./types.js";
 import { reportForComparison } from "./export.js";
+import { pageStatus } from "./viewer-utils.js";
 
 /**
  * The document-level answer is always a page story. On-page region and
  * text-change counts name their own grain, so they cannot be mistaken for
- * a second headline.
+ * a second headline. That story is only ready once every row has a settled
+ * status — partial totals look like the same sentence.
  */
 
 export type ComparisonSummary = ReportTotals;
+export type ComparisonProgress = { readonly completed: number; readonly total: number };
 
 export function summarizeComparison(comparison: DiffComparison): ComparisonSummary {
   return reportForComparison(comparison).totals;
+}
+
+/**
+ * Absent once every page has a verdict. Completed is counted from settled
+ * rows so the headline cannot lag the rail as pages stream in.
+ */
+export function comparisonProgress(
+  pages: readonly DiffPage[],
+  reported?: ComparisonProgress,
+): ComparisonProgress | undefined {
+  if (pages.length === 0) return reported;
+  const pending = pages.filter((page) => pageStatus(page) === "processing").length;
+  if (pending === 0) return undefined;
+  return { completed: pages.length - pending, total: Math.max(reported?.total ?? 0, pages.length) };
 }
 
 function pageStat(count: number, verb: string): string {
@@ -40,4 +57,9 @@ export function summaryHeadline(summary: ComparisonSummary): string {
     return pageStory(count, pages, verb);
   }
   return parts.join(" · ");
+}
+
+export function workspaceHeadline(summary: ComparisonSummary, progress?: ComparisonProgress): string {
+  if (progress) return `Comparing ${progress.completed} of ${progress.total} pages…`;
+  return summaryHeadline(summary);
 }
