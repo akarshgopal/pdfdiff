@@ -12,6 +12,13 @@ export {
   type ExportFormat,
   type ExportChoice,
 } from "./export.js";
-export { summarizeComparison, summaryHeadline } from "./summary.js";
-export { clampZoom, qualityForZoom, toggleFullscreen } from "./viewer-utils.js";
+export { summarizeComparison, summaryHeadline, headerTextWarning } from "./summary.js";
+export {
+  clampZoom,
+  qualityForZoom,
+  toggleFullscreen,
+  changedPageCount,
+  collapsedRailSummary,
+  missingSelectableTextNotice,
+} from "./viewer-utils.js";
 export * from "./PdfDiffViewer.js";

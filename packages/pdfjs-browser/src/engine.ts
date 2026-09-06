@@ -75,7 +75,7 @@ function regionMergeGaps(pageHeight: number): { mergeGapX: number; mergeGapY: nu
   };
 }
 
-const DEFAULT_UNCHANGED_OPACITY = 0.24;
+const DEFAULT_UNCHANGED_OPACITY = 0.4;
 
 /** An unset overlay style leaves the core defaults in place. */
 function overlayStyle(options: DiffOptions): {

@@ -4,7 +4,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   canDownloadPageImage,
+  changedPageCount,
   clampZoom,
+  collapsedRailSummary,
+  headerTextWarning,
+  missingSelectableTextNotice,
   pageImageFileName,
   qualityForZoom,
   PdfDiffViewer,
@@ -47,6 +51,8 @@ test("viewer renders pair navigation, overlay thumbnails, and a pannable canvas"
   assert.match(html, /Document canvas\. Scroll to pan, pinch or Ctrl-scroll to zoom\./);
   assert.match(html, /aria-label="Overlay colours"/);
   assert.match(html, />Added<\/span>.*>Removed<\/span>.*>Modified<\/span>/);
+  assert.doesNotMatch(html, /No text on/);
+  assert.doesNotMatch(html, /OCR/);
 });
 
 test("single-page unreadable comparisons remove duplicate chrome and retain the warning", () => {
@@ -83,8 +89,12 @@ test("single-page unreadable comparisons remove duplicate chrome and retain the 
 
   assert.match(html, />1 page changed<\/strong>/);
   assert.match(html, /2 areas on this page/);
-  assert.match(html, /⚠ Text unavailable on 1 of 1 pages<\/span>/);
-  assert.match(html, /disabled=""[^>]+title="Text comparison unavailable:[^"]+"/);
+  assert.match(html, /Text comparison unavailable on 1 of 1 pages<\/span>/);
+  assert.match(html, /title="These pages embed fonts with no Unicode mapping. Overlay, Split, and Swipe still apply."/);
+  assert.match(html, /disabled=""[^>]+title="Text comparison unavailable:[^"]+Overlay, Split, and Swipe still apply."/);
+  assert.doesNotMatch(html, /⚠/);
+  assert.doesNotMatch(html, /OCR/);
+  assert.doesNotMatch(html, /No text on/);
   assert.doesNotMatch(html, />2 visual changes<\/span>/);
   assert.doesNotMatch(html, />Content<\/span><strong>1<\/strong>/);
   assert.doesNotMatch(html, /Independent PDF page navigation/);
@@ -341,4 +351,74 @@ test("change navigation counts the list the current view highlights", async () =
   assert.equal(changeWalkerLabel(8, -1, "semantic-text"), "8 text changes on this page");
   assert.equal(changeWalkerLabel(8, 1, "semantic-text"), "Text change 2 of 8 on this page");
   assert.equal(changeWalkerLabel(1, 0, "semantic-text"), "Text change 1 of 1 on this page");
+});
+
+test("unreadable fonts keep a header warning; pages with no text do not", () => {
+  assert.deepEqual(headerTextWarning(summary({ pages: 4, pagesWithUnreadableText: 1 })), {
+    message: "Text comparison unavailable on 1 of 4 pages",
+    title: "These pages embed fonts with no Unicode mapping. Overlay, Split, and Swipe still apply.",
+  });
+  assert.equal(headerTextWarning(summary({ pages: 4, pagesWithoutText: 4 })), null);
+  assert.equal(headerTextWarning(summary({ pages: 1 })), null);
+});
+
+test("Text mode names visual views instead of offering OCR when a page has no text", () => {
+  const empty: DiffPage = {
+    index: 0,
+    semantic: {
+      before: [],
+      after: [],
+      changes: [],
+      beforeOverlays: [],
+      afterOverlays: [],
+      beforeTokenCount: 0,
+      afterTokenCount: 0,
+      hasBeforeText: false,
+      hasAfterText: false,
+    },
+  };
+  assert.deepEqual(missingSelectableTextNotice(empty), {
+    title: "No selectable text on this page",
+    detail: "Overlay, Split, and Swipe still compare this page visually.",
+  });
+  assert.equal(
+    missingSelectableTextNotice({
+      ...empty,
+      semantic: { ...empty.semantic!, textUndecodable: true },
+    }),
+    null,
+    "unreadable fonts already have their own status",
+  );
+  assert.equal(missingSelectableTextNotice(currentPage), null);
+});
+
+test("a collapsed page rail keeps the current page and the changed count", async () => {
+  const { PageRail } = await import("../packages/viewer-react/dist/ViewerChrome.js");
+  const pages: DiffPage[] = [
+    { ...currentPage, earlierPageNumber: 1, newerPageNumber: 1 },
+    { index: 1, status: "same", beforeSrc: "b", afterSrc: "a", earlierPageNumber: 2, newerPageNumber: 2 },
+    { index: 2, status: "added", afterSrc: "c", newerPageNumber: 3 },
+  ];
+  assert.equal(changedPageCount(pages), 2);
+  assert.equal(collapsedRailSummary(0, 3, 2), "Page 1 of 3 · 2 changed");
+  assert.equal(collapsedRailSummary(4, 12, 1), "Page 5 of 12 · 1 changed");
+  assert.equal(collapsedRailSummary(0, 4, 0), "Page 1 of 4");
+
+  const html = renderToStaticMarkup(
+    createElement(PageRail, {
+      pages,
+      pageIndex: 0,
+      mode: "diff",
+      onSelectPage: () => undefined,
+      onlyChanged: false,
+      onOnlyChanged: () => undefined,
+      collapsed: true,
+      onCollapsedChange: () => undefined,
+    }),
+  );
+  assert.match(html, /aria-label="Show page list, Page 1 of 3 · 2 changed"/);
+  assert.match(html, />1\/3<\/span>/);
+  assert.match(html, />2 changed<\/span>/);
+  assert.doesNotMatch(html, /Only changed/);
+  assert.doesNotMatch(html, /Comparison overlay preview/);
 });

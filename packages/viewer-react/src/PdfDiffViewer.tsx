@@ -33,6 +33,7 @@ import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
 import {
   changeWalkerLabel,
   clampZoom,
+  missingSelectableTextNotice,
   missingSideLabel,
   toggleFullscreen,
   pageChanges,
@@ -46,7 +47,7 @@ export const DEFAULT_OVERLAY_STYLE: OverlayStyle = {
   addedColor: "#10bebe",
   removedColor: "#ee4856",
   modifiedColor: "#b87edc",
-  unchangedOpacity: 0.24,
+  unchangedOpacity: 0.4,
 };
 
 function getRegionStyle(region: DiffRegion): CSSProperties {
@@ -185,19 +186,8 @@ function SemanticNativePane({
   );
 }
 
-function semanticSummary(semantic: DiffPage["semantic"]): {
-  status: string;
-  detail: string;
-  missingText: boolean;
-  undecodable: boolean;
-} {
-  if (!semantic)
-    return {
-      status: "No semantic text changes",
-      detail: "Native PDF rendering",
-      missingText: false,
-      undecodable: false,
-    };
+function semanticSummary(semantic: DiffPage["semantic"]): { status: string; detail: string } {
+  if (!semantic) return { status: "No semantic text changes", detail: "Native PDF rendering" };
   const count = semantic.changes.length;
   const undecodable = semantic.textUndecodable === true;
   return {
@@ -205,8 +195,6 @@ function semanticSummary(semantic: DiffPage["semantic"]): {
     // bar only carries status that the walker cannot (empty, unreadable).
     status: undecodable ? "Text could not be read" : count ? "" : "No semantic text changes",
     detail: undecodable ? "Embedded font has no Unicode mapping" : "",
-    missingText: !semantic.hasBeforeText && !semantic.hasAfterText,
-    undecodable,
   };
 }
 
@@ -226,6 +214,7 @@ function SemanticPdfPreview({
   onSelectChange: (id: string) => void;
 }) {
   const summary = semanticSummary(page.semantic);
+  const missingText = missingSelectableTextNotice(page);
   const waiting = pending || Boolean(error);
   const beforeOverlays = page.semanticBeforeOverlays ?? [];
   const afterOverlays = page.semanticAfterOverlays ?? [];
@@ -288,10 +277,10 @@ function SemanticPdfPreview({
           missingLabel={missingSideLabel(page, "newer")}
         />
       </div>
-      {summary.missingText && !summary.undecodable ? (
+      {missingText ? (
         <div className={styles.semanticNoText}>
-          <strong>No selectable text found</strong>
-          <span>Run OCR to calculate semantic text changes.</span>
+          <strong>{missingText.title}. </strong>
+          <span>{missingText.detail}</span>
         </div>
       ) : null}
     </div>

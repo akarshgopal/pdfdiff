@@ -147,3 +147,30 @@ export function visiblePageIndexes(pages: readonly DiffPage[], onlyChanged: bool
     !onlyChanged || index === selected || pageStatus(page) !== "same" || page.alignment === "moved" ? [index] : [],
   );
 }
+
+/** Pages a reviewer would count as changed, including moves that stayed identical. */
+export function changedPageCount(pages: readonly DiffPage[]): number {
+  return pages.reduce((count, page) => {
+    const status = pageStatus(page);
+    if (status === "processing" || status === "error") return count;
+    return count + (status !== "same" || page.alignment === "moved" ? 1 : 0);
+  }, 0);
+}
+
+/** Compact location for the collapsed page rail; names pages, not areas. */
+export function collapsedRailSummary(pageIndex: number, pageCount: number, changed: number): string {
+  const current = `Page ${pageIndex + 1} of ${pageCount}`;
+  if (changed <= 0) return current;
+  return `${current} · ${changed === 1 ? "1 changed" : `${changed} changed`}`;
+}
+
+/** Text mode empty state when the page has no extractable text, and OCR is not offered. */
+export function missingSelectableTextNotice(page: DiffPage): { title: string; detail: string } | null {
+  const semantic = page.semantic;
+  if (!semantic || semantic.textUndecodable) return null;
+  if (semantic.hasBeforeText || semantic.hasAfterText) return null;
+  return {
+    title: "No selectable text on this page",
+    detail: "Overlay, Split, and Swipe still compare this page visually.",
+  };
+}
