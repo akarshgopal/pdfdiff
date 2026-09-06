@@ -3,6 +3,7 @@ import {
   classifyRegions,
   limitRegions,
   fingerprintPage,
+  pageSimilarity,
   diffSemanticPages,
   measureAsync,
   throwIfAborted,
@@ -254,7 +255,14 @@ async function compareExistingPage(request: PageComparisonRequest): Promise<Comp
     earlierPageNumber,
     newerPageNumber,
     alignment: request.alignment ?? "matched",
-    similarity: request.similarity,
+    similarity:
+      request.similarity ??
+      (oldText.decodable === false || newText.decodable === false
+        ? undefined
+        : pageSimilarity(
+            fingerprintPage(oldText.text, earlierPageNumber),
+            fingerprintPage(newText.text, newerPageNumber),
+          )),
     width,
     height,
     status: diff.changedPixels === 0 && semantic.changes.length === 0 ? "same" : "changed",

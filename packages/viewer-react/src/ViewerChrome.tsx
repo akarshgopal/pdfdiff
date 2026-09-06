@@ -333,6 +333,48 @@ export function PageRail({
   );
 }
 
+export function PairingControls({
+  page,
+  pageIndex,
+  manual,
+  cue,
+  canChangePair,
+  onChangePair,
+  onReturnToDocument,
+}: {
+  page: DiffPage;
+  pageIndex: number;
+  manual: boolean;
+  cue: string | null;
+  canChangePair: boolean;
+  onChangePair: () => void;
+  onReturnToDocument: () => void;
+}) {
+  return (
+    <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
+      {canChangePair ? (
+        // The pair label is the only thing worth clicking here, so it is the button.
+        <button className={styles.quietButton} title="Change pairing" onClick={onChangePair}>
+          {manual ? "Temporary · " : ""}
+          {pagePairLabel(page, pageIndex)}
+        </button>
+      ) : (
+        <span className="text-center text-xs text-foreground">{pagePairLabel(page, pageIndex)}</span>
+      )}
+      {manual ? (
+        <button className={styles.quietButton} onClick={onReturnToDocument}>
+          Return to document
+        </button>
+      ) : null}
+      {cue ? (
+        <span className={styles.pairingCue} role="status">
+          {cue}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export function PairingDialog({
   earlier,
   newer,

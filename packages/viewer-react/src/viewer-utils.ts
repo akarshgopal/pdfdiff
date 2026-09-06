@@ -1,3 +1,4 @@
+import { PAGE_MATCH_THRESHOLD } from "@pdfdiff/core";
 import type { DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
 
 export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcut: string }> = [
@@ -146,4 +147,71 @@ export function visiblePageIndexes(pages: readonly DiffPage[], onlyChanged: bool
   return pages.flatMap((page, index) =>
     !onlyChanged || index === selected || pageStatus(page) !== "same" || page.alignment === "moved" ? [index] : [],
   );
+}
+
+/** Shown next to a temporary pair that looks unrelated to the document pairing. */
+export const MISPAIR_CUE = "These pages may not match";
+
+/** Pixel change below this can still be an edit of the same page. */
+const MISPAIR_CHANGE_FLOOR = 25;
+/** Temporary pair must be this many times the typical document pair. */
+const MISPAIR_CHANGE_RATIO = 3;
+/** And this many points above typical, so a quiet document does not trip on a modest edit. */
+const MISPAIR_CHANGE_DELTA = 20;
+/** Jaccard on a handful of tokens is noise; fall through to visual density. */
+const MISPAIR_MIN_TOKENS = 8;
+
+function isDocumentPair(page: DiffPage, documentPages: readonly DiffPage[]): boolean {
+  return documentPages.some(
+    (entry) => entry.earlierPageNumber === page.earlierPageNumber && entry.newerPageNumber === page.newerPageNumber,
+  );
+}
+
+function hasStableText(page: DiffPage): boolean {
+  const semantic = page.semantic;
+  return Boolean(
+    semantic &&
+    semantic.textUndecodable !== true &&
+    semantic.hasBeforeText &&
+    semantic.hasAfterText &&
+    semantic.beforeTokenCount >= MISPAIR_MIN_TOKENS &&
+    semantic.afterTokenCount >= MISPAIR_MIN_TOKENS,
+  );
+}
+
+function typicalDocumentChangePercent(pages: readonly DiffPage[]): number | undefined {
+  const values = pages
+    .filter((page) => page.earlierPageNumber !== undefined && page.newerPageNumber !== undefined)
+    .map((page) => page.changedPercent)
+    .filter((value): value is number => value !== undefined)
+    .sort((a, b) => a - b);
+  if (values.length === 0) return undefined;
+  return values[Math.floor(values.length / 2)];
+}
+
+function visuallyUnrelated(page: DiffPage, documentPages: readonly DiffPage[]): boolean {
+  const changedPercent = page.changedPercent;
+  if (changedPercent === undefined || changedPercent < MISPAIR_CHANGE_FLOOR) return false;
+  const typical = typicalDocumentChangePercent(documentPages);
+  if (typical === undefined) return true;
+  return changedPercent >= typical * MISPAIR_CHANGE_RATIO && changedPercent >= typical + MISPAIR_CHANGE_DELTA;
+}
+
+/**
+ * A temporary pair is suspicious when the aligner would not have matched it, or
+ * when there is no text to ask and the visual rewrite is far above the document's
+ * usual pairing.
+ */
+export function isLikelyMispair(page: DiffPage, documentPages: readonly DiffPage[]): boolean {
+  if (page.status === "processing" || page.status === "error") return false;
+  if (page.earlierPageNumber === undefined || page.newerPageNumber === undefined) return false;
+  if (isDocumentPair(page, documentPages)) return false;
+  if (hasStableText(page) && page.similarity !== undefined) {
+    return page.similarity < PAGE_MATCH_THRESHOLD;
+  }
+  return visuallyUnrelated(page, documentPages);
+}
+
+export function temporaryPairCue(page: DiffPage, documentPages: readonly DiffPage[]): string | null {
+  return isLikelyMispair(page, documentPages) ? MISPAIR_CUE : null;
 }

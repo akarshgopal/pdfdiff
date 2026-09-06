@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { alignPages, fingerprintPage, pageSimilarity, type AlignedPagePair } from "@pdfdiff/core";
+import { alignPages, fingerprintPage, PAGE_MATCH_THRESHOLD, pageSimilarity, type AlignedPagePair } from "@pdfdiff/core";
 
 function pages(...texts: readonly string[]) {
   return texts.map((text, index) => fingerprintPage(text, index + 1));
@@ -70,7 +70,7 @@ test("an empty document yields only additions or only removals", () => {
 test("a wholly replaced page pairs anyway so the reviewer still gets a diff", () => {
   const pairs = alignPages(pages(TERMS, DUTIES), pages(TERMS, NEW_PAGE));
   assert.deepEqual(shape(pairs), ["1=1", "2=2"]);
-  assert.ok(pairs[1]!.similarity < 0.3);
+  assert.ok(pairs[1]!.similarity < PAGE_MATCH_THRESHOLD);
 });
 
 test("similarity ignores word order and repetition", () => {

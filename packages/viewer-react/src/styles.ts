@@ -88,6 +88,7 @@ export const styles = {
   toolbarGroup: "flex flex-wrap items-center gap-1.5",
   toolbarNavigation:
     "order-3 flex min-w-0 flex-1 basis-full items-center justify-center gap-2 2xl:order-none 2xl:basis-auto",
+  pairingCue: "max-w-full text-center text-2xs font-medium text-muted-foreground",
   modeGroup: "flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border border-border bg-muted p-0.5",
   modeButton: cx(ui.control, ui.focus, "min-h-8 border-transparent bg-transparent px-2 disabled:opacity-35"),
   modeButtonCurrent: "border-border bg-card text-foreground",

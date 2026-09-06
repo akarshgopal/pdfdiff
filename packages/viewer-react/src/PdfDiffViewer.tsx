@@ -21,6 +21,7 @@ import type {
 } from "./types.js";
 import {
   PageRail,
+  PairingControls,
   PairingDialog,
   SettingsDialog,
   StatusFooter,
@@ -36,7 +37,7 @@ import {
   missingSideLabel,
   toggleFullscreen,
   pageChanges,
-  pagePairLabel,
+  temporaryPairCue,
 } from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
@@ -1007,22 +1008,15 @@ export function PdfDiffViewer({
                 <button className={styles.quietButton} disabled={!hasPreviousPage} onClick={() => stepPage(-1)}>
                   ← Previous page
                 </button>
-                <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
-                  {comparison.comparePagePair ? (
-                    // The pair label is the only thing worth clicking here, so it is the button.
-                    <button className={styles.quietButton} title="Change pairing" onClick={() => setShowPairing(true)}>
-                      {manualPair ? "Temporary · " : ""}
-                      {pagePairLabel(previewPage, pageIndex)}
-                    </button>
-                  ) : (
-                    <span className="text-center text-xs text-foreground">{pagePairLabel(previewPage, pageIndex)}</span>
-                  )}
-                  {manualPair ? (
-                    <button className={styles.quietButton} onClick={() => selectPage(pageIndex)}>
-                      Return to document
-                    </button>
-                  ) : null}
-                </div>
+                <PairingControls
+                  page={previewPage}
+                  pageIndex={pageIndex}
+                  manual={Boolean(manualPair)}
+                  cue={manualPair && !pairComparisonPending ? temporaryPairCue(previewPage, pages) : null}
+                  canChangePair={Boolean(comparison.comparePagePair)}
+                  onChangePair={() => setShowPairing(true)}
+                  onReturnToDocument={() => selectPage(pageIndex)}
+                />
                 <button className={styles.quietButton} disabled={!hasNextPage} onClick={() => stepPage(1)}>
                   Next page →
                 </button>
