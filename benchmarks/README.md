@@ -60,3 +60,21 @@ Use url, earlier, newer, runs, warmups, and output arguments to select another
 server, fixture pair, run count, or output file. The browser benchmark is
 separate from the core baseline because browser, PDF.js, and rendering costs
 are not represented by the headless scenarios.
+
+## Accuracy corpus
+
+Run the labelled fixture corpus:
+
+    pnpm accuracy
+
+This scores page alignment, curated semantic anchors, known extraction
+artifacts, unreadable-text warnings, and self-comparison controls from
+`benchmarks/accuracy/corpus.json`. The long datasheets contain reorganized
+package and front-matter sections, so only high-confidence page anchors are
+scored instead of pretending their mappings are complete.
+
+Use `pnpm accuracy:visual` to run the real browser engine against the normalized,
+vision-reviewed visual regions. A region anchor passes when a detected region
+substantially overlaps it; the broad labels measure recall and intentionally do
+not claim precision. Use the corresponding `:check` command when every labelled
+expectation must pass.

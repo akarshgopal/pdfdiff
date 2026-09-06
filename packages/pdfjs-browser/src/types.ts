@@ -1,19 +1,19 @@
-import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
-import type {
-  DiffMetricSink,
-  PageText,
-  ProgressEvent,
-  RenderedPage as CoreRenderedPage,
-} from "@pdfdiff/core";
+import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { DiffMetricSink, PageText, ProgressEvent, RenderedPage as CoreRenderedPage } from "@pdfdiff/core";
 
 export type PdfSource = File | ArrayBuffer | Uint8Array;
 
 export interface PdfLoadOptions {
   signal?: AbortSignal;
-  onProgress?: (loaded: number, total?: number) => void;
   metrics?: DiffMetricSink;
-  password?: string;
   workerSrc?: string;
+  /**
+   * Base URL for the PDF.js side-car assets (`standard_fonts/`, `cmaps/`,
+   * `wasm/`, `iccs/`). Without them PDF.js silently drops JBIG2/JPX images from
+   * the render and substitutes metrics for non-embedded base-14 fonts, both of
+   * which the raster diff then reports as real changes.
+   */
+  assetBaseUrl?: string;
 }
 
 export interface LoadedPdf {
@@ -25,25 +25,10 @@ export interface LoadedPdf {
   destroy(): Promise<void>;
 }
 
-export interface PdfMetadata {
-  pageCount: number;
-  fingerprint: string | null;
-  title?: string;
-  author?: string;
-  subject?: string;
-  keywords?: string;
-  creator?: string;
-  producer?: string;
-  creationDate?: string;
-  modificationDate?: string;
-}
-
 export interface RenderOptions {
   scale?: number;
   maxPixels?: number;
   maxDimension?: number;
-  includeAnnotations?: boolean;
-  background?: string;
   signal?: AbortSignal;
   metrics?: DiffMetricSink;
 }
@@ -51,16 +36,10 @@ export interface RenderOptions {
 export interface DocumentTextOptions {
   signal?: AbortSignal;
   onProgress?: (event: ProgressEvent) => void;
-  includeMarkedContent?: boolean;
-  disableNormalization?: boolean;
   metrics?: DiffMetricSink;
 }
 
-export type PdfPage = PDFPageProxy;
-export interface RenderedPage extends CoreRenderedPage {
-  readonly canvas: HTMLCanvasElement;
-  readonly imageData: ImageData;
-}
+export type RenderedPage = CoreRenderedPage;
 
 export interface RenderedPagePair {
   readonly earlier: RenderedPage;

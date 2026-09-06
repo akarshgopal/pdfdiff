@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { fingerprintPage, type PageFingerprint, type PageText } from "@pdfdiff/core";
 import { extractPageText } from "@pdfdiff/pdfjs-browser/text";
 
@@ -23,14 +24,20 @@ export async function readDocumentText(path: string): Promise<DocumentText> {
   const data = new Uint8Array(await readFile(path));
   const task = getDocument({ data, useSystemFonts: true, verbosity: VerbosityLevel.ERRORS });
   const pdf = await task.promise;
-  const loaded = { pdf, pageCount: pdf.numPages, byteLength: data.byteLength, fingerprint: null, destroy: () => task.destroy() };
+  const loaded = {
+    pdf,
+    pageCount: pdf.numPages,
+    byteLength: data.byteLength,
+    fingerprint: null,
+    destroy: () => task.destroy(),
+  };
   try {
     const pages: PageText[] = [];
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       pages.push(await extractPageText(loaded, pageNumber));
     }
     return {
-      name: path.split("/").pop() ?? path,
+      name: basename(path),
       pageCount: pdf.numPages,
       pages,
       fingerprints: pages.map((page) => fingerprintPage(page.text, page.pageNumber)),

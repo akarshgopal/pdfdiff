@@ -33,8 +33,3 @@ export function decodableRatio(text: string): number {
 export function isDecodableText(text: string, minRatio: number = DEFAULT_MIN_DECODABLE): boolean {
   return decodableRatio(text) >= minRatio;
 }
-
-/** Drop unreadable glyph codes so they cannot be counted or diffed as words. */
-export function stripUndecodable(text: string): string {
-  return text.replace(new RegExp(UNDECODABLE.source, "gu"), "");
-}

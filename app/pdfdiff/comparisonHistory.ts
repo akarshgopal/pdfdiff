@@ -15,11 +15,6 @@ export interface ComparisonHistorySummary {
   updatedAt: number;
 }
 
-interface StoredComparison extends ComparisonHistorySummary {
-  earlierFile: File;
-  newerFile: File;
-}
-
 export interface SavedComparison extends ComparisonHistorySummary {
   earlierFile: File;
   newerFile: File;
@@ -51,25 +46,31 @@ async function withDatabase<T>(operation: (database: IDBDatabase) => Promise<T>)
 }
 
 function readRequest<T>(createRequest: (store: IDBObjectStore) => IDBRequest<T>, errorMessage: string): Promise<T> {
-  return withDatabase((database) => new Promise((resolve, reject) => {
-    const request = createRequest(database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME));
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error(errorMessage));
-  }));
+  return withDatabase(
+    (database) =>
+      new Promise((resolve, reject) => {
+        const request = createRequest(database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME));
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error(errorMessage));
+      }),
+  );
 }
 
 function writeTransaction(operation: (store: IDBObjectStore) => void, errorMessage: string): Promise<void> {
-  return withDatabase((database) => new Promise((resolve, reject) => {
-    const transaction = database.transaction(STORE_NAME, "readwrite");
-    operation(transaction.objectStore(STORE_NAME));
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error(errorMessage));
-    transaction.onabort = () => reject(transaction.error ?? new Error(errorMessage));
-  }));
+  return withDatabase(
+    (database) =>
+      new Promise((resolve, reject) => {
+        const transaction = database.transaction(STORE_NAME, "readwrite");
+        operation(transaction.objectStore(STORE_NAME));
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error ?? new Error(errorMessage));
+        transaction.onabort = () => reject(transaction.error ?? new Error(errorMessage));
+      }),
+  );
 }
 
-async function readAll(): Promise<StoredComparison[]> {
-  return readRequest((store) => store.getAll() as IDBRequest<StoredComparison[]>, "Unable to read comparison history.");
+async function readAll(): Promise<SavedComparison[]> {
+  return readRequest((store) => store.getAll() as IDBRequest<SavedComparison[]>, "Unable to read comparison history.");
 }
 
 export async function listComparisonHistory(): Promise<ComparisonHistorySummary[]> {
@@ -89,7 +90,7 @@ export async function listComparisonHistory(): Promise<ComparisonHistorySummary[
 
 export async function loadComparisonHistory(id: string): Promise<SavedComparison> {
   const record = await readRequest(
-    (store) => store.get(id) as IDBRequest<StoredComparison | undefined>,
+    (store) => store.get(id) as IDBRequest<SavedComparison | undefined>,
     "Unable to open the saved comparison.",
   );
   if (!record?.earlierFile || !record.newerFile) throw new Error("The saved PDFs are unavailable.");
@@ -103,7 +104,7 @@ export async function saveComparisonHistory(input: {
   options: DiffOptions;
 }): Promise<string> {
   const id = input.id ?? crypto.randomUUID();
-  const record: StoredComparison = {
+  const record: SavedComparison = {
     id,
     earlierName: input.earlierFile.name,
     earlierSize: input.earlierFile.size,
@@ -115,7 +116,9 @@ export async function saveComparisonHistory(input: {
     newerFile: input.newerFile,
   };
 
-  await writeTransaction((store) => { store.put(record); }, "Unable to save comparison history.");
+  await writeTransaction((store) => {
+    store.put(record);
+  }, "Unable to save comparison history.");
 
   const records = await readAll();
   const expiredIds = records
@@ -131,5 +134,7 @@ export async function saveComparisonHistory(input: {
 }
 
 export async function clearComparisonHistory(): Promise<void> {
-  await writeTransaction((store) => { store.clear(); }, "Unable to clear comparison history.");
+  await writeTransaction((store) => {
+    store.clear();
+  }, "Unable to clear comparison history.");
 }

@@ -1,7 +1,7 @@
 import { getDocument, type PDFDocumentLoadingTask, type PDFDocumentProxy } from "pdfjs-dist";
 import { measureAsync, PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
 import { configurePdfWorker, getConfiguredWorkerUrl } from "./worker.js";
-import type { LoadedPdf, PdfLoadOptions, PdfMetadata, PdfSource } from "./types.js";
+import type { LoadedPdf, PdfLoadOptions, PdfSource } from "./types.js";
 
 function isFile(source: PdfSource): source is File {
   return typeof File !== "undefined" && source instanceof File;
@@ -10,9 +10,11 @@ function isFile(source: PdfSource): source is File {
 async function readSource(source: PdfSource, signal?: PdfLoadOptions["signal"]): Promise<Uint8Array> {
   throwIfAborted(signal);
   if (isFile(source)) {
+    // arrayBuffer() already hands back a private copy; slicing it again doubles
+    // peak memory for no benefit on files this size.
     const buffer = await source.arrayBuffer();
     throwIfAborted(signal);
-    return new Uint8Array(buffer).slice();
+    return new Uint8Array(buffer);
   }
   if (source instanceof ArrayBuffer) return new Uint8Array(source).slice();
   return source.slice();
@@ -27,14 +29,32 @@ function configureWorker(workerSrc?: string): void {
   else if (!getConfiguredWorkerUrl()) throw new Error("Configure a PDF.js worker URL before loading a PDF.");
 }
 
+/** PDF.js resolves these itself, and only fetches them when a document needs them. */
+function assetUrls(assetBaseUrl: string | undefined) {
+  if (!assetBaseUrl) return {};
+  const base = assetBaseUrl.endsWith("/") ? assetBaseUrl : `${assetBaseUrl}/`;
+  return {
+    standardFontDataUrl: `${base}standard_fonts/`,
+    cMapUrl: `${base}cmaps/`,
+    cMapPacked: true,
+    wasmUrl: `${base}wasm/`,
+    iccUrl: `${base}iccs/`,
+  };
+}
+
 function sourceType(source: PdfSource): "file" | "array-buffer" | "uint8-array" {
   if (isFile(source)) return "file";
   return source instanceof ArrayBuffer ? "array-buffer" : "uint8-array";
 }
 
-function watchAbort(task: PDFDocumentLoadingTask, signal?: PdfLoadOptions["signal"]): { promise: Promise<never>; detach: () => void } {
+function watchAbort(
+  task: PDFDocumentLoadingTask,
+  signal?: PdfLoadOptions["signal"],
+): { promise: Promise<never>; detach: () => void } {
   let rejectAbort: (reason: PdfDiffAbortError) => void = () => undefined;
-  const promise = new Promise<never>((_, reject) => { rejectAbort = reject; });
+  const promise = new Promise<never>((_, reject) => {
+    rejectAbort = reject;
+  });
   const onAbort = (): void => {
     void task.destroy();
     rejectAbort(new PdfDiffAbortError());
@@ -49,18 +69,24 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
   throwIfAborted(options.signal);
   configureWorker(options.workerSrc);
 
-  const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), { sourceType: sourceType(source) });
+  const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), {
+    sourceType: sourceType(source),
+  });
   throwIfAborted(options.signal);
-  const task = getDocument({ data, password: options.password });
-  task.onProgress = (progress: { loaded: number; total?: number }) => options.onProgress?.(progress.loaded, progress.total);
+  const task = getDocument({ data, ...assetUrls(options.assetBaseUrl) });
   const abort = watchAbort(task, options.signal);
 
   try {
-    const pdf = await measureAsync(options.metrics, "pdf.document.load", async () => {
-      const loaded = await Promise.race([task.promise, abort.promise]);
-      throwIfAborted(options.signal);
-      return loaded;
-    }, { bytes: data.byteLength });
+    const pdf = await measureAsync(
+      options.metrics,
+      "pdf.document.load",
+      async () => {
+        const loaded = await Promise.race([task.promise, abort.promise]);
+        throwIfAborted(options.signal);
+        return loaded;
+      },
+      { bytes: data.byteLength },
+    );
     return {
       pdf,
       name: isFile(source) ? source.name : undefined,
@@ -97,29 +123,4 @@ export async function loadPdfPair(
   if (earlierResult.status === "rejected") throw earlierResult.reason;
   if (newerResult.status === "rejected") throw newerResult.reason;
   throw new Error("Unable to load the PDF pair.");
-}
-
-export async function getPdfMetadata(pdf: LoadedPdf | PDFDocumentProxy, signal?: PdfLoadOptions["signal"]): Promise<PdfMetadata> {
-  throwIfAborted(signal);
-  const document = "pdf" in pdf ? pdf.pdf : pdf;
-  const metadata = await document.getMetadata();
-  throwIfAborted(signal);
-  const info = metadata.info as unknown as Record<string, unknown>;
-  const stringValue = (key: string): string | undefined => typeof info[key] === "string" ? info[key] as string : undefined;
-  return {
-    pageCount: document.numPages,
-    fingerprint: getFingerprint(document),
-    title: stringValue("Title"),
-    author: stringValue("Author"),
-    subject: stringValue("Subject"),
-    keywords: stringValue("Keywords"),
-    creator: stringValue("Creator"),
-    producer: stringValue("Producer"),
-    creationDate: stringValue("CreationDate"),
-    modificationDate: stringValue("ModDate"),
-  };
-}
-
-export function getPageCount(pdf: LoadedPdf | PDFDocumentProxy): number {
-  return ("pdf" in pdf ? pdf.pdf : pdf).numPages;
 }

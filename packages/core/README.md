@@ -12,12 +12,12 @@ It exposes:
 - shared result types and cancellation helpers
 - opt-in phase timings and memory samples through DiffMetricSink
 
-    import { diffImages } from "@pdfdiff/core";
+  import { diffImages } from "@pdfdiff/core";
 
-    const result = diffImages(earlierRaster, newerRaster, {
-      threshold: 0.1,
-      regionOptions: { minPixels: 8 },
-    });
+  const result = diffImages(earlierRaster, newerRaster, {
+  threshold: 0.1,
+  regionOptions: { minPixels: 8 },
+  });
 
 Build with pnpm build from this workspace.
 

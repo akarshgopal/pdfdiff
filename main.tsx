@@ -11,24 +11,28 @@ declare global {
   }
 }
 
+const route = window.location.pathname.replace(/\/+$/, "") || "/";
+
 function App() {
-  const path = window.location.pathname.replace(/\/+$/, "") || "/";
   const recordMetric = useCallback((metric: DiffMetric): void => {
     window.__PDFDIFF_METRICS__?.push(metric);
   }, []);
-  if (path === "/privacy") return <LegalPage kind="privacy" />;
-  if (path === "/terms") return <LegalPage kind="terms" />;
+  if (route === "/privacy") return <LegalPage kind="privacy" />;
+  if (route === "/terms") return <LegalPage kind="terms" />;
   return <PdfDiffApp onMetric={window.__PDFDIFF_METRICS__ ? recordMetric : undefined} />;
 }
 
-const route = window.location.pathname.replace(/\/+$/, "") || "/";
 if (route === "/privacy" || route === "/terms") {
   const privacy = route === "/privacy";
   document.title = `${privacy ? "Privacy Policy" : "Terms of Service"} — pdfdiff`;
-  document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute(
-    "content",
-    privacy ? "How pdfdiff handles PDF files, browser storage, and technical data." : "The terms that govern use of the pdfdiff browser-based PDF comparison service.",
-  );
+  document
+    .querySelector<HTMLMetaElement>('meta[name="description"]')
+    ?.setAttribute(
+      "content",
+      privacy
+        ? "How pdfdiff handles PDF files, browser storage, and technical data."
+        : "The terms that govern use of the pdfdiff browser-based PDF comparison service.",
+    );
 }
 
 createRoot(document.getElementById("root")!).render(

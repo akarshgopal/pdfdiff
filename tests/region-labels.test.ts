@@ -1,14 +1,29 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DiffSemanticOverlay } from "@pdfdiff/viewer-react";
-import { describeRegions, overlapArea, regionLabel } from "../app/pdfdiff/regionLabels.ts";
+import { describeRegions, regionLabel } from "../app/pdfdiff/regionLabels.ts";
 
-function overlay(id: string, kind: DiffSemanticOverlay["kind"], text: string, x: number, y: number, width: number, height: number): DiffSemanticOverlay {
+function overlay(
+  id: string,
+  kind: DiffSemanticOverlay["kind"],
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): DiffSemanticOverlay {
   return {
     id,
     kind,
     text,
-    quads: [[{ x, y }, { x: x + width, y }, { x: x + width, y: y + height }, { x, y: y + height }]],
+    quads: [
+      [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ],
+    ],
   };
 }
 
@@ -23,11 +38,20 @@ test("a region covering changed text is named after that text", () => {
 
 test("region kind follows the matched overlay rather than a hardcoded value", () => {
   const regions = describeRegions(
-    [{ id: "1", x: 10, y: 10, width: 5, height: 2 }, { id: "2", x: 60, y: 60, width: 5, height: 2 }],
+    [
+      { id: "1", x: 10, y: 10, width: 5, height: 2 },
+      { id: "2", x: 60, y: 60, width: 5, height: 2 },
+    ],
     [overlay("a", "added", "Rev C", 10, 10, 5, 2), overlay("b", "removed", "Rev B", 60, 60, 5, 2)],
   );
-  assert.deepEqual(regions.map((region) => region.kind), ["added", "removed"]);
-  assert.deepEqual(regions.map((region) => region.label), ['Added “Rev C”', 'Removed “Rev B”']);
+  assert.deepEqual(
+    regions.map((region) => region.kind),
+    ["added", "removed"],
+  );
+  assert.deepEqual(
+    regions.map((region) => region.label),
+    ["Added “Rev C”", "Removed “Rev B”"],
+  );
 });
 
 test("the overlay with the largest overlap wins", () => {
@@ -40,19 +64,35 @@ test("the overlay with the largest overlap wins", () => {
 
 test("regions with no text underneath are numbered graphic changes", () => {
   const regions = describeRegions(
-    [{ id: "1", x: 5, y: 5, width: 2, height: 2 }, { id: "2", x: 80, y: 80, width: 2, height: 2 }],
+    [
+      { id: "1", x: 5, y: 5, width: 2, height: 2 },
+      { id: "2", x: 80, y: 80, width: 2, height: 2 },
+    ],
     [overlay("t1", "changed", "elsewhere", 40, 40, 5, 2)],
   );
-  assert.deepEqual(regions.map((region) => region.label), ["Graphic change 1", "Graphic change 2"]);
-  assert.deepEqual(regions.map((region) => region.kind), ["changed", "changed"]);
+  assert.deepEqual(
+    regions.map((region) => region.label),
+    ["Changed area 1", "Changed area 2"],
+  );
+  assert.deepEqual(
+    regions.map((region) => region.kind),
+    ["changed", "changed"],
+  );
 });
 
 test("graphic numbering counts only unlabeled regions", () => {
   const regions = describeRegions(
-    [{ id: "1", x: 5, y: 5, width: 2, height: 2 }, { id: "2", x: 40, y: 40, width: 2, height: 2 }, { id: "3", x: 80, y: 80, width: 2, height: 2 }],
+    [
+      { id: "1", x: 5, y: 5, width: 2, height: 2 },
+      { id: "2", x: 40, y: 40, width: 2, height: 2 },
+      { id: "3", x: 80, y: 80, width: 2, height: 2 },
+    ],
     [overlay("t1", "changed", "middle", 40, 40, 2, 2)],
   );
-  assert.deepEqual(regions.map((region) => region.label), ["Graphic change 1", "Changed “middle”", "Graphic change 2"]);
+  assert.deepEqual(
+    regions.map((region) => region.label),
+    ["Changed area 1", "Changed “middle”", "Changed area 2"],
+  );
 });
 
 test("a region just outside a glyph quad still matches within tolerance", () => {
@@ -60,7 +100,7 @@ test("a region just outside a glyph quad still matches within tolerance", () => 
     [{ id: "1", x: 30.2, y: 20.2, width: 0.3, height: 0.3 }],
     [overlay("t1", "added", "i", 30, 20, 0.1, 0.1)],
   );
-  assert.equal(regions[0]!.label, 'Added “i”');
+  assert.equal(regions[0]!.label, "Added “i”");
 });
 
 test("labels collapse whitespace and clip long runs", () => {
@@ -71,18 +111,12 @@ test("labels collapse whitespace and clip long runs", () => {
   assert.ok(long.endsWith("…”"));
 });
 
-test("overlapArea reports zero for touching but non-overlapping boxes", () => {
-  const left = { x: 0, y: 0, width: 10, height: 10 };
-  assert.equal(overlapArea(left, { x: 10, y: 0, width: 10, height: 10 }), 0);
-  assert.equal(overlapArea(left, { x: 5, y: 5, width: 10, height: 10 }), 25);
-});
-
 test("an overlay without quads never matches", () => {
   const regions = describeRegions(
     [{ id: "1", x: 10, y: 10, width: 5, height: 5 }],
     [{ id: "empty", kind: "added", text: "no geometry", quads: [] }],
   );
-  assert.equal(regions[0]!.label, "Graphic change 1");
+  assert.equal(regions[0]!.label, "Changed area 1");
 });
 
 test("one text change wrapped over several lines becomes a single entry", () => {
@@ -107,7 +141,10 @@ test("the before and after overlays of one change group together", () => {
   const before = overlay("c1", "changed", "Rev B", 10, 10, 8, 3);
   const after = { ...overlay("c1", "changed", "Rev C", 10, 14, 8, 3), id: "c1" };
   const regions = describeRegions(
-    [{ id: "1", x: 10, y: 10, width: 8, height: 3 }, { id: "2", x: 10, y: 14, width: 8, height: 3 }],
+    [
+      { id: "1", x: 10, y: 10, width: 8, height: 3 },
+      { id: "2", x: 10, y: 14, width: 8, height: 3 },
+    ],
     [before, after],
   );
   assert.equal(regions.length, 1);
@@ -124,5 +161,8 @@ test("graphic regions stay separate entries and keep sequential numbers", () => 
     ],
     [overlay("c1", "added", "grouped", 20, 20, 4, 7)],
   );
-  assert.deepEqual(regions.map((region) => region.label), ["Graphic change 1", 'Added “grouped”', "Graphic change 2"]);
+  assert.deepEqual(
+    regions.map((region) => region.label),
+    ["Changed area 1", "Added “grouped”", "Changed area 2"],
+  );
 });

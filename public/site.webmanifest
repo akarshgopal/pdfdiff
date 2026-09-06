@@ -4,8 +4,8 @@
   "description": "Compare PDF revisions page by page. Your documents stay entirely in your browser.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fdf7ed",
-  "theme_color": "#fdf7ed",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "lang": "en",
   "icons": [
     {

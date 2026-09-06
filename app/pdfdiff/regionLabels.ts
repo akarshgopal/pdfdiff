@@ -5,7 +5,7 @@ const MAX_REGION_LABEL_CHARS = 60;
 const REGION_MATCH_TOLERANCE = 0.4;
 
 /** A rectangle in page-relative percentages, matching the viewer's overlay coordinates. */
-export interface Box {
+interface Box {
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -18,17 +18,28 @@ interface OverlayBox extends Box {
   readonly text: string;
 }
 
-export function overlayBox(overlay: DiffSemanticOverlay): OverlayBox | null {
+function overlayBox(overlay: DiffSemanticOverlay): OverlayBox | null {
   const points = overlay.quads.flat();
   if (points.length === 0) return null;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const point of points) {
     minX = Math.min(minX, point.x);
     minY = Math.min(minY, point.y);
     maxX = Math.max(maxX, point.x);
     maxY = Math.max(maxY, point.y);
   }
-  return { id: overlay.id, kind: overlay.kind, text: overlay.text, x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  return {
+    id: overlay.id,
+    kind: overlay.kind,
+    text: overlay.text,
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
 }
 
 export function overlapArea(a: Box, b: Box): number {
@@ -58,13 +69,17 @@ function bestOverlayMatch(region: Box, overlays: readonly OverlayBox[]): Overlay
 export function regionLabel(kind: DiffRegionKind, text: string): string | null {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return null;
-  const clipped = normalized.length > MAX_REGION_LABEL_CHARS ? `${normalized.slice(0, MAX_REGION_LABEL_CHARS - 1)}…` : normalized;
+  const clipped =
+    normalized.length > MAX_REGION_LABEL_CHARS ? `${normalized.slice(0, MAX_REGION_LABEL_CHARS - 1)}…` : normalized;
   const prefix = kind === "added" ? "Added" : kind === "removed" ? "Removed" : "Changed";
   return `${prefix} “${clipped}”`;
 }
 
 function unionBox(boxes: readonly Box[]): Box {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const box of boxes) {
     minX = Math.min(minX, box.x);
     minY = Math.min(minY, box.y);
@@ -115,7 +130,7 @@ export function describeRegions(boxes: readonly InputRegion[], overlays: readonl
       id: group.id,
       ...unionBox(group.boxes),
       kind: label && group.match ? group.match.kind : "changed",
-      label: label ?? `Graphic change ${graphicCount}`,
+      label: label ?? `Changed area ${graphicCount}`,
       changeClass: group.boxes[0]!.changeClass,
     };
   });

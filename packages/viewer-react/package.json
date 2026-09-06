@@ -4,8 +4,12 @@
   "description": "Reusable React viewer for PDF Diff comparisons.",
   "license": "MIT",
   "type": "module",
-  "sideEffects": ["dist/theme.css"],
-  "files": ["dist"],
+  "sideEffects": [
+    "dist/theme.css"
+  ],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "publishConfig": {
@@ -14,18 +18,28 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
       "import": "./dist/index.js"
     },
-    "./theme.css": "./dist/theme.css"
+    "./ui": {
+      "types": "./dist/styles.d.ts",
+      "development": "./src/styles.ts",
+      "import": "./dist/styles.js"
+    },
+    "./theme.css": {
+      "development": "./src/theme.css",
+      "default": "./dist/theme.css"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node copy-theme.mjs"
+    "build": "tsc -p tsconfig.build.json && cp src/theme.css dist/theme.css"
   },
   "peerDependencies": {
     "react": ">=18"
   },
   "dependencies": {
     "@pdfdiff/core": "workspace:*",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "lucide-react": "^1.34.0"
   }
 }

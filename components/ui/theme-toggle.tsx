@@ -1,5 +1,4 @@
 import { Moon, Sun } from "lucide-react";
-import { useSyncExternalStore } from "react";
 import { Button } from "./button";
 
 const THEME_STORAGE_KEY = "pdfdiff-theme";
@@ -19,31 +18,13 @@ function applyTheme(theme: Theme) {
   }
 }
 
-function subscribeToTheme(onChange: () => void): () => void {
-  const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  return () => observer.disconnect();
-}
-
-/** Lets components pick theme-specific assets that CSS alone cannot swap. */
-export function useThemeMode(): Theme {
-  return useSyncExternalStore(subscribeToTheme, getTheme, () => "light");
-}
-
 export function ThemeToggle() {
   const toggleTheme = () => {
     applyTheme(getTheme() === "dark" ? "light" : "dark");
   };
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
-      className="size-8 rounded-md border-border bg-card text-muted-foreground hover:border-foreground/30 hover:bg-background hover:text-foreground"
-      aria-label="Toggle dark mode"
-      title="Toggle dark mode"
-      onClick={toggleTheme}
-    >
+    <Button variant="outline" size="icon" aria-label="Toggle dark mode" title="Toggle dark mode" onClick={toggleTheme}>
       <Sun className="size-4 dark:hidden" aria-hidden="true" />
       <Moon className="hidden size-4 dark:block" aria-hidden="true" />
       <span className="sr-only">Toggle dark mode</span>

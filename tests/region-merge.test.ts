@@ -48,7 +48,10 @@ test("a vertical gap smaller than the line spacing keeps separate lines apart", 
   const twoLines = [...oneTextLine, ...oneTextLine.map((box) => ({ ...box, y: 104 }))];
   const regions = findChangeRegions(maskWith(twoLines), WIDTH, HEIGHT, { minPixels: 1, ...MERGE });
   assert.equal(regions.length, 2);
-  assert.deepEqual(regions.map((region) => region.y).sort((a, b) => a - b), [40, 104]);
+  assert.deepEqual(
+    regions.map((region) => region.y).sort((a, b) => a - b),
+    [40, 104],
+  );
 });
 
 test("merging is transitive across a chain of neighbours", () => {
@@ -66,10 +69,21 @@ test("reading order sorts top-to-bottom then left-to-right, not by size", () => 
     { x: 40, y: 280, width: 16, height: 16 },
   ];
   const bySize = findChangeRegions(maskWith(boxes), WIDTH, HEIGHT, { minPixels: 1 });
-  assert.deepEqual(bySize.map((region) => region.pixelCount), [6400, 256, 256, 256]);
+  assert.deepEqual(
+    bySize.map((region) => region.pixelCount),
+    [6400, 256, 256, 256],
+  );
 
   const reading = findChangeRegions(maskWith(boxes), WIDTH, HEIGHT, { minPixels: 1, readingOrder: true });
-  assert.deepEqual(reading.map((region) => [region.x, region.y]), [[40, 40], [280, 40], [40, 280], [240, 280]]);
+  assert.deepEqual(
+    reading.map((region) => [region.x, region.y]),
+    [
+      [40, 40],
+      [280, 40],
+      [40, 280],
+      [240, 280],
+    ],
+  );
 });
 
 test("a tall region reads with the line it starts on, not where its middle lands", () => {
@@ -78,7 +92,10 @@ test("a tall region reads with the line it starts on, not where its middle lands
     { x: 40, y: 40, width: 16, height: 240 },
   ];
   const regions = findChangeRegions(maskWith(boxes), WIDTH, HEIGHT, { minPixels: 1, readingOrder: true });
-  assert.deepEqual(regions.map((region) => region.x), [40, 200]);
+  assert.deepEqual(
+    regions.map((region) => region.x),
+    [40, 200],
+  );
 });
 
 test("reading order tolerates baseline wobble within a line band", () => {
@@ -88,7 +105,10 @@ test("reading order tolerates baseline wobble within a line band", () => {
     { x: 100, y: 200, width: 16, height: 16 },
   ];
   const regions = findChangeRegions(maskWith(wobbly), WIDTH, HEIGHT, { minPixels: 1, readingOrder: true });
-  assert.deepEqual(regions.map((region) => region.x), [40, 100, 160]);
+  assert.deepEqual(
+    regions.map((region) => region.x),
+    [40, 100, 160],
+  );
 });
 
 test("the size limit keeps the largest regions but presents them in reading order", () => {
@@ -97,9 +117,19 @@ test("the size limit keeps the largest regions but presents them in reading orde
     { x: 40, y: 280, width: 48, height: 48 },
     { x: 40, y: 40, width: 32, height: 32 },
   ];
-  const regions = findChangeRegions(maskWith(boxes), WIDTH, HEIGHT, { minPixels: 1, maxRegions: 2, readingOrder: true });
+  const regions = findChangeRegions(maskWith(boxes), WIDTH, HEIGHT, {
+    minPixels: 1,
+    maxRegions: 2,
+    readingOrder: true,
+  });
   assert.equal(regions.length, 2);
-  assert.deepEqual(regions.map((region) => [region.x, region.y]), [[40, 40], [40, 280]]);
+  assert.deepEqual(
+    regions.map((region) => [region.x, region.y]),
+    [
+      [40, 40],
+      [40, 280],
+    ],
+  );
 });
 
 test("merging happens before the size limit is applied", () => {

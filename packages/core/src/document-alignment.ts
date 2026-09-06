@@ -36,11 +36,22 @@ export interface PageAlignmentOptions {
   readonly matchThreshold?: number;
   readonly band?: number;
   readonly detectMoves?: boolean;
+  /** Skip content matching and pair pages by position instead. */
+  readonly sequential?: boolean;
   readonly signal?: AbortSignalLike;
   readonly metrics?: DiffMetricSink;
 }
 
 const WORD = /[\p{L}\p{N}][\p{L}\p{N}'’.\-/]*/gu;
+/**
+ * A run of dots is a table-of-contents leader, not part of the word in front of
+ * it. Left joined, every leader length makes its own token, so two revisions of
+ * one contents page share almost nothing and align as unrelated pages. A single
+ * dot stays word-internal, because "3.3" and "5.1" are words here.
+ */
+const LEADER = /\.{2,}/gu;
+/** Sentence and list punctuation that ends a word without belonging to it. */
+const TRAILING = /[.\-/'’]+$/u;
 
 /**
  * Pages are compared as bags of distinct words. Dropping order and repetition
@@ -49,14 +60,18 @@ const WORD = /[\p{L}\p{N}][\p{L}\p{N}'’.\-/]*/gu;
  */
 export function fingerprintPage(text: string, pageNumber: number): PageFingerprint {
   const tokens = new Set<string>();
-  for (const match of text.toLowerCase().matchAll(WORD)) tokens.add(match[0]);
+  for (const match of text.toLowerCase().replace(LEADER, " ").matchAll(WORD)) {
+    const token = match[0].replace(TRAILING, "");
+    if (token) tokens.add(token);
+  }
   return { pageNumber, tokens, tokenCount: tokens.size };
 }
 
 export function pageSimilarity(earlier: PageFingerprint, newer: PageFingerprint): number {
   if (earlier.tokenCount === 0 && newer.tokenCount === 0) return 1;
   if (earlier.tokenCount === 0 || newer.tokenCount === 0) return 0;
-  const [small, large] = earlier.tokenCount <= newer.tokenCount ? [earlier.tokens, newer.tokens] : [newer.tokens, earlier.tokens];
+  const [small, large] =
+    earlier.tokenCount <= newer.tokenCount ? [earlier.tokens, newer.tokens] : [newer.tokens, earlier.tokens];
   let shared = 0;
   for (const token of small) if (large.has(token)) shared += 1;
   return shared / (earlier.tokenCount + newer.tokenCount - shared);
@@ -101,7 +116,8 @@ function buildScoreGrid(
   const grid: Array<Array<ScoreCell | undefined>> = Array.from({ length: earlier.length + 1 }, () => []);
   grid[0]![0] = { score: 0, step: "diagonal" };
   for (let row = 1; row <= earlier.length; row += 1) grid[row]![0] = { score: row * GAP_PENALTY, step: "up" };
-  for (let column = 1; column <= newer.length; column += 1) grid[0]![column] = { score: column * GAP_PENALTY, step: "left" };
+  for (let column = 1; column <= newer.length; column += 1)
+    grid[0]![column] = { score: column * GAP_PENALTY, step: "left" };
 
   for (let row = 1; row <= earlier.length; row += 1) {
     throwIfAborted(signal);
@@ -109,7 +125,11 @@ function buildScoreGrid(
       if (!withinBand(row, column, band, drift)) continue;
       const similarity = pageSimilarity(earlier[row - 1]!, newer[column - 1]!);
       const diagonal = scoreOf(grid, row - 1, column - 1) + similarity - matchThreshold;
-      grid[row]![column] = bestStep(diagonal, scoreOf(grid, row - 1, column) + GAP_PENALTY, scoreOf(grid, row, column - 1) + GAP_PENALTY);
+      grid[row]![column] = bestStep(
+        diagonal,
+        scoreOf(grid, row - 1, column) + GAP_PENALTY,
+        scoreOf(grid, row, column - 1) + GAP_PENALTY,
+      );
     }
   }
   return grid;
@@ -150,7 +170,11 @@ function tracebackPairs(
  * as an unrelated removal and addition. Re-pairing the strong matches among
  * them recovers the move, which reads very differently to a reviewer.
  */
-function detectMoves(pairs: readonly AlignedPagePair[], earlier: readonly PageFingerprint[], newer: readonly PageFingerprint[]): AlignedPagePair[] {
+function detectMoves(
+  pairs: readonly AlignedPagePair[],
+  earlier: readonly PageFingerprint[],
+  newer: readonly PageFingerprint[],
+): AlignedPagePair[] {
   const byEarlier = new Map(earlier.map((page) => [page.pageNumber, page]));
   const byNewer = new Map(newer.map((page) => [page.pageNumber, page]));
   const removed = pairs.filter((pair) => pair.kind === "removed");
@@ -173,8 +197,18 @@ function detectMoves(pairs: readonly AlignedPagePair[], earlier: readonly PageFi
     }
     if (!best) continue;
     claimed.add(best);
-    moves.set(removal, { earlierPageNumber: removal.earlierPageNumber, newerPageNumber: best.newerPageNumber, kind: "moved", similarity: bestSimilarity });
-    moves.set(best, { earlierPageNumber: removal.earlierPageNumber, newerPageNumber: best.newerPageNumber, kind: "moved", similarity: bestSimilarity });
+    moves.set(removal, {
+      earlierPageNumber: removal.earlierPageNumber,
+      newerPageNumber: best.newerPageNumber,
+      kind: "moved",
+      similarity: bestSimilarity,
+    });
+    moves.set(best, {
+      earlierPageNumber: removal.earlierPageNumber,
+      newerPageNumber: best.newerPageNumber,
+      kind: "moved",
+      similarity: bestSimilarity,
+    });
   }
 
   const emitted = new Set<string>();
@@ -188,15 +222,46 @@ function detectMoves(pairs: readonly AlignedPagePair[], earlier: readonly PageFi
   });
 }
 
+/** Pair pages by position: page 1 with page 1, and so on. */
+function sequentialPairs(earlier: readonly PageFingerprint[], newer: readonly PageFingerprint[]): AlignedPagePair[] {
+  const pairs: AlignedPagePair[] = [];
+  for (let index = 0; index < Math.max(earlier.length, newer.length); index += 1) {
+    const before = earlier[index];
+    const after = newer[index];
+    if (before && after)
+      pairs.push({
+        earlierPageNumber: before.pageNumber,
+        newerPageNumber: after.pageNumber,
+        kind: "matched",
+        similarity: pageSimilarity(before, after),
+      });
+    else if (before) pairs.push({ earlierPageNumber: before.pageNumber, kind: "removed", similarity: 0 });
+    else if (after) pairs.push({ newerPageNumber: after.pageNumber, kind: "added", similarity: 0 });
+  }
+  return pairs;
+}
+
 /** Align two page sequences by content so later pages survive an insertion. */
-export function alignPages(earlier: readonly PageFingerprint[], newer: readonly PageFingerprint[], options: PageAlignmentOptions = {}): AlignedPagePair[] {
-  return measure(options.metrics, "core.align.pages", () => {
-    if (earlier.length === 0) return newer.map((page) => ({ newerPageNumber: page.pageNumber, kind: "added" as const, similarity: 0 }));
-    if (newer.length === 0) return earlier.map((page) => ({ earlierPageNumber: page.pageNumber, kind: "removed" as const, similarity: 0 }));
-    const matchThreshold = options.matchThreshold ?? DEFAULT_MATCH_THRESHOLD;
-    const band = bandFor(earlier.length, newer.length, options.band ?? DEFAULT_BAND);
-    const grid = buildScoreGrid(earlier, newer, matchThreshold, band, options.signal);
-    const pairs = tracebackPairs(grid, earlier, newer);
-    return options.detectMoves === false ? pairs : detectMoves(pairs, earlier, newer);
-  }, { earlierPages: earlier.length, newerPages: newer.length });
+export function alignPages(
+  earlier: readonly PageFingerprint[],
+  newer: readonly PageFingerprint[],
+  options: PageAlignmentOptions = {},
+): AlignedPagePair[] {
+  return measure(
+    options.metrics,
+    "core.align.pages",
+    () => {
+      if (options.sequential) return sequentialPairs(earlier, newer);
+      if (earlier.length === 0)
+        return newer.map((page) => ({ newerPageNumber: page.pageNumber, kind: "added" as const, similarity: 0 }));
+      if (newer.length === 0)
+        return earlier.map((page) => ({ earlierPageNumber: page.pageNumber, kind: "removed" as const, similarity: 0 }));
+      const matchThreshold = options.matchThreshold ?? DEFAULT_MATCH_THRESHOLD;
+      const band = bandFor(earlier.length, newer.length, options.band ?? DEFAULT_BAND);
+      const grid = buildScoreGrid(earlier, newer, matchThreshold, band, options.signal);
+      const pairs = tracebackPairs(grid, earlier, newer);
+      return options.detectMoves === false ? pairs : detectMoves(pairs, earlier, newer);
+    },
+    { earlierPages: earlier.length, newerPages: newer.length },
+  );
 }

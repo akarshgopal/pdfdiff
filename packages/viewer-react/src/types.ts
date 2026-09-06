@@ -3,10 +3,26 @@ import type { ChangeClass, ChangeClassCounts, PageAlignmentKind, SemanticPageDif
 export type { ChangeClass, ChangeClassCounts, PageAlignmentKind };
 import type { ReactNode } from "react";
 
-export type DiffViewMode = "diff" | "semantic-text" | "side-by-side" | "swipe" | "blink" | "earlier" | "newer";
+export type DiffViewMode = "diff" | "semantic-text" | "side-by-side" | "swipe";
 export type SourceSide = "earlier" | "newer";
 export type AlignmentMode = "none" | "translation";
 export type DiffRegionKind = "added" | "removed" | "changed";
+/** How finely the page on screen is rendered; "high" costs a re-render. */
+export type RenderQuality = "standard" | "high";
+
+/** Everything the settings dialog owns; none of it re-runs a comparison. */
+export interface ViewerSettings {
+  showBoundingBoxes: boolean;
+  onlyChanged: boolean;
+}
+
+/** Presentation-only overlay appearance; changing it never re-runs a comparison. */
+export interface OverlayStyle {
+  addedColor: string;
+  removedColor: string;
+  modifiedColor: string;
+  unchangedOpacity: number;
+}
 
 export interface DiffRegion {
   id: string;
@@ -47,6 +63,13 @@ export interface DiffPage {
   readonly beforeSrc?: string;
   readonly afterSrc?: string;
   readonly diffSrc?: string;
+  /** Recolourable overlay layers; the compositor tints these live. */
+  readonly layers?: {
+    readonly base: string;
+    readonly added: string;
+    readonly removed: string;
+    readonly modified: string;
+  };
   readonly changedPixels?: number;
   readonly changedPercent?: number;
   readonly regions?: readonly DiffRegion[];
@@ -70,14 +93,10 @@ export interface DiffComparison {
   readonly comparePagePair?: (request: {
     earlierPageIndex: number;
     newerPageIndex: number;
+    quality?: RenderQuality;
     signal: AbortSignal;
   }) => Promise<DiffPage>;
   readonly dispose?: () => void;
-}
-
-export interface ViewerAnalyticsEvent {
-  name: "view_mode_used";
-  mode: DiffViewMode;
 }
 
 export interface PdfDiffViewerProps {
@@ -85,5 +104,10 @@ export interface PdfDiffViewerProps {
   processingProgress?: { readonly completed: number; readonly total: number };
   headerActions?: ReactNode;
   onNewComparison?: () => void;
-  onAnalytics?: (event: ViewerAnalyticsEvent) => void;
+  /** Seeds the overlay controls; the viewer owns the live value from then on. */
+  defaultOverlay?: OverlayStyle;
+  onOverlayChange?: (overlay: OverlayStyle) => void;
+  /** Page pairing mode; changing it re-runs the comparison, so the host owns it. */
+  matchPages?: boolean;
+  onMatchPagesChange?: (matchPages: boolean) => void;
 }

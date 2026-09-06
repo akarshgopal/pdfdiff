@@ -1,7 +1,19 @@
 export const helpSteps = [
-  { number: "1", title: "Select pages", copy: "Use the stacked A and B controls for independent page navigation, or choose an overlay thumbnail to align both sources." },
-  { number: "2", title: "Choose a view", copy: "Use Overlay, Split, Swipe, or Text to compare the selected A/B pages, or switch to one source." },
-  { number: "3", title: "Inspect the page", copy: "Scroll over the document to zoom, then click and drag the canvas to pan around the page." },
+  {
+    number: "1",
+    title: "Find the changes",
+    copy: "Use Previous page and Next page to browse compared pairs. Only changed filters the page list and navigation.",
+  },
+  {
+    number: "2",
+    title: "Choose a view",
+    copy: "Overlay opens first. Use Change pairing to compare different source pages temporarily.",
+  },
+  {
+    number: "3",
+    title: "Inspect and share",
+    copy: "Previous and Next change step through the page one change at a time. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
+  },
 ] as const;
 
 export const helpModes = [
@@ -9,16 +21,20 @@ export const helpModes = [
   ["Split", "view source A and source B side by side."],
   ["Swipe", "reveal either source with a draggable divider."],
   ["Text", "compare extracted text with anchored highlights."],
-  ["Source A / Source B", "inspect one source page independently; navigation follows the selected source."],
 ] as const;
 
 export const helpShortcuts = [
   ["← →", "Comparison pages"],
   ["1–4", "Overlay, Split, Swipe, Text"],
-  ["J / N", "Next page; K / P goes back"],
+  ["J / K", "Next and previous page"],
+  ["Shift + ← →", "Move document A alone"],
+  ["Ctrl/Cmd + ← →", "Move document B alone"],
   ["M", "Cycle views"],
-  ["Shift + ← →", "Source A pages"],
-  ["Ctrl/Cmd + ← →", "Source B pages"],
-  ["Scroll / drag", "Zoom and pan the document canvas"],
+  ["Scroll / drag", "Pan the document canvas"],
+  ["Pinch / Ctrl + scroll", "Zoom"],
+  ["+ − 0", "Zoom in, out, and back to 100%"],
+  ["F", "Fullscreen"],
+  ["S", "Save this page's diff image"],
+  ["?", "Show these shortcuts"],
   ["Esc", "Close or clear selection"],
 ] as const;

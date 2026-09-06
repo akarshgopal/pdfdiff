@@ -4,10 +4,14 @@
   "description": "Headless PDF comparison for Node, plus the pdfdiff CLI.",
   "license": "MIT",
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": { "pdfdiff": "./dist/cli.js" },
+  "bin": {
+    "pdfdiff": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

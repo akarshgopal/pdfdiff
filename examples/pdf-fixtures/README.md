@@ -4,13 +4,13 @@ Small, public reference pairs for exercising visual and text comparison. The
 files are kept in category folders so they can be dropped into the app as
 before/after documents.
 
-| Category | Before | After | What to look for |
-| --- | --- | --- | --- |
-| CAD drawing | [`wheel-hub-rev-a.pdf`](cad/wheel-hub-rev-a.pdf) | [`wheel-hub-rev-b.pdf`](cad/wheel-hub-rev-b.pdf) | The wheel hub changes to support a splined motor shaft; Rev B adds the stepped bore and counterbore. |
-| PCB schematic | [`olimexino-stm32-rev-a.pdf`](pcb/olimexino-stm32-rev-a.pdf) | [`olimexino-stm32-rev-b.pdf`](pcb/olimexino-stm32-rev-b.pdf) | Official OLIMEXINO-STM32 board schematic revisions. |
-| Contract | [`work-order-original.pdf`](contracts/work-order-original.pdf) | [`work-order-amended.pdf`](contracts/work-order-amended.pdf) | Minnesota’s sample work order versus Amendment 1, including term, payment, exhibit, and attachment changes. |
-| Datasheet - shift register | [`ti-sn74hc595-rev-i.pdf`](datasheets/ti-sn74hc595-rev-i.pdf) | [`ti-sn74hc595-rev-j.pdf`](datasheets/ti-sn74hc595-rev-j.pdf) | TI SN54HC595/SN74HC595 revision pair with document-structure and specification-history changes. |
-| Datasheet - bus buffer | [`ti-sn74lv126a-rev-i.pdf`](datasheets/ti-sn74lv126a-rev-i.pdf) | [`ti-sn74lv126a-rev-j.pdf`](datasheets/ti-sn74lv126a-rev-j.pdf) | TI SN54LV126A/SN74LV126A revision pair with formatting, package, and documentation updates. |
+| Category                   | Before                                                          | After                                                           | What to look for                                                                                            |
+| -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| CAD drawing                | [`wheel-hub-rev-a.pdf`](cad/wheel-hub-rev-a.pdf)                | [`wheel-hub-rev-b.pdf`](cad/wheel-hub-rev-b.pdf)                | The wheel hub changes to support a splined motor shaft; Rev B adds the stepped bore and counterbore.        |
+| PCB schematic              | [`olimexino-stm32-rev-a.pdf`](pcb/olimexino-stm32-rev-a.pdf)    | [`olimexino-stm32-rev-b.pdf`](pcb/olimexino-stm32-rev-b.pdf)    | Official OLIMEXINO-STM32 board schematic revisions.                                                         |
+| Contract                   | [`work-order-original.pdf`](contracts/work-order-original.pdf)  | [`work-order-amended.pdf`](contracts/work-order-amended.pdf)    | Minnesota’s sample work order versus Amendment 1, including term, payment, exhibit, and attachment changes. |
+| Datasheet - shift register | [`ti-sn74hc595-rev-i.pdf`](datasheets/ti-sn74hc595-rev-i.pdf)   | [`ti-sn74hc595-rev-j.pdf`](datasheets/ti-sn74hc595-rev-j.pdf)   | TI SN54HC595/SN74HC595 revision pair with document-structure and specification-history changes.             |
+| Datasheet - bus buffer     | [`ti-sn74lv126a-rev-i.pdf`](datasheets/ti-sn74lv126a-rev-i.pdf) | [`ti-sn74lv126a-rev-j.pdf`](datasheets/ti-sn74lv126a-rev-j.pdf) | TI SN54LV126A/SN74LV126A revision pair with formatting, package, and documentation updates.                 |
 
 ## Provenance
 

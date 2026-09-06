@@ -1,15 +1,14 @@
-import {
-  type ChangeEvent,
-  type DragEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ChangeEvent, type DragEvent, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { DiffMetricSink, DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
-import { PdfDiffViewer, type DiffComparison, type DiffViewMode } from "@pdfdiff/viewer-react";
+import type { DiffComparison } from "@pdfdiff/viewer-react";
+
+/**
+ * The viewer only exists once there is something to view, and the engine it
+ * needs is already loaded on demand — so the landing page ships neither.
+ */
+const PdfDiffViewer = lazy(async () => ({ default: (await import("@pdfdiff/viewer-react")).PdfDiffViewer }));
 import { ThemeToggle } from "../../components/ui/theme-toggle";
-import { styles, styleProps } from "./styles";
+import { styles } from "./styles";
 import { LoadingScreen } from "./LoadingScreen";
 import { UploadScreen } from "./UploadScreen";
 import {
@@ -19,6 +18,7 @@ import {
   saveComparisonHistory,
   type ComparisonHistorySummary,
 } from "./comparisonHistory";
+import { fromHex, readOverlaySettings, toHex, writeOverlaySettings } from "./overlaySettings";
 
 export type DiffOptions = CoreDiffOptions;
 
@@ -41,16 +41,9 @@ export interface PdfDiffEngine {
   }): Promise<DiffComparison>;
 }
 
-export type PdfDiffAnalyticsEvent =
-  | { name: "comparison_started"; earlierSizeBucket: string; newerSizeBucket: string }
-  | { name: "comparison_completed"; pageCount: number; changedPageCount: number }
-  | { name: "comparison_failed"; errorCode: string }
-  | { name: "view_mode_used"; mode: DiffViewMode };
-
 export interface PdfDiffAppProps {
   engine?: PdfDiffEngine;
   initialComparison?: DiffComparison;
-  onAnalytics?: (event: PdfDiffAnalyticsEvent) => void;
   onMetric?: DiffMetricSink;
 }
 
@@ -62,13 +55,6 @@ const lazyBrowserEngine: PdfDiffEngine = {
 };
 
 const MAX_FILE_SIZE = 150 * 1024 * 1024;
-
-function sizeBucket(bytes: number): string {
-  if (bytes < 2 * 1024 * 1024) return "small";
-  if (bytes < 20 * 1024 * 1024) return "medium";
-  if (bytes < 80 * 1024 * 1024) return "large";
-  return "very_large";
-}
 
 function normalizeFile(file: File | undefined): File | null {
   if (!file) return null;
@@ -82,8 +68,14 @@ interface ComparisonInput {
   historyId?: string;
 }
 
-function progressPercent(completed: number, total: number): number {
-  return total > 0 ? Math.round((completed / total) * 100) : 0;
+function viewerOverlay(options: DiffOptions) {
+  const overlay = { ...readOverlaySettings(), ...options.overlay };
+  return {
+    addedColor: toHex(overlay.addedColor),
+    removedColor: toHex(overlay.removedColor),
+    modifiedColor: toHex(overlay.modifiedColor),
+    unchangedOpacity: overlay.unchangedOpacity,
+  };
 }
 
 function comparisonErrorMessage(error: unknown): string {
@@ -96,17 +88,21 @@ async function rememberComparison(input: ComparisonInput, refreshHistory: () => 
   return id;
 }
 
-export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onMetric }: PdfDiffAppProps) {
+export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfDiffAppProps) {
   const activeEngine = engine ?? lazyBrowserEngine;
   const [earlierFile, setEarlierFile] = useState<File | null>(null);
   const [newerFile, setNewerFile] = useState<File | null>(null);
   const [comparison, setComparison] = useState<DiffComparison | null>(initialComparison ?? null);
   const [phase, setPhase] = useState<"upload" | "loading" | "workspace">(initialComparison ? "workspace" : "upload");
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
   const [pageProgress, setPageProgress] = useState<{ completed: number; total: number } | null>(null);
   const [activeDrop, setActiveDrop] = useState<"earlier" | "newer" | null>(null);
-  const [options, setOptions] = useState<DiffOptions>({ sensitivity: 28, alignment: "none" });
+  const [options, setOptions] = useState<DiffOptions>(() => ({
+    sensitivity: 28,
+    alignment: "translation",
+    matchPages: true,
+    overlay: readOverlaySettings(),
+  }));
   const [history, setHistory] = useState<ComparisonHistorySummary[]>([]);
   const [rememberFiles, setRememberFiles] = useState(false);
   const inputEarlier = useRef<HTMLInputElement>(null);
@@ -122,14 +118,17 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
     }
   }, []);
 
-  const setFile = useCallback((side: "earlier" | "newer", file: File | null) => {
-    comparison?.dispose?.();
-    if (side === "earlier") setEarlierFile(file);
-    else setNewerFile(file);
-    setError(null);
-    setComparison(null);
-    setPhase("upload");
-  }, [comparison]);
+  const setFile = useCallback(
+    (side: "earlier" | "newer", file: File | null) => {
+      comparison?.dispose?.();
+      if (side === "earlier") setEarlierFile(file);
+      else setNewerFile(file);
+      setError(null);
+      setComparison(null);
+      setPhase("upload");
+    },
+    [comparison],
+  );
 
   const chooseFile = (side: "earlier" | "newer") => {
     if (side === "earlier") inputEarlier.current?.click();
@@ -137,6 +136,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
   };
 
   const acceptFiles = (side: "earlier" | "newer", selectedFiles: File[]) => {
+    if (selectedFiles.length === 0) return;
     if (selectedFiles.length > 2 || selectedFiles.some((file) => !normalizeFile(file))) {
       setError("Choose one or two PDF files.");
       return;
@@ -158,17 +158,42 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
 
   const handleDrop = (side: "earlier" | "newer", event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    // The page is a drop target too; a drop on a card belongs to that card alone.
+    event.stopPropagation();
     setActiveDrop(null);
-    const file = normalizeFile(event.dataTransfer.files?.[0]);
-    if (!file) {
-      setError("Drop a PDF file.");
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      setError("That PDF exceeds the 150 MB limit. Choose a smaller file.");
-      return;
-    }
-    setFile(side, file);
+    acceptFiles(side, Array.from(event.dataTransfer.files ?? []));
+  };
+
+  /** A drop anywhere else fills the empty slot, or both when two files arrive. */
+  const dropAnywhere = (files: File[]) => acceptFiles(earlierFile && files.length === 1 ? "newer" : "earlier", files);
+
+  /**
+   * The viewer tints live in hex; the engine bakes page thumbnails from RGB at
+   * comparison time. Persisting the viewer's choice keeps the next run's
+   * thumbnails in the same colours the reviewer just picked.
+   */
+  const setOverlay = (style: {
+    addedColor: string;
+    removedColor: string;
+    modifiedColor: string;
+    unchangedOpacity: number;
+  }) => {
+    const current = { ...readOverlaySettings(), ...options.overlay };
+    const overlay = {
+      addedColor: fromHex(style.addedColor, current.addedColor),
+      removedColor: fromHex(style.removedColor, current.removedColor),
+      modifiedColor: fromHex(style.modifiedColor, current.modifiedColor),
+      unchangedOpacity: style.unchangedOpacity,
+    };
+    writeOverlaySettings(overlay);
+    setOptions((existing) => ({ ...existing, overlay }));
+  };
+
+  /** Page pairing changes what gets compared, so the toggle re-runs the comparison. */
+  const setMatchPages = (matchPages: boolean) => {
+    const next = { ...options, matchPages };
+    setOptions(next);
+    if (earlierFile && newerFile) void runComparison({ earlierFile, newerFile, options: next });
   };
 
   const swapFiles = () => {
@@ -182,9 +207,7 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
     abortRef.current = abortController;
     setError(null);
     setPhase("loading");
-    setProgress(0);
     setPageProgress(null);
-    onAnalytics?.({ name: "comparison_started", earlierSizeBucket: sizeBucket(input.earlierFile.size), newerSizeBucket: sizeBucket(input.newerFile.size) });
     try {
       const result = await activeEngine.compare({
         earlier: input.earlierFile,
@@ -205,14 +228,17 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
         },
         onPage: (page) => {
           if (abortRef.current !== abortController || abortController.signal.aborted) return;
-          setComparison((current) => current ? {
-            ...current,
-            pages: current.pages.map((existing) => existing.index === page.index ? page : existing),
-          } : current);
+          setComparison((current) =>
+            current
+              ? {
+                  ...current,
+                  pages: current.pages.map((existing) => (existing.index === page.index ? page : existing)),
+                }
+              : current,
+          );
         },
         onProgress: ({ completed, total }) => {
           if (abortRef.current !== abortController || abortController.signal.aborted) return;
-          setProgress(progressPercent(completed, total));
           setPageProgress({ completed, total });
         },
         onMetric,
@@ -220,14 +246,11 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
       if (abortController.signal.aborted) return;
       setComparison(result);
       setPhase("workspace");
-      setProgress(100);
       setPageProgress(null);
-      onAnalytics?.({ name: "comparison_completed", pageCount: result.pages.length, changedPageCount: result.pages.filter((page) => page.status !== "same").length });
     } catch (comparisonError) {
       if (abortController.signal.aborted) return;
       setError(comparisonErrorMessage(comparisonError));
       setPhase("upload");
-      onAnalytics?.({ name: "comparison_failed", errorCode: "compare_failed" });
     }
   };
 
@@ -238,7 +261,9 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
       try {
         input.historyId = await rememberComparison(input, refreshHistory);
       } catch {
-        setError("These PDFs could not be saved in this browser. Free some site storage or compare without remembering them.");
+        setError(
+          "These PDFs could not be saved in this browser. Free some site storage or compare without remembering them.",
+        );
         return;
       }
     }
@@ -280,17 +305,22 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
     setError(null);
     setRememberFiles(false);
     setPhase("upload");
-    setProgress(0);
     setPageProgress(null);
   };
 
-  useEffect(() => () => {
-    abortRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    [],
+  );
 
-  useEffect(() => () => {
-    comparison?.dispose?.();
-  }, [comparison]);
+  useEffect(
+    () => () => {
+      comparison?.dispose?.();
+    },
+    [comparison],
+  );
 
   useEffect(() => {
     let active = true;
@@ -308,15 +338,54 @@ export default function PdfDiffApp({ engine, initialComparison, onAnalytics, onM
   }, []);
 
   if (phase === "upload") {
-    return <UploadScreen earlierFile={earlierFile} newerFile={newerFile} activeDrop={activeDrop} error={error} history={history} rememberFiles={rememberFiles} onRememberFilesChange={setRememberFiles} onChoose={chooseFile} onRemove={(side) => setFile(side, null)} onActive={(side, active) => setActiveDrop(active ? side : null)} onDrop={handleDrop} onInput={handleInput} onSwap={swapFiles} onCompare={() => void runSelectedComparison()} onRepeat={(id) => void repeatComparison(id)} onClearHistory={() => void clearHistory()} inputEarlier={inputEarlier} inputNewer={inputNewer} />;
+    return (
+      <UploadScreen
+        earlierFile={earlierFile}
+        newerFile={newerFile}
+        activeDrop={activeDrop}
+        error={error}
+        history={history}
+        rememberFiles={rememberFiles}
+        onRememberFilesChange={setRememberFiles}
+        onChoose={chooseFile}
+        onRemove={(side) => setFile(side, null)}
+        onActive={(side, active) => setActiveDrop(active ? side : null)}
+        onDrop={handleDrop}
+        onDropAnywhere={dropAnywhere}
+        onInput={handleInput}
+        onSwap={swapFiles}
+        onCompare={() => void runSelectedComparison()}
+        onRepeat={(id) => void repeatComparison(id)}
+        onClearHistory={() => void clearHistory()}
+        inputEarlier={inputEarlier}
+        inputNewer={inputNewer}
+      />
+    );
   }
 
   if (phase === "loading") {
-    return <LoadingScreen progress={progress} />;
+    return <LoadingScreen onCancel={reset} />;
   }
 
   if (!comparison) return null;
-  return <main {...styleProps(styles.root)}><div {...styleProps(styles.shell)}><PdfDiffViewer comparison={comparison} processingProgress={pageProgress ?? undefined} headerActions={<ThemeToggle />} onNewComparison={reset} onAnalytics={(event) => onAnalytics?.(event)} /></div></main>;
+  return (
+    <Suspense fallback={<LoadingScreen onCancel={reset} />}>
+      <main className={styles.root}>
+        <div className={styles.shell}>
+          <PdfDiffViewer
+            comparison={comparison}
+            processingProgress={pageProgress ?? undefined}
+            headerActions={<ThemeToggle />}
+            onNewComparison={reset}
+            defaultOverlay={viewerOverlay(options)}
+            onOverlayChange={setOverlay}
+            matchPages={options.matchPages !== false}
+            onMatchPagesChange={setMatchPages}
+          />
+        </div>
+      </main>
+    </Suspense>
+  );
 }
 
 export { PdfDiffApp };

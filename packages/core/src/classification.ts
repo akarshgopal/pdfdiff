@@ -46,10 +46,12 @@ export interface ClassifyRegionsInput {
 const DEFAULT_TOLERANCE = 2;
 
 function intersects(region: ChangeRegion, box: ClassifierBox, tolerance: number): boolean {
-  return region.x - tolerance < box.x + box.width
-    && box.x < region.x + region.width + tolerance
-    && region.y - tolerance < box.y + box.height
-    && box.y < region.y + region.height + tolerance;
+  return (
+    region.x - tolerance < box.x + box.width &&
+    box.x < region.x + region.width + tolerance &&
+    region.y - tolerance < box.y + box.height &&
+    box.y < region.y + region.height + tolerance
+  );
 }
 
 function anyIntersects(region: ChangeRegion, boxes: readonly ClassifierBox[], tolerance: number): boolean {
@@ -71,6 +73,32 @@ function emptyCounts(): Record<ChangeClass, number> {
   return { content: 0, reflow: 0, formatting: 0, graphic: 0 };
 }
 
+const NOTICEABLE_CLASSES: ReadonlySet<ChangeClass> = new Set<ChangeClass>(["content", "graphic"]);
+
+/**
+ * Regions are capped for display, but the cap must be applied *after*
+ * classification and it must not rank on size alone. A reflowed page produces
+ * hundreds of large "the whole line moved" regions that would otherwise crowd
+ * out the handful of small ones covering the words that actually changed —
+ * taking the page's counts, and its `noticeable` verdict, down with them.
+ * Real changes are kept first; whatever survives is returned in reading order.
+ */
+export function limitRegions(regions: readonly ClassifiedRegion[], maxRegions: number): ClassifiedRegion[] {
+  if (regions.length <= maxRegions) return [...regions];
+  return regions
+    .map((region, order) => ({ region, order }))
+    .sort(
+      (first, second) =>
+        Number(NOTICEABLE_CLASSES.has(second.region.changeClass)) -
+          Number(NOTICEABLE_CLASSES.has(first.region.changeClass)) ||
+        second.region.pixelCount - first.region.pixelCount ||
+        first.order - second.order,
+    )
+    .slice(0, maxRegions)
+    .sort((first, second) => first.order - second.order)
+    .map((entry) => entry.region);
+}
+
 export function classifyRegions(input: ClassifyRegionsInput): PageClassification {
   const tolerance = input.tolerance ?? DEFAULT_TOLERANCE;
   const counts = emptyCounts();
@@ -80,15 +108,6 @@ export function classifyRegions(input: ClassifyRegionsInput): PageClassification
     return { ...region, changeClass };
   });
   return { regions, counts, noticeable: counts.content > 0 || counts.graphic > 0 };
-}
-
-export function addClassCounts(total: ChangeClassCounts, page: ChangeClassCounts): ChangeClassCounts {
-  return {
-    content: total.content + page.content,
-    reflow: total.reflow + page.reflow,
-    formatting: total.formatting + page.formatting,
-    graphic: total.graphic + page.graphic,
-  };
 }
 
 export function zeroClassCounts(): ChangeClassCounts {
