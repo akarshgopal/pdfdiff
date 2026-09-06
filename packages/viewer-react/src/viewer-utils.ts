@@ -80,10 +80,36 @@ export function pageChanges(page: DiffPage, mode: DiffViewMode): ReadonlyArray<{
   return page.regions ?? [];
 }
 
+/** Overlay, Split, and Swipe walk visual regions; Text walks extracted-text edits. */
+export function changeGrain(mode: DiffViewMode): "area" | "text change" {
+  return mode === "semantic-text" ? "text change" : "area";
+}
+
+function grainNoun(count: number, mode: DiffViewMode): string {
+  const grain = changeGrain(mode);
+  if (count === 1) return grain;
+  return grain === "area" ? "areas" : "text changes";
+}
+
+/** Rail chip: the on-page count in the active view's unit, never a bare "changes". */
+export function changeCountLabel(count: number, mode: DiffViewMode): string {
+  return `${count} ${grainNoun(count, mode)}`;
+}
+
+/**
+ * Walker copy. `selectedIndex` is -1 when nothing is selected, matching
+ * Array#findIndex. The unit is named so this string cannot be read as pages.
+ */
+export function changeWalkerLabel(count: number, selectedIndex: number, mode: DiffViewMode): string {
+  if (selectedIndex < 0) return `${changeCountLabel(count, mode)} on this page`;
+  const name = changeGrain(mode) === "area" ? "Area" : "Text change";
+  return `${name} ${selectedIndex + 1} of ${count} on this page`;
+}
+
 /** What the rail says about a page: its count when it changed, its state otherwise. */
 export function statusText(page: DiffPage, status: NonNullable<DiffPage["status"]>, mode: DiffViewMode): string {
   const count = status === "changed" ? pageChanges(page, mode).length : 0;
-  return count ? `${count} change${count === 1 ? "" : "s"}` : statusLabels[status];
+  return count ? changeCountLabel(count, mode) : statusLabels[status];
 }
 
 export function statusLabel(status: NonNullable<DiffPage["status"]>): string {

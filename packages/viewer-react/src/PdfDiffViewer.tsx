@@ -30,7 +30,14 @@ import {
 import { summarizeComparison } from "./summary.js";
 import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
-import { clampZoom, missingSideLabel, toggleFullscreen, pageChanges, pagePairLabel } from "./viewer-utils.js";
+import {
+  changeWalkerLabel,
+  clampZoom,
+  missingSideLabel,
+  toggleFullscreen,
+  pageChanges,
+  pagePairLabel,
+} from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
 import type { OverlayStyle } from "./types.js";
@@ -179,29 +186,25 @@ function SemanticNativePane({
 }
 
 function semanticSummary(semantic: DiffPage["semantic"]): {
-  changes: string;
-  tokens: string;
+  status: string;
+  detail: string;
   missingText: boolean;
   undecodable: boolean;
 } {
   if (!semantic)
     return {
-      changes: "No semantic text changes",
-      tokens: "Native PDF rendering",
+      status: "No semantic text changes",
+      detail: "Native PDF rendering",
       missingText: false,
       undecodable: false,
     };
   const count = semantic.changes.length;
   const undecodable = semantic.textUndecodable === true;
   return {
-    changes: undecodable
-      ? "Text could not be read"
-      : count
-        ? `${count} text change${count === 1 ? "" : "s"}`
-        : "No semantic text changes",
-    tokens: undecodable
-      ? "Embedded font has no Unicode mapping"
-      : `${semantic.beforeTokenCount} → ${semantic.afterTokenCount} tokens`,
+    // When there are text changes the walker already names that count; this
+    // bar only carries status that the walker cannot (empty, unreadable).
+    status: undecodable ? "Text could not be read" : count ? "" : "No semantic text changes",
+    detail: undecodable ? "Embedded font has no Unicode mapping" : "",
     missingText: !semantic.hasBeforeText && !semantic.hasAfterText,
     undecodable,
   };
@@ -242,10 +245,12 @@ function SemanticPdfPreview({
       <CanvasNotice pending={pending} error={error} />
       {!waiting ? (
         <>
-          <div className={styles.semanticSummary}>
-            <span>{summary.changes}</span>
-            <span>{summary.tokens}</span>
-          </div>
+          {summary.status || summary.detail ? (
+            <div className={styles.semanticSummary}>
+              {summary.status ? <span>{summary.status}</span> : null}
+              {summary.detail ? <span>{summary.detail}</span> : null}
+            </div>
+          ) : null}
           <div className={styles.semanticLegend}>
             <span>
               <i className={cx(styles.semanticLegendDot, styles.semanticLegendRemoved)} />
@@ -442,11 +447,7 @@ function PagePreview({
             />
           </div>
           <div className={styles.sidePanel}>
-            <PageImage
-              source={after}
-              alt="Newer version of this page"
-              missingLabel={missingSideLabel(page, "newer")}
-            />
+            <PageImage source={after} alt="Newer version of this page" missingLabel={missingSideLabel(page, "newer")} />
           </div>
         </div>
       </div>
@@ -802,9 +803,9 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * The workspace's primary action: walk the changes on this page one at a time.
- * The list follows the current view, so its count can never disagree with the
- * count the view itself reports.
+ * The workspace's primary action: walk the items the current view highlights.
+ * Overlay, Split, and Swipe walk visual areas; Text walks text changes. The
+ * count names that grain so it cannot be read as the document page headline.
  */
 function ChangeNavigator({
   page,
@@ -840,9 +841,7 @@ function ChangeNavigator({
         ← Previous change
       </button>
       <span className={styles.changeCount} aria-live="polite">
-        {index >= 0
-          ? `Change ${index + 1} of ${changes.length}`
-          : `${changes.length} change${changes.length === 1 ? "" : "s"} on this page`}
+        {changeWalkerLabel(changes.length, index, mode)}
       </span>
       <button
         className={styles.primaryButton}

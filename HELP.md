@@ -17,14 +17,17 @@ the document summary or report; image export saves the displayed pair.
 
 ## Walk the changes
 
-The bar under the page counts the changes on it — **Change 3 of 70** — and
-**Previous change** and **Next change** step through them. The current change
-is outlined on the page, and a visual change also shows the same area of the
-Earlier and Newer pages as two crops. **Clear selection** returns the space to
-the page. Settings can outline every detected region.
+The bar under the page walks what the current view highlights. Overlay, Split,
+and Swipe count visual areas — **Area 3 of 12 on this page**. Text counts
+extracted-text edits — **Text change 2 of 8 on this page**. **Previous change**
+and **Next change** step through that list. The current item is outlined on the
+page, and a visual area also shows the same place on the Earlier and Newer pages
+as two crops. **Clear selection** returns the space to the page. Settings can
+outline every detected region.
 
-The count follows the view: **Text** counts text changes, the other views count
-changed areas, so the bar never disagrees with what is highlighted.
+The document summary is a page count (changed, added, removed, and moved when
+present). The bar never uses that unit, so the two numbers cannot be read as
+the same kind of answer.
 
 All detected changes count, including possible reflow and formatting. Text
 matching provides additional highlights but does not hide visually changed

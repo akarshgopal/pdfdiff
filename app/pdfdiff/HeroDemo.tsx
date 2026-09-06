@@ -23,6 +23,13 @@ const MODE_CAPTION: Record<Mode, string> = {
   text: "Added and removed wording highlighted in place.",
 };
 
+const MODE_COUNT: Record<Mode, string> = {
+  overlay: "3 areas on this page",
+  split: "3 areas on this page",
+  swipe: "3 areas on this page",
+  text: "2 text changes on this page",
+};
+
 /** Body copy as bars; the two entries that differ carry the revision that owns them. */
 const LINES: { y: number; width: number; only?: "earlier" | "newer" }[] = [
   { y: 232, width: 196 },
@@ -185,7 +192,7 @@ export function HeroDemo() {
           →
         </span>
         <span className={styles.demoChip}>assy-4471-revB.pdf</span>
-        <span className={styles.demoCount}>3 changes on this page</span>
+        <span className={styles.demoCount}>{MODE_COUNT[mode]}</span>
       </div>
       <div className={styles.demoStage}>
         {mode === "overlay" ? <OverlayPage /> : null}

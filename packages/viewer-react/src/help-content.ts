@@ -12,7 +12,7 @@ export const helpSteps = [
   {
     number: "3",
     title: "Inspect and share",
-    copy: "Previous and Next change step through the page one change at a time. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
+    copy: "Previous and Next change step through this page's areas, or its text changes in Text. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
   },
 ] as const;
 

@@ -8,8 +8,11 @@ import {
   pageImageFileName,
   qualityForZoom,
   PdfDiffViewer,
+  summaryHeadline,
   type DiffPage,
 } from "@pdfdiff/viewer-react";
+
+type ComparisonSummary = Parameters<typeof summaryHeadline>[0];
 
 const currentPage: DiffPage = {
   index: 0,
@@ -79,6 +82,7 @@ test("single-page unreadable comparisons remove duplicate chrome and retain the 
   );
 
   assert.match(html, />1 page changed<\/strong>/);
+  assert.match(html, /2 areas on this page/);
   assert.match(html, /⚠ Text unavailable on 1 of 1 pages<\/span>/);
   assert.match(html, /disabled=""[^>]+title="Text comparison unavailable:[^"]+"/);
   assert.doesNotMatch(html, />2 visual changes<\/span>/);
@@ -107,7 +111,10 @@ test("the workspace opens with a document-level summary and filters", () => {
   );
 
   assert.match(html, /aria-label="Comparison summary"/);
-  assert.match(html, /1 changed of 2 pages/);
+  assert.match(html, /1 of 2 pages changed/);
+  assert.match(html, /1 area on this page/);
+  assert.doesNotMatch(html, /1 changed of 2 pages/);
+  assert.doesNotMatch(html, /1 change on this page/);
   assert.doesNotMatch(html, /2 text changes/);
   assert.doesNotMatch(html, /9 reflow\/formatting/);
   // The filters moved behind the settings dialog, so the resting workspace shows neither.
@@ -247,10 +254,49 @@ test("page navigation uses source numbers and retains moved pages in the filter"
   assert.deepEqual(visiblePageIndexes(pages, true, 0), [0, 1, 2, 3]);
 });
 
+function summary(overrides: Partial<ComparisonSummary>): ComparisonSummary {
+  return {
+    pages: 1,
+    changedPages: 0,
+    addedPages: 0,
+    removedPages: 0,
+    movedPages: 0,
+    noisePages: 0,
+    textChanges: 0,
+    classes: { content: 0, reflow: 0, formatting: 0, graphic: 0 },
+    pagesWithoutText: 0,
+    pagesWithUnreadableText: 0,
+    ...overrides,
+  };
+}
+
+test("the document headline is always a page story", () => {
+  assert.equal(summaryHeadline(summary({ pages: 4 })), "No differences detected at current settings");
+  assert.equal(summaryHeadline(summary({ pages: 1, changedPages: 1 })), "1 page changed");
+  assert.equal(summaryHeadline(summary({ pages: 2, changedPages: 2 })), "2 pages changed");
+  assert.equal(summaryHeadline(summary({ pages: 2, changedPages: 1 })), "1 of 2 pages changed");
+  assert.equal(summaryHeadline(summary({ pages: 5, addedPages: 1 })), "1 of 5 pages added");
+  assert.equal(
+    summaryHeadline(summary({ pages: 5, changedPages: 2, addedPages: 1, removedPages: 1, movedPages: 1 })),
+    "2 pages changed · 1 page added · 1 page removed · 1 page moved",
+  );
+  assert.doesNotMatch(
+    summaryHeadline(
+      summary({
+        pages: 3,
+        changedPages: 1,
+        textChanges: 8,
+        classes: { content: 2, reflow: 9, formatting: 0, graphic: 1 },
+      }),
+    ),
+    /text change|reflow|token|area/i,
+  );
+});
+
 // The rail label, the change counter, and next/previous all read one list, so
 // Text mode can never claim a different number of changes than the view shows.
 test("change navigation counts the list the current view highlights", async () => {
-  const { pageChanges, statusText } = await import("../packages/viewer-react/src/viewer-utils.ts");
+  const { pageChanges, statusText, changeWalkerLabel } = await import("../packages/viewer-react/src/viewer-utils.ts");
   const page: DiffPage = {
     index: 0,
     status: "changed",
@@ -262,7 +308,10 @@ test("change navigation counts the list the current view highlights", async () =
     semantic: {
       before: [],
       after: [],
-      changes: [{ id: "t1", kind: "changed", before: "a", after: "b" }],
+      changes: [
+        { id: "t1", kind: "changed", before: "a", after: "b" },
+        { id: "t2", kind: "added", before: "", after: "c" },
+      ],
       beforeOverlays: [],
       afterOverlays: [],
       beforeTokenCount: 1,
@@ -274,13 +323,22 @@ test("change navigation counts the list the current view highlights", async () =
 
   assert.deepEqual(
     pageChanges(page, "semantic-text").map((change) => change.id),
-    ["t1"],
+    ["t1", "t2"],
   );
   assert.deepEqual(
     pageChanges(page, "diff").map((change) => change.id),
     ["r1", "r2", "r3"],
   );
-  assert.equal(statusText(page, "changed", "semantic-text"), "1 change");
-  assert.equal(statusText(page, "changed", "diff"), "3 changes");
+  assert.equal(statusText(page, "changed", "semantic-text"), "2 text changes");
+  assert.equal(statusText(page, "changed", "diff"), "3 areas");
+  assert.equal(statusText(page, "changed", "side-by-side"), "3 areas");
+  assert.equal(statusText(page, "changed", "swipe"), "3 areas");
   assert.equal(statusText({ index: 1, status: "removed" }, "removed", "diff"), "Removed");
+
+  assert.equal(changeWalkerLabel(12, -1, "diff"), "12 areas on this page");
+  assert.equal(changeWalkerLabel(12, 2, "diff"), "Area 3 of 12 on this page");
+  assert.equal(changeWalkerLabel(1, -1, "swipe"), "1 area on this page");
+  assert.equal(changeWalkerLabel(8, -1, "semantic-text"), "8 text changes on this page");
+  assert.equal(changeWalkerLabel(8, 1, "semantic-text"), "Text change 2 of 8 on this page");
+  assert.equal(changeWalkerLabel(1, 0, "semantic-text"), "Text change 1 of 1 on this page");
 });
