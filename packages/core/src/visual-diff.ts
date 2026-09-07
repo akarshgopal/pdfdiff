@@ -113,7 +113,7 @@ function overlayFromDiffMask(
   const addedColor = validColor(options.addedColor, DEFAULT_ADDED);
   const removedColor = validColor(options.removedColor, DEFAULT_REMOVED);
   const modifiedColor = validColor(options.modifiedColor, DEFAULT_MODIFIED);
-  const unchangedOpacity = clamp(options.unchangedOpacity ?? 0.25, 0, 1);
+  const unchangedOpacity = clamp(options.unchangedOpacity ?? 0.4, 0, 1);
   const changedMask = new Uint8Array(total);
   const directionMask = new Uint8Array(total);
   let changedPixels = 0;

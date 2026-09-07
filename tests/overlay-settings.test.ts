@@ -23,6 +23,10 @@ function withStorage(initial: string | null, run: () => void): void {
   }
 }
 
+test("unchanged overlay content stays visible enough that drawing speckle does not dominate", () => {
+  assert.equal(DEFAULT_OVERLAY.unchangedOpacity, 0.4);
+});
+
 test("hex survives a round trip through the colour input", () => {
   assert.equal(toHex([16, 190, 190]), "#10bebe");
   assert.equal(toHex([0, 0, 0]), "#000000");

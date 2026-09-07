@@ -17,6 +17,8 @@ import type { DiffComparison, DiffPage, DiffViewMode, OverlayStyle, ViewerSettin
 import {
   MAX_ZOOM,
   MIN_ZOOM,
+  changedPageCount,
+  collapsedRailSummary,
   pagePairDescription,
   pagePairLabel,
   pageStatus,
@@ -25,7 +27,7 @@ import {
   visiblePageIndexes,
   ZOOM_STEP,
 } from "./viewer-utils.js";
-import { comparisonProgress, workspaceHeadline, type ComparisonSummary } from "./summary.js";
+import { comparisonProgress, headerTextWarning, workspaceHeadline, type ComparisonSummary } from "./summary.js";
 import type { ExportChoice } from "./export.js";
 
 function ThumbPlaceholder() {
@@ -55,6 +57,7 @@ export function WorkspaceHeader({
 }) {
   const progress = comparisonProgress(comparison.pages, processingProgress);
   const headline = workspaceHeadline(summary, progress);
+  const textWarning = progress ? null : headerTextWarning(summary);
   return (
     <header className={styles.workspaceBar}>
       <div className={styles.logo}>
@@ -82,19 +85,9 @@ export function WorkspaceHeader({
       </div>
       <div className={styles.headerSummary} aria-label="Comparison summary">
         <strong className={styles.headerHeadline}>{headline}</strong>
-        {!progress && summary.pagesWithUnreadableText ? (
-          <span
-            className={styles.headerWarning}
-            title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR."
-          >
-            ⚠ Text unavailable on {summary.pagesWithUnreadableText} of {summary.pages} pages
-          </span>
-        ) : !progress && summary.pagesWithoutText ? (
-          <span
-            className={styles.headerWarning}
-            title="These pages have no selectable text, so only the visual comparison applies."
-          >
-            ⚠ No text on {summary.pagesWithoutText} of {summary.pages} pages
+        {textWarning ? (
+          <span className={styles.headerWarning} title={textWarning.title}>
+            {textWarning.message}
           </span>
         ) : null}
       </div>
@@ -292,23 +285,37 @@ export function PageRail({
   const visible = visiblePageIndexes(pages, onlyChanged, pageIndex);
   const provisional = pages.some((page) => pageStatus(page) === "processing");
   if (pages.length <= 1) return null;
+  const changed = changedPageCount(pages);
+  const location = collapsedRailSummary(pageIndex, pages.length, changed);
+  const current = pages[pageIndex];
   return (
-    <aside className={styles.pageRail} aria-label="Pages">
-      <div className={styles.railHeader}>
+    <aside className={cx(styles.pageRail, collapsed && styles.pageRailCollapsed)} aria-label="Pages">
+      <div className={cx(styles.railHeader, collapsed && styles.railHeaderCollapsed)}>
         <div className={styles.railHeaderTop}>
           {collapsed ? null : <h2 className={styles.railHeading}>Pages</h2>}
           <button
             className={styles.railToggle}
             type="button"
-            aria-label={collapsed ? "Show page list" : "Hide page list"}
-            title={collapsed ? "Show page list" : "Hide page list"}
+            aria-label={collapsed ? `Show page list, ${location}` : "Hide page list"}
+            title={collapsed ? `Show page list, ${location}` : "Hide page list"}
             aria-expanded={!collapsed}
             onClick={() => onCollapsedChange(!collapsed)}
           >
             {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
         </div>
-        {collapsed ? null : (
+        {collapsed ? (
+          <p
+            className={styles.railCollapsedSummary}
+            role="status"
+            title={current ? `${pagePairLabel(current, pageIndex)} · ${location}` : location}
+          >
+            <span className={styles.railCollapsedPage}>
+              {pageIndex + 1}/{pages.length}
+            </span>
+            {changed > 0 ? <span className={styles.railCollapsedChanged}>{changed} changed</span> : null}
+          </p>
+        ) : (
           <label className="flex items-center gap-2 text-2xs text-muted-foreground">
             <input
               className={`${ui.focus} pdfdiff-switch`}
@@ -499,7 +506,7 @@ export function ViewerToolbar({
               aria-keyshortcuts={item.shortcut}
               title={
                 disabled
-                  ? "Text comparison unavailable: this PDF has no Unicode mapping"
+                  ? "Text comparison unavailable: this PDF has no Unicode mapping. Overlay, Split, and Swipe still apply."
                   : `${item.label} (${item.shortcut})`
               }
               onClick={() => onModeChange(item.id)}

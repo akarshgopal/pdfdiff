@@ -41,6 +41,20 @@ function pageStory(count: number, total: number, verb: string): string {
   return `${count} of ${total} pages ${verb}`;
 }
 
+/**
+ * Document-level text warnings. Unreadable fonts are a trust issue — Text mode
+ * cannot run on those pages — so they stay visible with an action. Pages that
+ * simply have no selectable text are already compared visually; Text mode
+ * explains itself on those pages, and a header chip does not help.
+ */
+export function headerTextWarning(summary: ComparisonSummary): { message: string; title: string } | null {
+  if (!summary.pagesWithUnreadableText) return null;
+  return {
+    message: `Text comparison unavailable on ${summary.pagesWithUnreadableText} of ${summary.pages} pages`,
+    title: "These pages embed fonts with no Unicode mapping. Overlay, Split, and Swipe still apply.",
+  };
+}
+
 export function summaryHeadline(summary: ComparisonSummary): string {
   const { changedPages, addedPages, removedPages, movedPages, pages } = summary;
   if (changedPages + addedPages + removedPages + movedPages === 0) {
