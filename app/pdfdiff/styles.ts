@@ -18,6 +18,7 @@ export const styles = {
   eyebrow: cx(ui.caps, "m-0 text-primary"),
   headline: "text-[clamp(32px,4vw,48px)] font-semibold leading-display tracking-tighter",
   headlineAccent: "not-italic text-primary",
+  introLead: "mt-3 max-w-md text-sm leading-relaxed text-muted-foreground",
   uploadGrid: "mt-8 grid w-full grid-cols-1 gap-3.5 lg:grid-cols-[1fr_auto_1fr]",
   swapUpload: cx(
     ui.control,

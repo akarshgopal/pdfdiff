@@ -12,18 +12,24 @@ async function clientBundleText() {
 
 test("builds a static private PDF comparison experience", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
-  assert.match(html, /<title>pdfdiff — see what changed between two PDFs<\/title>/i);
-  assert.match(
-    html,
-    /name="description" content="Compare two PDF revisions page by page[^"]*never leave your device\."/i,
-  );
+  assert.match(html, /<title>Compare two PDFs privately in your browser \| pdfdiff<\/title>/i);
+  assert.match(html, /name="description" content="[^"]*Files never leave your device[^"]*"/i);
+  assert.match(html, /rel="canonical" href="https:\/\/pdfdiff\.app\/"/i);
+  assert.match(html, /property="og:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
+  assert.match(html, /name="twitter:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
+  assert.match(html, /type="application\/ld\+json"/i);
+  assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
   assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/i);
   assert.match(html, /rel="manifest" href="\/site\.webmanifest"/i);
   assert.match(html, /id="root"/i);
   assert.match(html, /<script[^>]+type="module"/i);
   assert.match(html, /<link[^>]+stylesheet/i);
+  assert.doesNotMatch(html, /google-analytics|gtag\(|googletagmanager|posthog/i);
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
+  assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/sitemap.xml", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
 
   // One smoke check that the SPA actually shipped its app code; the copy itself is not a contract.
   const bundle = await clientBundleText();
