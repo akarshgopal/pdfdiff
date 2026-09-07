@@ -32,6 +32,22 @@ test("builds a static private PDF comparison experience", async () => {
   assert.match(bundle, /24\.0/);
   assert.match(bundle, /26\.5/);
   assert.match(bundle, /pdfdiff-swipe-top/);
+  assert.match(bundle, /Try a sample/);
+  assert.match(bundle, /Datasheet/);
+});
+
+test("try-sample fixture pairs ship as static files", () => {
+  const samples = [
+    "cad/wheel-hub-rev-a.pdf",
+    "cad/wheel-hub-rev-b.pdf",
+    "contracts/work-order-original.pdf",
+    "contracts/work-order-amended.pdf",
+    "datasheets/ti-sn74lv126a-rev-i.pdf",
+    "datasheets/ti-sn74lv126a-rev-j.pdf",
+  ];
+  for (const file of samples) {
+    assert.equal(existsSync(new URL(`../dist/samples/${file}`, import.meta.url)), true, file);
+  }
 });
 
 test("Cloudflare deployment contains static assets only", async () => {

@@ -28,6 +28,10 @@ export const styles = {
   rememberCheckbox: `${ui.focus} pdfdiff-switch`,
   introActions: "mt-5 flex w-full flex-col items-center gap-3 xl:items-start",
   compareButton: "min-h-12 px-6",
+  samples: "mt-6 flex w-full flex-col items-center gap-2 xl:items-start",
+  samplesLabel: cx(ui.caps, "m-0"),
+  samplesRow: "flex flex-wrap justify-center gap-2 xl:justify-start",
+  sampleButton: cx(ui.control, ui.focus, "min-h-8 px-3"),
   privacyNote: "inline-flex items-center gap-2 text-xs leading-relaxed text-muted-foreground",
   privacyDot: "size-1.5 shrink-0 rounded-full bg-success",
   errorBox:

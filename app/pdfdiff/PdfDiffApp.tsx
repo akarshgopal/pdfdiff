@@ -19,6 +19,7 @@ import {
   type ComparisonHistorySummary,
 } from "./comparisonHistory";
 import { fromHex, readOverlaySettings, toHex, writeOverlaySettings } from "./overlaySettings";
+import { loadSamplePair, type SampleId } from "./sampleDocuments";
 
 export type DiffOptions = CoreDiffOptions;
 
@@ -254,20 +255,48 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
     }
   };
 
-  const runSelectedComparison = async () => {
-    if (!earlierFile || !newerFile) return;
-    const input: ComparisonInput = { earlierFile, newerFile, options };
+  const startComparison = async (inputFiles: { earlierFile: File; newerFile: File }, signal?: AbortSignal) => {
+    const input: ComparisonInput = { ...inputFiles, options };
     if (rememberFiles) {
       try {
         input.historyId = await rememberComparison(input, refreshHistory);
       } catch {
+        if (signal?.aborted) return;
         setError(
           "These PDFs could not be saved in this browser. Free some site storage or compare without remembering them.",
         );
+        setPhase("upload");
         return;
       }
     }
+    if (signal?.aborted) return;
     void runComparison(input);
+  };
+
+  const runSelectedComparison = async () => {
+    if (!earlierFile || !newerFile) return;
+    await startComparison({ earlierFile, newerFile });
+  };
+
+  const trySample = async (id: SampleId) => {
+    abortRef.current?.abort();
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+    setError(null);
+    setPhase("loading");
+    try {
+      const pair = await loadSamplePair(id, abortController.signal);
+      if (abortController.signal.aborted) return;
+      setEarlierFile(pair.earlier);
+      setNewerFile(pair.newer);
+      await startComparison({ earlierFile: pair.earlier, newerFile: pair.newer }, abortController.signal);
+    } catch (sampleError) {
+      if (abortController.signal.aborted || (sampleError instanceof Error && sampleError.name === "AbortError")) {
+        return;
+      }
+      setError("The sample PDFs could not be loaded. Try again or choose your own files.");
+      setPhase("upload");
+    }
   };
 
   const repeatComparison = async (id: string) => {
@@ -355,6 +384,7 @@ export default function PdfDiffApp({ engine, initialComparison, onMetric }: PdfD
         onInput={handleInput}
         onSwap={swapFiles}
         onCompare={() => void runSelectedComparison()}
+        onTrySample={(id) => void trySample(id)}
         onRepeat={(id) => void repeatComparison(id)}
         onClearHistory={() => void clearHistory()}
         inputEarlier={inputEarlier}

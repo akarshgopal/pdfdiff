@@ -1,6 +1,7 @@
 # PDF Diff Help
 
-Choose an Earlier PDF and a Newer PDF, then select **Compare**. Files are
+Choose an Earlier PDF and a Newer PDF, then select **Compare**. Or select
+**Try a sample** to load a CAD drawing, contract, or datasheet pair. Files are
 processed in your browser and never uploaded. Each file can be up to 150 MB.
 
 ## Review pages
