@@ -5,10 +5,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   canDownloadPageImage,
   clampZoom,
+  comparisonProgress,
   pageImageFileName,
   qualityForZoom,
   PdfDiffViewer,
   summaryHeadline,
+  workspaceHeadline,
   type DiffPage,
 } from "@pdfdiff/viewer-react";
 
@@ -184,8 +186,79 @@ test("viewer renders document counts and progress without treating pending pages
   assert.match(html, /Comparing 0 of 3 pages…/);
   assert.match(html, /Comparing page 1 of 3/);
   assert.match(html, /role="progressbar"[^>]+aria-valuenow="0"/);
+  assert.doesNotMatch(html, /No differences detected/);
+  assert.doesNotMatch(html, /pages changed/);
   assert.doesNotMatch(html, /<p>Preview is still rendering/);
   assert.doesNotMatch(html, /No selectable text/);
+});
+
+test("a partially streamed comparison keeps the in-progress headline and muted rail chips", () => {
+  const pages: DiffPage[] = [
+    { ...currentPage, status: "changed" },
+    { index: 1, status: "same", beforeSrc: "b", afterSrc: "a" },
+    { index: 2, status: "processing" },
+  ];
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        earlierPageCount: 3,
+        newerPageCount: 3,
+        pages,
+      },
+      processingProgress: { completed: 2, total: 3 },
+    }),
+  );
+
+  assert.match(html, /Comparing 2 of 3 pages…/);
+  assert.match(html, /Comparing page 3 of 3/);
+  assert.doesNotMatch(html, /1 of 3 pages changed/);
+  assert.doesNotMatch(html, /No differences detected/);
+  assert.match(html, />1 area</);
+  assert.match(html, />No changes</);
+  assert.match(html, />Comparing…</);
+  assert.doesNotMatch(html, /text-success/);
+});
+
+test("pending rows keep the comparing headline even without a progress prop", () => {
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        pages: [
+          { ...currentPage, status: "changed" },
+          { index: 1, status: "processing" },
+        ],
+      },
+    }),
+  );
+
+  assert.match(html, /Comparing 1 of 2 pages…/);
+  assert.doesNotMatch(html, /1 of 2 pages changed/);
+  assert.doesNotMatch(html, /No differences detected/);
+});
+
+test("once every page has a verdict the page-story headline is stable", () => {
+  const html = renderToStaticMarkup(
+    createElement(PdfDiffViewer, {
+      comparison: {
+        earlierName: "earlier.pdf",
+        newerName: "newer.pdf",
+        pages: [
+          { ...currentPage, status: "changed" },
+          { index: 1, status: "same", beforeSrc: "b", afterSrc: "a" },
+        ],
+      },
+      processingProgress: { completed: 2, total: 2 },
+    }),
+  );
+
+  assert.match(html, /1 of 2 pages changed/);
+  assert.doesNotMatch(html, /Comparing \d+ of \d+ pages/);
+  assert.doesNotMatch(html, /role="progressbar"/);
+  assert.match(html, /text-success/);
 });
 
 test("the marked-up page can leave the tab, named after both sources and the pages it pairs", () => {
@@ -291,6 +364,43 @@ test("the document headline is always a page story", () => {
     ),
     /text change|reflow|token|area/i,
   );
+});
+
+test("document progress stays open until every page has a verdict", () => {
+  const mixed: DiffPage[] = [
+    { index: 0, status: "changed" },
+    { index: 1, status: "same" },
+    { index: 2, status: "processing" },
+  ];
+  assert.deepEqual(comparisonProgress(mixed, { completed: 2, total: 3 }), { completed: 2, total: 3 });
+  assert.deepEqual(
+    comparisonProgress(mixed),
+    { completed: 2, total: 3 },
+    "page status is enough without a progress prop",
+  );
+  assert.equal(
+    comparisonProgress([
+      { index: 0, status: "changed" },
+      { index: 1, status: "same" },
+    ]),
+    undefined,
+  );
+  assert.equal(
+    comparisonProgress(
+      [
+        { index: 0, status: "changed" },
+        { index: 1, status: "same" },
+      ],
+      { completed: 2, total: 2 },
+    ),
+    undefined,
+    "a leftover 2 of 2 report does not keep the document unsettled",
+  );
+  assert.deepEqual(comparisonProgress([], { completed: 0, total: 4 }), { completed: 0, total: 4 });
+
+  const partial = summary({ pages: 3, changedPages: 1 });
+  assert.equal(workspaceHeadline(partial, { completed: 2, total: 3 }), "Comparing 2 of 3 pages…");
+  assert.equal(workspaceHeadline(partial), "1 of 3 pages changed");
 });
 
 // The rail label, the change counter, and next/previous all read one list, so

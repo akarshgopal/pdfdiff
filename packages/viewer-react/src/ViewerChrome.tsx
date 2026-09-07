@@ -25,7 +25,7 @@ import {
   visiblePageIndexes,
   ZOOM_STEP,
 } from "./viewer-utils.js";
-import { summaryHeadline, type ComparisonSummary } from "./summary.js";
+import { comparisonProgress, workspaceHeadline, type ComparisonSummary } from "./summary.js";
 import type { ExportChoice } from "./export.js";
 
 function ThumbPlaceholder() {
@@ -53,9 +53,8 @@ export function WorkspaceHeader({
   onNewComparison?: () => void;
   headerActions?: ReactNode;
 }) {
-  const headline = processingProgress
-    ? `Comparing ${processingProgress.completed} of ${processingProgress.total} pages…`
-    : summaryHeadline(summary);
+  const progress = comparisonProgress(comparison.pages, processingProgress);
+  const headline = workspaceHeadline(summary, progress);
   return (
     <header className={styles.workspaceBar}>
       <div className={styles.logo}>
@@ -83,14 +82,14 @@ export function WorkspaceHeader({
       </div>
       <div className={styles.headerSummary} aria-label="Comparison summary">
         <strong className={styles.headerHeadline}>{headline}</strong>
-        {!processingProgress && summary.pagesWithUnreadableText ? (
+        {!progress && summary.pagesWithUnreadableText ? (
           <span
             className={styles.headerWarning}
             title="The embedded font has no Unicode mapping. Text changes cannot be detected without OCR."
           >
             ⚠ Text unavailable on {summary.pagesWithUnreadableText} of {summary.pages} pages
           </span>
-        ) : !processingProgress && summary.pagesWithoutText ? (
+        ) : !progress && summary.pagesWithoutText ? (
           <span
             className={styles.headerWarning}
             title="These pages have no selectable text, so only the visual comparison applies."
@@ -214,7 +213,8 @@ function pageThumbnail(page: DiffPage): string | undefined {
   return page.diffSrc ?? page.afterSrc ?? page.beforeSrc;
 }
 
-function pageStatusStyle(status: NonNullable<DiffPage["status"]>) {
+function pageStatusStyle(status: NonNullable<DiffPage["status"]>, provisional?: boolean) {
+  if (provisional) return undefined;
   if (status === "same") return styles.pageStatusSame;
   if (status === "changed") return styles.pageStatusChanged;
   if (status === "added") return styles.pageStatusAdded;
@@ -226,12 +226,14 @@ function PageRailItem({
   index,
   mode,
   selected,
+  provisional,
   onSelect,
 }: {
   page: DiffPage;
   index: number;
   mode: DiffViewMode;
   selected: boolean;
+  provisional?: boolean;
   onSelect: (index: number) => void;
 }) {
   const state = pageStatus(page);
@@ -262,7 +264,7 @@ function PageRailItem({
       </div>
       <div className={styles.pageNumber}>
         <span>{pagePairLabel(page, index)}</span>
-        <span className={cx(styles.pageStatus, pageStatusStyle(state))}>{status}</span>
+        <span className={cx(styles.pageStatus, pageStatusStyle(state, provisional))}>{status}</span>
       </div>
     </button>
   );
@@ -288,6 +290,7 @@ export function PageRail({
   onCollapsedChange: (value: boolean) => void;
 }) {
   const visible = visiblePageIndexes(pages, onlyChanged, pageIndex);
+  const provisional = pages.some((page) => pageStatus(page) === "processing");
   if (pages.length <= 1) return null;
   return (
     <aside className={styles.pageRail} aria-label="Pages">
@@ -326,6 +329,7 @@ export function PageRail({
               index={index}
               mode={mode}
               selected={index === pageIndex}
+              provisional={provisional}
               onSelect={onSelectPage}
             />
           ))}

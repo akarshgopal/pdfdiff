@@ -28,7 +28,7 @@ import {
   ViewerToolbar,
   WorkspaceHeader,
 } from "./ViewerChrome.js";
-import { summarizeComparison } from "./summary.js";
+import { comparisonProgress, summarizeComparison } from "./summary.js";
 import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
 import {
@@ -920,6 +920,7 @@ export function PdfDiffViewer({
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const summary = useMemo(() => summarizeComparison(comparison), [comparison]);
+  const progress = comparisonProgress(comparison.pages, processingProgress);
   const {
     pages,
     pageIndex,
@@ -966,7 +967,7 @@ export function PdfDiffViewer({
       <WorkspaceHeader
         comparison={comparison}
         summary={summary}
-        processingProgress={processingProgress}
+        processingProgress={progress}
         onNewComparison={onNewComparison}
         headerActions={headerActions}
       />
@@ -1040,7 +1041,7 @@ export function PdfDiffViewer({
             />
           </PanZoomStage>
           <ChangeNavigator page={previewPage} mode={mode} selected={selectedRegion} onSelect={setSelectedRegion} />
-          <StatusFooter processingProgress={processingProgress} />
+          <StatusFooter processingProgress={progress} />
         </section>
       </div>
       {showPairing ? (
