@@ -12,7 +12,7 @@ export const helpSteps = [
   {
     number: "3",
     title: "Inspect and share",
-    copy: "Previous and Next change step through this page's areas, or its text changes in Text. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
+    copy: "Previous and Next change step through this page's areas, or its text changes in Text. In Text, filter to all text changes, additions only, removals only, or changes only. Scroll to pan, pinch or Ctrl-scroll to zoom, and use Export to save the marked-up page.",
   },
 ] as const;
 
@@ -20,7 +20,10 @@ export const helpModes = [
   ["Overlay", "see additions and removals on the selected A/B page pair."],
   ["Split", "view source A and source B side by side."],
   ["Swipe", "reveal either source with a draggable divider."],
-  ["Text", "compare extracted text with anchored highlights."],
+  [
+    "Text",
+    "compare extracted text with anchored highlights. Filter to all text changes, additions only, removals only, or changes only.",
+  ],
 ] as const;
 
 export const helpShortcuts = [

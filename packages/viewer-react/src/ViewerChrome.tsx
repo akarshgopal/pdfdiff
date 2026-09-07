@@ -23,9 +23,11 @@ import {
   pagePairLabel,
   pageStatus,
   statusText,
+  textChangeFilters,
   viewModes,
   visiblePageIndexes,
   ZOOM_STEP,
+  type TextChangeFilter,
 } from "./viewer-utils.js";
 import { comparisonProgress, headerTextWarning, workspaceHeadline, type ComparisonSummary } from "./summary.js";
 import type { ExportChoice } from "./export.js";
@@ -218,6 +220,7 @@ function PageRailItem({
   page,
   index,
   mode,
+  textFilter,
   selected,
   provisional,
   onSelect,
@@ -225,13 +228,14 @@ function PageRailItem({
   page: DiffPage;
   index: number;
   mode: DiffViewMode;
+  textFilter: TextChangeFilter;
   selected: boolean;
   provisional?: boolean;
   onSelect: (index: number) => void;
 }) {
   const state = pageStatus(page);
   const thumbnail = pageThumbnail(page);
-  const status = statusText(page, state, mode);
+  const status = statusText(page, state, mode, textFilter);
   return (
     <button
       className={cx(styles.pageButton, selected && styles.pageButtonCurrent)}
@@ -267,6 +271,7 @@ export function PageRail({
   pages,
   pageIndex,
   mode,
+  textFilter = "all",
   onSelectPage,
   onlyChanged,
   onOnlyChanged,
@@ -277,6 +282,7 @@ export function PageRail({
   onlyChanged: boolean;
   pageIndex: number;
   mode: DiffViewMode;
+  textFilter?: TextChangeFilter;
   onSelectPage: (index: number) => void;
   onOnlyChanged: (value: boolean) => void;
   collapsed: boolean;
@@ -335,6 +341,7 @@ export function PageRail({
               page={pages[index]!}
               index={index}
               mode={mode}
+              textFilter={textFilter}
               selected={index === pageIndex}
               provisional={provisional}
               onSelect={onSelectPage}
@@ -467,6 +474,8 @@ export function PairingDialog({
 export function ViewerToolbar({
   mode,
   onModeChange,
+  textFilter = "all",
+  onTextFilterChange,
   zoom,
   onZoomChange,
   textUnavailable,
@@ -480,6 +489,8 @@ export function ViewerToolbar({
 }: {
   mode: DiffViewMode;
   onModeChange: (mode: DiffViewMode) => void;
+  textFilter?: TextChangeFilter;
+  onTextFilterChange?: (filter: TextChangeFilter) => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   textUnavailable?: boolean;
@@ -516,6 +527,22 @@ export function ViewerToolbar({
           );
         })}
       </div>
+      {mode === "semantic-text" && onTextFilterChange ? (
+        <div className={styles.toolbarGroup} role="radiogroup" aria-label="Text change filter">
+          {textChangeFilters.map((item) => (
+            <button
+              key={item.id}
+              className={cx(styles.filterChip, textFilter === item.id && styles.filterChipOn)}
+              type="button"
+              role="radio"
+              aria-checked={textFilter === item.id}
+              onClick={() => onTextFilterChange(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {navigation}
       <div className={styles.toolbarGroup}>
         <IconButton

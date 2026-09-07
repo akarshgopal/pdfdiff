@@ -20,7 +20,9 @@ the document summary or report; image export saves the displayed pair.
 
 The bar under the page walks what the current view highlights. Overlay, Split,
 and Swipe count visual areas — **Area 3 of 12 on this page**. Text counts
-extracted-text edits — **Text change 2 of 8 on this page**. **Previous change**
+extracted-text edits — **Text change 2 of 8 on this page**. In Text, **All text
+changes**, **Additions only**, **Removals only**, and **Changes only** filter
+that list; Overlay, Split, and Swipe are unchanged. **Previous change**
 and **Next change** step through that list. The current item is outlined on the
 page, and a visual area also shows the same place on the Earlier and Newer pages
 as two crops. **Clear selection** returns the space to the page. Settings can
@@ -40,7 +42,8 @@ not byte-for-byte identical files.
 - **Overlay**: colored pixel differences.
 - **Split**: original pages side by side.
 - **Swipe**: reveal either page with a draggable divider.
-- **Text**: extracted-text highlights on the original pages.
+- **Text**: extracted-text highlights on the original pages. Filter to all text
+  changes, additions only, removals only, or changes only.
 
 Scroll or drag to pan. Pinch or Ctrl-scroll to zoom. The zoom buttons range
 from 25% to 400%; 100% fits the page. Higher zoom requests a sharper render.

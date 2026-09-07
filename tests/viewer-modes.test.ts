@@ -131,6 +131,8 @@ test("the workspace opens with a document-level summary and filters", () => {
   assert.doesNotMatch(html, /9 reflow\/formatting/);
   // The filters moved behind the settings dialog, so the resting workspace shows neither.
   assert.doesNotMatch(html, /Hide reflow noise/);
+  assert.doesNotMatch(html, /All text changes/);
+  assert.doesNotMatch(html, /Additions only/);
   assert.match(html, /Only changed/);
   assert.match(html, /aria-label="Settings"/);
 });
@@ -416,7 +418,8 @@ test("document progress stays open until every page has a verdict", () => {
 // The rail label, the change counter, and next/previous all read one list, so
 // Text mode can never claim a different number of changes than the view shows.
 test("change navigation counts the list the current view highlights", async () => {
-  const { pageChanges, statusText, changeWalkerLabel } = await import("../packages/viewer-react/src/viewer-utils.ts");
+  const { pageChanges, statusText, changeWalkerLabel, textFilterShowsSide, filterTextChanges } =
+    await import("../packages/viewer-react/src/viewer-utils.ts");
   const page: DiffPage = {
     index: 0,
     status: "changed",
@@ -431,6 +434,7 @@ test("change navigation counts the list the current view highlights", async () =
       changes: [
         { id: "t1", kind: "changed", before: "a", after: "b" },
         { id: "t2", kind: "added", before: "", after: "c" },
+        { id: "t3", kind: "removed", before: "d", after: "" },
       ],
       beforeOverlays: [],
       afterOverlays: [],
@@ -443,13 +447,33 @@ test("change navigation counts the list the current view highlights", async () =
 
   assert.deepEqual(
     pageChanges(page, "semantic-text").map((change) => change.id),
-    ["t1", "t2"],
+    ["t1", "t2", "t3"],
+  );
+  assert.deepEqual(
+    pageChanges(page, "semantic-text", "added").map((change) => change.id),
+    ["t2"],
+  );
+  assert.deepEqual(
+    pageChanges(page, "semantic-text", "removed").map((change) => change.id),
+    ["t3"],
+  );
+  assert.deepEqual(
+    pageChanges(page, "semantic-text", "changed").map((change) => change.id),
+    ["t1"],
+  );
+  assert.deepEqual(
+    pageChanges(page, "diff", "added").map((change) => change.id),
+    ["r1", "r2", "r3"],
+    "Overlay ignores the Text filter",
   );
   assert.deepEqual(
     pageChanges(page, "diff").map((change) => change.id),
     ["r1", "r2", "r3"],
   );
-  assert.equal(statusText(page, "changed", "semantic-text"), "2 text changes");
+  assert.equal(statusText(page, "changed", "semantic-text"), "3 text changes");
+  assert.equal(statusText(page, "changed", "semantic-text", "added"), "1 text change");
+  assert.equal(statusText(page, "changed", "semantic-text", "removed"), "1 text change");
+  assert.equal(statusText(page, "changed", "semantic-text", "changed"), "1 text change");
   assert.equal(statusText(page, "changed", "diff"), "3 areas");
   assert.equal(statusText(page, "changed", "side-by-side"), "3 areas");
   assert.equal(statusText(page, "changed", "swipe"), "3 areas");
@@ -461,6 +485,26 @@ test("change navigation counts the list the current view highlights", async () =
   assert.equal(changeWalkerLabel(8, -1, "semantic-text"), "8 text changes on this page");
   assert.equal(changeWalkerLabel(8, 1, "semantic-text"), "Text change 2 of 8 on this page");
   assert.equal(changeWalkerLabel(1, 0, "semantic-text"), "Text change 1 of 1 on this page");
+  assert.equal(changeWalkerLabel(1, -1, "semantic-text"), "1 text change on this page");
+
+  assert.equal(textFilterShowsSide("all", "earlier"), true);
+  assert.equal(textFilterShowsSide("all", "newer"), true);
+  assert.equal(textFilterShowsSide("added", "earlier"), false);
+  assert.equal(textFilterShowsSide("added", "newer"), true);
+  assert.equal(textFilterShowsSide("removed", "earlier"), true);
+  assert.equal(textFilterShowsSide("removed", "newer"), false);
+  assert.equal(textFilterShowsSide("changed", "earlier"), true);
+  assert.equal(textFilterShowsSide("changed", "newer"), true);
+
+  const overlays = [
+    { id: "t1", kind: "changed" as const },
+    { id: "t2", kind: "added" as const },
+    { id: "t3", kind: "removed" as const },
+  ];
+  assert.deepEqual(
+    filterTextChanges(overlays, "changed").map((item) => item.id),
+    ["t1"],
+  );
 });
 
 test("unreadable fonts keep a header warning; pages with no text do not", () => {
@@ -531,4 +575,115 @@ test("a collapsed page rail keeps the current page and the changed count", async
   assert.match(html, />2 changed<\/span>/);
   assert.doesNotMatch(html, /Only changed/);
   assert.doesNotMatch(html, /Comparison overlay preview/);
+});
+
+const toolbarProps = {
+  zoom: 100,
+  onZoomChange: () => undefined,
+  isFullscreen: false,
+  onToggleFullscreen: () => undefined,
+  onSettings: () => undefined,
+  onHelp: () => undefined,
+  onModeChange: () => undefined,
+  canExportImage: false,
+};
+
+test("Text mode offers text-change filters; Overlay, Split, and Swipe do not", async () => {
+  const { ViewerToolbar } = await import("../packages/viewer-react/dist/ViewerChrome.js");
+  const text = renderToStaticMarkup(
+    createElement(ViewerToolbar, {
+      ...toolbarProps,
+      mode: "semantic-text",
+      textFilter: "all",
+      onTextFilterChange: () => undefined,
+    }),
+  );
+  assert.match(text, /aria-label="Text change filter"/);
+  assert.match(text, />All text changes</);
+  assert.match(text, />Additions only</);
+  assert.match(text, />Removals only</);
+  assert.match(text, />Changes only</);
+  assert.match(text, /aria-checked="true"[^>]*>All text changes/);
+
+  const additions = renderToStaticMarkup(
+    createElement(ViewerToolbar, {
+      ...toolbarProps,
+      mode: "semantic-text",
+      textFilter: "added",
+      onTextFilterChange: () => undefined,
+    }),
+  );
+  assert.match(additions, /aria-checked="true"[^>]*>Additions only/);
+
+  for (const mode of ["diff", "side-by-side", "swipe"] as const) {
+    const html = renderToStaticMarkup(
+      createElement(ViewerToolbar, {
+        ...toolbarProps,
+        mode,
+        textFilter: "added",
+        onTextFilterChange: () => undefined,
+      }),
+    );
+    assert.doesNotMatch(html, /Text change filter/);
+    assert.doesNotMatch(html, /All text changes/);
+    assert.doesNotMatch(html, /Additions only/);
+  }
+});
+
+test("the page rail names the filtered text-change count", async () => {
+  const { PageRail } = await import("../packages/viewer-react/dist/ViewerChrome.js");
+  const pages: DiffPage[] = [
+    {
+      ...currentPage,
+      earlierPageNumber: 1,
+      newerPageNumber: 1,
+      semantic: {
+        before: [],
+        after: [],
+        changes: [
+          { id: "t1", kind: "changed", before: "a", after: "b" },
+          { id: "t2", kind: "added", before: "", after: "c" },
+          { id: "t3", kind: "removed", before: "d", after: "" },
+        ],
+        beforeOverlays: [],
+        afterOverlays: [],
+        beforeTokenCount: 1,
+        afterTokenCount: 1,
+        hasBeforeText: true,
+        hasAfterText: true,
+      },
+    },
+    { index: 1, status: "same", beforeSrc: "b", afterSrc: "a", earlierPageNumber: 2, newerPageNumber: 2 },
+  ];
+  const all = renderToStaticMarkup(
+    createElement(PageRail, {
+      pages,
+      pageIndex: 0,
+      mode: "semantic-text",
+      textFilter: "all",
+      onSelectPage: () => undefined,
+      onlyChanged: false,
+      onOnlyChanged: () => undefined,
+      collapsed: false,
+      onCollapsedChange: () => undefined,
+    }),
+  );
+  assert.match(all, />3 text changes</);
+  assert.doesNotMatch(all, />3 areas</);
+
+  const additions = renderToStaticMarkup(
+    createElement(PageRail, {
+      pages,
+      pageIndex: 0,
+      mode: "semantic-text",
+      textFilter: "added",
+      onSelectPage: () => undefined,
+      onlyChanged: false,
+      onOnlyChanged: () => undefined,
+      collapsed: false,
+      onCollapsedChange: () => undefined,
+    }),
+  );
+  assert.match(additions, />1 text change</);
+  assert.doesNotMatch(additions, />3 text changes</);
 });
