@@ -1,0 +1,5 @@
+# https://pdfdiff.app
+User-agent: *
+Allow: /
+
+Sitemap: https://pdfdiff.app/sitemap.xml

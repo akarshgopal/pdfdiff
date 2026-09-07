@@ -1,23 +1,28 @@
 {
+  "id": "/",
   "name": "PDF Diff — compare documents privately",
   "short_name": "PDF Diff",
-  "description": "Compare PDF revisions page by page. Your documents stay entirely in your browser.",
+  "description": "Compare PDF revisions page by page. Files never leave your browser.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
