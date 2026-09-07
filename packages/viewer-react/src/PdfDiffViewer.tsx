@@ -34,11 +34,15 @@ import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
 import {
   changeWalkerLabel,
   clampZoom,
+  filterTextChanges,
   missingSelectableTextNotice,
   missingSideLabel,
   toggleFullscreen,
   pageChanges,
   temporaryPairCue,
+  textChangeMatchesFilter,
+  textFilterShowsSide,
+  type TextChangeFilter,
 } from "./viewer-utils.js";
 import { useViewerState } from "./useViewerState.js";
 import { OverlayLayerStack } from "./OverlayLayers.js";
@@ -187,9 +191,12 @@ function SemanticNativePane({
   );
 }
 
-function semanticSummary(semantic: DiffPage["semantic"]): { status: string; detail: string } {
+function semanticSummary(
+  semantic: DiffPage["semantic"],
+  textFilter: TextChangeFilter,
+): { status: string; detail: string } {
   if (!semantic) return { status: "No semantic text changes", detail: "Native PDF rendering" };
-  const count = semantic.changes.length;
+  const count = filterTextChanges(semantic.changes, textFilter).length;
   const undecodable = semantic.textUndecodable === true;
   return {
     // When there are text changes the walker already names that count; this
@@ -199,12 +206,19 @@ function semanticSummary(semantic: DiffPage["semantic"]): { status: string; deta
   };
 }
 
+const semanticLegendKeys = [
+  { kind: "removed" as const, label: "Removed", dot: styles.semanticLegendRemoved },
+  { kind: "added" as const, label: "Added", dot: styles.semanticLegendAdded },
+  { kind: "changed" as const, label: "Changed", dot: styles.semanticLegendChanged },
+];
+
 function SemanticPdfPreview({
   page,
   pending,
   error,
   selectedRegion,
   showHighlights,
+  textFilter,
   onSelectChange,
 }: {
   page: DiffPage;
@@ -212,13 +226,18 @@ function SemanticPdfPreview({
   error: string | null;
   selectedRegion: string | null;
   showHighlights: boolean;
+  textFilter: TextChangeFilter;
   onSelectChange: (id: string) => void;
 }) {
-  const summary = semanticSummary(page.semantic);
+  const summary = semanticSummary(page.semantic, textFilter);
   const missingText = missingSelectableTextNotice(page);
   const waiting = pending || Boolean(error);
-  const beforeOverlays = page.semanticBeforeOverlays ?? [];
-  const afterOverlays = page.semanticAfterOverlays ?? [];
+  const beforeOverlays = filterTextChanges(page.semanticBeforeOverlays ?? [], textFilter);
+  const afterOverlays = filterTextChanges(page.semanticAfterOverlays ?? [], textFilter);
+  const showEarlier = textFilterShowsSide(textFilter, "earlier");
+  const showNewer = textFilterShowsSide(textFilter, "newer");
+  const bothSides = showEarlier && showNewer;
+  const legendKeys = semanticLegendKeys.filter((item) => textChangeMatchesFilter(item.kind, textFilter));
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -231,7 +250,7 @@ function SemanticPdfPreview({
   }, [selectedRegion, showHighlights]);
 
   return (
-    <div ref={previewRef} className={cx(styles.paper, styles.paperTwoUp, styles.semanticPaper)}>
+    <div ref={previewRef} className={cx(styles.paper, bothSides && styles.paperTwoUp, styles.semanticPaper)}>
       <CanvasNotice pending={pending} error={error} />
       {!waiting ? (
         <>
@@ -242,41 +261,41 @@ function SemanticPdfPreview({
             </div>
           ) : null}
           <div className={styles.semanticLegend}>
-            <span>
-              <i className={cx(styles.semanticLegendDot, styles.semanticLegendRemoved)} />
-              Removed
-            </span>
-            <span>
-              <i className={cx(styles.semanticLegendDot, styles.semanticLegendAdded)} />
-              Added
-            </span>
-            <span>
-              <i className={cx(styles.semanticLegendDot, styles.semanticLegendChanged)} />
-              Changed
-            </span>
-            <span className={styles.semanticLegendNote}>Original PDF rendering · anchored highlights</span>
+            {legendKeys.map((item) => (
+              <span key={item.kind}>
+                <i className={cx(styles.semanticLegendDot, item.dot)} />
+                {item.label}
+              </span>
+            ))}
+            {textFilter === "all" ? (
+              <span className={styles.semanticLegendNote}>Original PDF rendering · anchored highlights</span>
+            ) : null}
           </div>
         </>
       ) : null}
-      <div className={styles.semanticGrid}>
-        <SemanticNativePane
-          side="earlier"
-          source={page.beforeSrc}
-          overlays={beforeOverlays}
-          selectedRegion={selectedRegion}
-          showHighlights={showHighlights}
-          onSelectChange={onSelectChange}
-          missingLabel={missingSideLabel(page, "earlier")}
-        />
-        <SemanticNativePane
-          side="newer"
-          source={page.afterSrc}
-          overlays={afterOverlays}
-          selectedRegion={selectedRegion}
-          showHighlights={showHighlights}
-          onSelectChange={onSelectChange}
-          missingLabel={missingSideLabel(page, "newer")}
-        />
+      <div className={cx(styles.semanticGrid, !bothSides && styles.semanticGridSingle)}>
+        {showEarlier ? (
+          <SemanticNativePane
+            side="earlier"
+            source={page.beforeSrc}
+            overlays={beforeOverlays}
+            selectedRegion={selectedRegion}
+            showHighlights={showHighlights}
+            onSelectChange={onSelectChange}
+            missingLabel={missingSideLabel(page, "earlier")}
+          />
+        ) : null}
+        {showNewer ? (
+          <SemanticNativePane
+            side="newer"
+            source={page.afterSrc}
+            overlays={afterOverlays}
+            selectedRegion={selectedRegion}
+            showHighlights={showHighlights}
+            onSelectChange={onSelectChange}
+            missingLabel={missingSideLabel(page, "newer")}
+          />
+        ) : null}
       </div>
       {missingText ? (
         <div className={styles.semanticNoText}>
@@ -389,6 +408,7 @@ function PagePreview({
   overlay,
   showBoundingBoxes,
   showSemanticHighlights,
+  textFilter,
   selectedRegion,
   onRegionClick,
   onSelectChange,
@@ -402,6 +422,7 @@ function PagePreview({
   overlay: OverlayStyle;
   showBoundingBoxes: boolean;
   showSemanticHighlights: boolean;
+  textFilter: TextChangeFilter;
   selectedRegion: string | null;
   onRegionClick: (region: DiffRegion) => void;
   onSelectChange: (id: string) => void;
@@ -420,6 +441,7 @@ function PagePreview({
         error={pairError}
         selectedRegion={selectedRegion}
         showHighlights={showSemanticHighlights}
+        textFilter={textFilter}
         onSelectChange={onSelectChange}
       />
     );
@@ -794,21 +816,24 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
 
 /**
  * The workspace's primary action: walk the items the current view highlights.
- * Overlay, Split, and Swipe walk visual areas; Text walks text changes. The
- * count names that grain so it cannot be read as the document page headline.
+ * Overlay, Split, and Swipe walk visual areas; Text walks text changes, further
+ * narrowed by the active Text filter. The count names that grain so it cannot
+ * be read as the document page headline.
  */
 function ChangeNavigator({
   page,
   mode,
+  textFilter,
   selected,
   onSelect,
 }: {
   page: DiffPage;
   mode: DiffViewMode;
+  textFilter: TextChangeFilter;
   selected: string | null;
   onSelect: (id: string | null) => void;
 }) {
-  const changes = pageChanges(page, mode);
+  const changes = pageChanges(page, mode, textFilter);
   const index = changes.findIndex((change) => change.id === selected);
   // Only pixel regions carry geometry, so the close-up is offered when the
   // selected change happens to be one.
@@ -898,6 +923,7 @@ export function PdfDiffViewer({
     onOverlayChange?.(next);
   };
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
+  const [textFilter, setTextFilter] = useState<TextChangeFilter>("all");
   const [showSettings, setShowSettings] = useState(false);
   const [showPairing, setShowPairing] = useState(false);
   const [railCollapsed, setRailCollapsed] = useState(false);
@@ -972,6 +998,7 @@ export function PdfDiffViewer({
           pages={pages}
           pageIndex={pageIndex}
           mode={mode}
+          textFilter={textFilter}
           onSelectPage={selectPage}
           onOnlyChanged={(onlyChanged) => setSettings((current) => ({ ...current, onlyChanged }))}
           collapsed={railCollapsed}
@@ -981,6 +1008,8 @@ export function PdfDiffViewer({
           <ViewerToolbar
             mode={mode}
             onModeChange={changeMode}
+            textFilter={textFilter}
+            onTextFilterChange={setTextFilter}
             zoom={zoom}
             onZoomChange={setZoom}
             textUnavailable={previewPage.semantic?.textUndecodable}
@@ -1021,6 +1050,7 @@ export function PdfDiffViewer({
               overlay={overlay}
               showBoundingBoxes={settings.showBoundingBoxes}
               showSemanticHighlights
+              textFilter={textFilter}
               selectedRegion={selectedRegion}
               onRegionClick={(region) => setSelectedRegion(region.id)}
               onSelectChange={setSelectedRegion}
@@ -1029,7 +1059,13 @@ export function PdfDiffViewer({
               pairError={pairError}
             />
           </PanZoomStage>
-          <ChangeNavigator page={previewPage} mode={mode} selected={selectedRegion} onSelect={setSelectedRegion} />
+          <ChangeNavigator
+            page={previewPage}
+            mode={mode}
+            textFilter={textFilter}
+            selected={selectedRegion}
+            onSelect={setSelectedRegion}
+          />
           <StatusFooter processingProgress={progress} />
         </section>
       </div>

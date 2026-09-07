@@ -23,10 +23,11 @@ to realign both sources to that page. The primary comparison views are:
 - **Overlay** — show visual additions and removals on the selected A/B pair.
 - **Split** — show source A and source B side by side.
 - **Swipe** — reveal either source with a draggable divider.
-- **Text** — compare extracted text with anchored highlights.
+- **Text** — compare extracted text with anchored highlights. Filter to all
+  text changes, additions only, removals only, or changes only.
 
 Overlay opens first. Previous and Next change walk the page's areas, or its text
-changes in Text view.
+changes in Text view. The Text filters narrow that list.
 The page arrows and keyboard traverse comparison rows, respecting Only changed.
 
 Provide `DiffComparison.comparePagePair` for temporary manual pairing and sharper

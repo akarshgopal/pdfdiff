@@ -153,6 +153,7 @@ export const styles = {
   semanticLegendChanged: "bg-primary",
   semanticLegendNote: "ml-auto basis-full md:basis-auto",
   semanticGrid: "grid min-h-[min(470px,45vh)] grid-cols-1 gap-px bg-stage md:grid-cols-2",
+  semanticGridSingle: "md:grid-cols-1",
   semanticColumn: "min-w-0 bg-background",
   semanticHeader: `${ui.caps} border-b border-border bg-card px-5 py-3`,
   semanticViewport: "relative w-full overflow-hidden bg-white",

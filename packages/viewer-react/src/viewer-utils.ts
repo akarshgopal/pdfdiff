@@ -1,5 +1,5 @@
 import { PAGE_MATCH_THRESHOLD } from "@pdfdiff/core";
-import type { DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
+import type { DiffPage, DiffRegionKind, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
 
 export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcut: string }> = [
   { id: "diff", label: "Overlay", shortcut: "1" },
@@ -7,6 +7,36 @@ export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcu
   { id: "swipe", label: "Swipe", shortcut: "3" },
   { id: "semantic-text", label: "Text", shortcut: "4" },
 ];
+
+/** Text-mode highlight filter. Overlay, Split, and Swipe ignore this. */
+export type TextChangeFilter = "all" | DiffRegionKind;
+
+export const textChangeFilters: ReadonlyArray<{ id: TextChangeFilter; label: string }> = [
+  { id: "all", label: "All text changes" },
+  { id: "added", label: "Additions only" },
+  { id: "removed", label: "Removals only" },
+  { id: "changed", label: "Changes only" },
+];
+
+export function textChangeMatchesFilter(kind: DiffRegionKind, filter: TextChangeFilter): boolean {
+  return filter === "all" || kind === filter;
+}
+
+export function filterTextChanges<T extends { readonly kind: DiffRegionKind }>(
+  items: readonly T[],
+  filter: TextChangeFilter,
+): readonly T[] {
+  return filter === "all" ? items : items.filter((item) => item.kind === filter);
+}
+
+/**
+ * Additions live on the newer page, removals on the earlier page, and a
+ * replacement is both. Hide the side that cannot show the active filter.
+ */
+export function textFilterShowsSide(filter: TextChangeFilter, side: SourceSide): boolean {
+  if (filter === "all" || filter === "changed") return true;
+  return filter === "added" ? side === "newer" : side === "earlier";
+}
 
 export const MIN_ZOOM = 25;
 export const MAX_ZOOM = 400;
@@ -73,11 +103,15 @@ export function pageStatus(page: DiffPage): NonNullable<DiffPage["status"]> {
 
 /**
  * The changes the current view can actually point at. Text mode highlights text
- * runs and every other mode highlights pixel regions, and the two counts differ,
- * so the rail, the counter, and next/previous all read the list that is on screen.
+ * runs — further narrowed by the Text filter — and every other mode highlights
+ * pixel regions. The rail, the counter, and next/previous all read this list.
  */
-export function pageChanges(page: DiffPage, mode: DiffViewMode): ReadonlyArray<{ readonly id: string }> {
-  if (mode === "semantic-text") return page.semantic?.changes ?? [];
+export function pageChanges(
+  page: DiffPage,
+  mode: DiffViewMode,
+  textFilter: TextChangeFilter = "all",
+): ReadonlyArray<{ readonly id: string }> {
+  if (mode === "semantic-text") return filterTextChanges(page.semantic?.changes ?? [], textFilter);
   return page.regions ?? [];
 }
 
@@ -108,8 +142,13 @@ export function changeWalkerLabel(count: number, selectedIndex: number, mode: Di
 }
 
 /** What the rail says about a page: its count when it changed, its state otherwise. */
-export function statusText(page: DiffPage, status: NonNullable<DiffPage["status"]>, mode: DiffViewMode): string {
-  const count = status === "changed" ? pageChanges(page, mode).length : 0;
+export function statusText(
+  page: DiffPage,
+  status: NonNullable<DiffPage["status"]>,
+  mode: DiffViewMode,
+  textFilter: TextChangeFilter = "all",
+): string {
+  const count = status === "changed" ? pageChanges(page, mode, textFilter).length : 0;
   return count ? changeCountLabel(count, mode) : statusLabels[status];
 }
 
