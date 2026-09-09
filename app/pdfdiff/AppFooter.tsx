@@ -11,16 +11,8 @@ export function AppFooter() {
           <a className={styles.footerLink} href="/privacy">
             Privacy policy
           </a>
-          <a className={styles.footerLink} href="mailto:akarsh@pdfdiff.app?subject=PDF%20Diff%20feedback">
-            Feedback
-          </a>
-          <a
-            className={styles.footerLink}
-            href="https://github.com/akarshgopal/pdfdiff"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            GitHub
+          <a className={styles.footerLink} href="mailto:akarsh@pdfdiff.app?subject=PDF%20Diff%20contact">
+            Contact
           </a>
         </nav>
       </div>

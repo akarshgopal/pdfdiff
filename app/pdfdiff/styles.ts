@@ -11,6 +11,12 @@ export const styles = {
   root: "min-h-screen bg-background font-sans tracking-tight text-foreground",
   shell: "flex min-h-screen w-full flex-col",
   topbar: `${gutter} flex min-h-[56px] items-center justify-between gap-5 border-b border-border bg-card`,
+  topbarActions: "flex items-center gap-2",
+  githubLink: cx(
+    ui.control,
+    ui.focus,
+    "size-8 no-underline hover:bg-background focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  ),
   logo: "inline-flex items-center gap-2.5 whitespace-nowrap text-base font-semibold tracking-tight text-foreground no-underline",
   logoMark: "grid size-[26px] place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground",
   intro: `${gutter} ${container} grid grid-cols-1 items-center gap-x-14 gap-y-10 pb-12 pt-10 text-center lg:pb-16 lg:pt-[clamp(36px,4.5vw,60px)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:text-left`,
