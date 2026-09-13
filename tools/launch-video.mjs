@@ -70,7 +70,9 @@ const FILM_CSS = `
 function FRAME({ card, intro }) {
   const root = document.querySelector('section[aria-label="PDF comparison workspace"]');
   if (!root) throw new Error("workspace not found");
-  const hide = (el) => { if (el) el.style.setProperty("display", "none", "important"); };
+  const hide = (el) => {
+    if (el) el.style.setProperty("display", "none", "important");
+  };
   const canvas = root.querySelector('section[aria-label="PDF comparison"]');
   const grid = canvas && canvas.parentElement;
 
@@ -465,10 +467,25 @@ async function captureEndCard(browser) {
 // Playwright's variable-frame-rate webm.
 function trim(raw, mark, seconds, dest) {
   execFileSync("ffmpeg", [
-    "-y", "-loglevel", "error",
-    "-i", raw, "-ss", String(mark), "-t", String(seconds),
-    "-vf", `fps=60,scale=${size.width}:${size.height}:flags=lanczos,setsar=1`,
-    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "15", "-preset", "slow",
+    "-y",
+    "-loglevel",
+    "error",
+    "-i",
+    raw,
+    "-ss",
+    String(mark),
+    "-t",
+    String(seconds),
+    "-vf",
+    `fps=60,scale=${size.width}:${size.height}:flags=lanczos,setsar=1`,
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-crf",
+    "15",
+    "-preset",
+    "slow",
     dest,
   ]);
   return dest;
@@ -499,24 +516,55 @@ execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0"
 const total = Number((MODES_SECONDS + END_SECONDS - XFADE).toFixed(3));
 const silent = join(work, "silent.mp4");
 execFileSync("ffmpeg", [
-  "-y", "-loglevel", "error",
-  "-i", modesClip, "-i", endClip,
+  "-y",
+  "-loglevel",
+  "error",
+  "-i",
+  modesClip,
+  "-i",
+  endClip,
   "-filter_complex",
   `[0:v][1:v]xfade=transition=${END_TRANSITION}:duration=${XFADE}:offset=${(MODES_SECONDS - XFADE).toFixed(3)}[v]`,
-  "-map", "[v]",
-  "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "15", "-preset", "slow",
+  "-map",
+  "[v]",
+  "-c:v",
+  "libx264",
+  "-pix_fmt",
+  "yuv420p",
+  "-crf",
+  "15",
+  "-preset",
+  "slow",
   silent,
 ]);
 console.log(`stitched ${clips.length} beats (hard cuts) + end card (${END_TRANSITION}) -> ${total}s`);
 
 if (existsSync(music)) {
   execFileSync("ffmpeg", [
-    "-y", "-loglevel", "error",
-    "-i", silent, "-ss", String(musicStart), "-t", String(total), "-i", music,
+    "-y",
+    "-loglevel",
+    "error",
+    "-i",
+    silent,
+    "-ss",
+    String(musicStart),
+    "-t",
+    String(total),
+    "-i",
+    music,
     "-filter_complex",
     `[1:a]afade=t=in:st=0:d=0.04,afade=t=out:st=${(total - 0.8).toFixed(2)}:d=0.8[a]`,
-    "-map", "0:v", "-map", "[a]",
-    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest",
+    "-map",
+    "0:v",
+    "-map",
+    "[a]",
+    "-c:v",
+    "copy",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-shortest",
     `${out}.mp4`,
   ]);
   console.log(`scored with ${music} from ${musicStart}s`);
@@ -524,9 +572,27 @@ if (existsSync(music)) {
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", silent, "-c", "copy", `${out}.mp4`]);
 }
 
-execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", silent, "-c:v", "libvpx-vp9", "-crf", "30", "-b:v", "0", "-an", `${out}.webm`]);
 execFileSync("ffmpeg", [
-  "-y", "-loglevel", "error", "-i", silent,
+  "-y",
+  "-loglevel",
+  "error",
+  "-i",
+  silent,
+  "-c:v",
+  "libvpx-vp9",
+  "-crf",
+  "30",
+  "-b:v",
+  "0",
+  "-an",
+  `${out}.webm`,
+]);
+execFileSync("ffmpeg", [
+  "-y",
+  "-loglevel",
+  "error",
+  "-i",
+  silent,
   "-vf",
   "fps=15,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];" +
     "[b][p]paletteuse=dither=bayer:bayer_scale=3",
