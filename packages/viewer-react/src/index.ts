@@ -12,13 +12,7 @@ export {
   type ExportFormat,
   type ExportChoice,
 } from "./export.js";
-export {
-  comparisonProgress,
-  headerTextWarning,
-  summarizeComparison,
-  summaryHeadline,
-  workspaceHeadline,
-} from "./summary.js";
+export { comparisonProgress, headerTextWarning, summaryHeadline, workspaceHeadline } from "./summary.js";
 export {
   clampZoom,
   qualityForZoom,

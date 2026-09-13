@@ -2,7 +2,7 @@ import { throwIfAborted } from "./errors.js";
 import { isDecodableText } from "./text-quality.js";
 import { measure } from "./instrumentation.js";
 import type { DiffMetricSink } from "./instrumentation.js";
-import type { AbortSignalLike, PageText, TextQuad } from "./types.js";
+import type { PageText, TextQuad } from "./types.js";
 
 export type SemanticRunKind = "same" | "added" | "removed" | "changed";
 export type SemanticChangeKind = Exclude<SemanticRunKind, "same">;
@@ -120,7 +120,7 @@ function extendDiagonal(
   startX: number,
   startY: number,
   work: { value: number; limit: number },
-  signal?: AbortSignalLike,
+  signal?: AbortSignal,
 ): { x: number; y: number; exhausted: boolean } {
   let x = startX;
   let y = startY;
@@ -137,7 +137,7 @@ function extendDiagonal(
 function findDiffTrace(
   before: readonly Token[],
   after: readonly Token[],
-  signal?: AbortSignalLike,
+  signal?: AbortSignal,
 ): Array<Map<number, number>> | null {
   const max = before.length + after.length;
   const work = { value: 0, limit: Math.max(250_000, Math.min(4_000_000, max * 240)) };
@@ -199,7 +199,7 @@ function backtrackEdits(
   before: readonly Token[],
   after: readonly Token[],
   trace: Array<Map<number, number>>,
-  signal?: AbortSignalLike,
+  signal?: AbortSignal,
 ): PrimitiveEdit[] {
   const edits: PrimitiveEdit[] = [];
   let x = before.length;
@@ -225,11 +225,7 @@ function backtrackEdits(
   return edits.reverse();
 }
 
-function primitiveDiff(
-  before: readonly Token[],
-  after: readonly Token[],
-  signal?: AbortSignalLike,
-): PrimitiveDiffResult {
+function primitiveDiff(before: readonly Token[], after: readonly Token[], signal?: AbortSignal): PrimitiveDiffResult {
   if (!before.length && !after.length) return { edits: [], exact: true };
   if (!before.length) return { edits: after.map((token) => ({ kind: "added", token })), exact: true };
   if (!after.length) return { edits: before.map((token) => ({ kind: "removed", token })), exact: true };
@@ -322,7 +318,7 @@ function segmentsFromEdits(edits: readonly PrimitiveEdit[], combineReplacements:
 }
 
 interface SemanticDiffOptions {
-  signal?: AbortSignalLike;
+  signal?: AbortSignal;
   metrics?: DiffMetricSink;
 }
 
@@ -706,7 +702,7 @@ function similarityCeiling(first: LineIndex, second: LineIndex): number {
   return Math.max(bound, ngramSimilarity(first, second) * 0.94);
 }
 
-function lineSimilarity(first: SpatialTextLine, second: SpatialTextLine, signal?: AbortSignalLike): number {
+function lineSimilarity(first: SpatialTextLine, second: SpatialTextLine, signal?: AbortSignal): number {
   const firstIndex = lineIndex(first);
   const secondIndex = lineIndex(second);
   if (!firstIndex.tokens.length || !secondIndex.tokens.length) return 0;
@@ -767,7 +763,7 @@ function exactLineMatches(
   afterPage: PageText,
   matchedBefore: Set<SpatialTextLine>,
   matchedAfter: Set<SpatialTextLine>,
-  signal?: AbortSignalLike,
+  signal?: AbortSignal,
 ): SpatialLineMatch[] {
   const matches: SpatialLineMatch[] = [];
   const afterByText = byIdentityText(afterLines);
@@ -793,7 +789,7 @@ function changedLineCandidates(
   afterPage: PageText,
   matchedBefore: ReadonlySet<SpatialTextLine>,
   matchedAfter: ReadonlySet<SpatialTextLine>,
-  signal?: AbortSignalLike,
+  signal?: AbortSignal,
 ): SpatialCandidate[] {
   const candidates: SpatialCandidate[] = [];
   for (const before of beforeLines) {
@@ -846,7 +842,7 @@ function unmatchedLines(
     .map((line) => (side === "before" ? { before: line, kind: "removed" } : { after: line, kind: "added" }));
 }
 
-function matchSpatialLines(beforePage: PageText, afterPage: PageText, signal?: AbortSignalLike): SpatialLineMatch[] {
+function matchSpatialLines(beforePage: PageText, afterPage: PageText, signal?: AbortSignal): SpatialLineMatch[] {
   const beforeLines = spatialLines(beforePage);
   const afterLines = spatialLines(afterPage);
   const matchedBefore = new Set<SpatialTextLine>();

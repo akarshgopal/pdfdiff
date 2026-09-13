@@ -1,6 +1,6 @@
 import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
-import type { AbortSignalLike, RasterImage } from "./types.js";
+import type { RasterImage } from "./types.js";
 import type { DiffMetricSink } from "./instrumentation.js";
 import { luminance } from "./raster-utils.js";
 
@@ -54,7 +54,7 @@ export interface TranslationAlignment {
 export function alignByTranslation(
   earlier: RasterImage,
   newer: RasterImage,
-  signal?: AbortSignalLike,
+  signal?: AbortSignal,
   metrics?: DiffMetricSink,
 ): TranslationAlignment {
   return measure(metrics, "core.alignment.translation", () => alignByTranslationUnmeasured(earlier, newer, signal), {
@@ -67,7 +67,7 @@ export function alignByTranslation(
 function alignByTranslationUnmeasured(
   earlier: RasterImage,
   newer: RasterImage,
-  signal?: AbortSignalLike,
+  signal?: AbortSignal,
 ): TranslationAlignment {
   let bestX = 0;
   let bestY = 0;

@@ -117,8 +117,9 @@ Static Assets. It has no Worker script, server-side rendering, runtime bindings,
 or server-side upload endpoint. Static asset requests do not execute Worker
 compute.
 
-Set `VITE_SITE_URL` to the canonical origin at build time to add absolute
-canonical, Open Graph, and X image URLs. For example:
+Set `VITE_SITE_URL` to the canonical origin at build time to rewrite the
+absolute canonical, Open Graph, JSON-LD, and X image URLs (they default to
+`https://pdfdiff.app`). For example:
 
 ```bash
 VITE_SITE_URL=https://pdfdiff.example pnpm build

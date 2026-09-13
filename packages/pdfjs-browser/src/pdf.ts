@@ -1,6 +1,5 @@
-import { getDocument, type PDFDocumentLoadingTask, type PDFDocumentProxy } from "pdfjs-dist";
-import { measureAsync, PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
-import { configurePdfWorker, getConfiguredWorkerUrl } from "./worker.js";
+import { getDocument, GlobalWorkerOptions, type PDFDocumentLoadingTask } from "pdfjs-dist";
+import { measureAsync, throwIfAborted } from "@pdfdiff/core";
 import type { LoadedPdf, PdfLoadOptions, PdfSource } from "./types.js";
 
 function isFile(source: PdfSource): source is File {
@@ -20,13 +19,9 @@ async function readSource(source: PdfSource, signal?: PdfLoadOptions["signal"]):
   return source.slice();
 }
 
-function getFingerprint(pdf: PDFDocumentProxy): string | null {
-  return pdf.fingerprints?.[0] ?? null;
-}
-
 function configureWorker(workerSrc?: string): void {
-  if (workerSrc) configurePdfWorker(workerSrc);
-  else if (!getConfiguredWorkerUrl()) throw new Error("Configure a PDF.js worker URL before loading a PDF.");
+  if (workerSrc) GlobalWorkerOptions.workerSrc = workerSrc;
+  else if (!GlobalWorkerOptions.workerSrc) throw new Error("Configure a PDF.js worker URL before loading a PDF.");
 }
 
 /** PDF.js resolves these itself, and only fetches them when a document needs them. */
@@ -51,13 +46,13 @@ function watchAbort(
   task: PDFDocumentLoadingTask,
   signal?: PdfLoadOptions["signal"],
 ): { promise: Promise<never>; detach: () => void } {
-  let rejectAbort: (reason: PdfDiffAbortError) => void = () => undefined;
+  let rejectAbort: (reason: DOMException) => void = () => undefined;
   const promise = new Promise<never>((_, reject) => {
     rejectAbort = reject;
   });
   const onAbort = (): void => {
     void task.destroy();
-    rejectAbort(new PdfDiffAbortError());
+    rejectAbort(new DOMException("The PDF operation was cancelled.", "AbortError"));
   };
   signal?.addEventListener("abort", onAbort, { once: true });
   if (signal?.aborted) onAbort();
@@ -92,12 +87,12 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
       name: isFile(source) ? source.name : undefined,
       byteLength: data.byteLength,
       pageCount: pdf.numPages,
-      fingerprint: getFingerprint(pdf),
+      fingerprint: pdf.fingerprints?.[0] ?? null,
       destroy: () => task.destroy(),
     };
   } catch (error) {
     await task.destroy().catch(() => undefined);
-    if (options.signal?.aborted) throw new PdfDiffAbortError();
+    throwIfAborted(options.signal);
     throw error;
   } finally {
     abort.detach();

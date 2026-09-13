@@ -29,6 +29,12 @@ export function filterTextChanges<T extends { readonly kind: DiffRegionKind }>(
   return filter === "all" ? items : items.filter((item) => item.kind === filter);
 }
 
+export function nextTextFilter(current: TextChangeFilter, direction: 1 | -1): TextChangeFilter {
+  const ids = textChangeFilters.map((item) => item.id);
+  const index = ids.indexOf(current);
+  return ids[(index + direction + ids.length) % ids.length]!;
+}
+
 /**
  * Additions live on the newer page, removals on the earlier page, and a
  * replacement is both. Hide the side that cannot show the active filter.
@@ -115,8 +121,19 @@ export function pageChanges(
   return page.regions ?? [];
 }
 
+/** Drop a selection the new Text filter would hide; Overlay/Split/Swipe keep it. */
+export function selectedChangeAfterTextFilter(
+  selected: string | null,
+  page: DiffPage,
+  mode: DiffViewMode,
+  textFilter: TextChangeFilter,
+): string | null {
+  if (!selected) return null;
+  return pageChanges(page, mode, textFilter).some((change) => change.id === selected) ? selected : null;
+}
+
 /** Overlay, Split, and Swipe walk visual regions; Text walks extracted-text edits. */
-export function changeGrain(mode: DiffViewMode): "area" | "text change" {
+function changeGrain(mode: DiffViewMode): "area" | "text change" {
   return mode === "semantic-text" ? "text change" : "area";
 }
 
@@ -127,7 +144,7 @@ function grainNoun(count: number, mode: DiffViewMode): string {
 }
 
 /** Rail chip: the on-page count in the active view's unit, never a bare "changes". */
-export function changeCountLabel(count: number, mode: DiffViewMode): string {
+function changeCountLabel(count: number, mode: DiffViewMode): string {
   return `${count} ${grainNoun(count, mode)}`;
 }
 
@@ -152,7 +169,7 @@ export function statusText(
   return count ? changeCountLabel(count, mode) : statusLabels[status];
 }
 
-export function statusLabel(status: NonNullable<DiffPage["status"]>): string {
+function statusLabel(status: NonNullable<DiffPage["status"]>): string {
   return statusLabels[status];
 }
 
@@ -160,10 +177,6 @@ export function statusLabel(status: NonNullable<DiffPage["status"]>): string {
 export function missingSideLabel(page: DiffPage, side: SourceSide): string | undefined {
   if (side === "earlier") return page.status === "added" ? "No earlier page — added page" : undefined;
   return page.status === "removed" ? "No newer page — removed page" : undefined;
-}
-
-export function sourceForSide(page: DiffPage | null | undefined, side: SourceSide): string | undefined {
-  return side === "earlier" ? page?.beforeSrc : page?.afterSrc;
 }
 
 export function sourcePageCount(pages: ReadonlyArray<DiffPage>, side: SourceSide): number {
@@ -271,7 +284,31 @@ export function collapsedRailSummary(pageIndex: number, pageCount: number, chang
   return `${current} · ${changed === 1 ? "1 changed" : `${changed} changed`}`;
 }
 
-/** Text mode empty state when the page has no extractable text, and OCR is not offered. */
+const textFilterEmptyStatus: Record<TextChangeFilter, string> = {
+  all: "No semantic text changes",
+  added: "No added text on this page",
+  removed: "No removed text on this page",
+  changed: "No changed text on this page",
+};
+
+/**
+ * Status the change walker cannot show: unreadable text, or nothing matching
+ * the Text filter. An empty status means the walker already names the count.
+ */
+export function semanticSummary(
+  semantic: DiffPage["semantic"],
+  textFilter: TextChangeFilter,
+): { status: string; detail: string } {
+  if (!semantic) return { status: "No semantic text changes", detail: "Native PDF rendering" };
+  if (semantic.textUndecodable === true) {
+    return { status: "Text could not be read", detail: "Embedded font has no Unicode mapping" };
+  }
+  const count = filterTextChanges(semantic.changes, textFilter).length;
+  if (count) return { status: "", detail: "" };
+  return { status: textFilterEmptyStatus[textFilter], detail: "" };
+}
+
+/** Text mode empty state when the page has no extractable text. */
 export function missingSelectableTextNotice(page: DiffPage): { title: string; detail: string } | null {
   const semantic = page.semantic;
   if (!semantic || semantic.textUndecodable) return null;

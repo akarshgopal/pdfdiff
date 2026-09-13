@@ -13,22 +13,8 @@ export interface DiffMetric {
 
 export type DiffMetricSink = (metric: DiffMetric) => void;
 
-interface RuntimePerformance {
-  now(): number;
-  memory?: { usedJSHeapSize: number };
-}
-
-function runtimePerformance(): RuntimePerformance | undefined {
-  const runtime = globalThis as typeof globalThis & { performance?: RuntimePerformance };
-  return runtime.performance;
-}
-
-function now(): number {
-  return runtimePerformance()?.now() ?? Date.now();
-}
-
 function memoryUsedBytes(): number | undefined {
-  const value = runtimePerformance()?.memory?.usedJSHeapSize;
+  const value = (performance as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize;
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
@@ -41,6 +27,16 @@ function emitMetric(sink: DiffMetricSink | undefined, metric: DiffMetric): void 
   }
 }
 
+function finish(
+  sink: DiffMetricSink,
+  name: string,
+  startedAt: number,
+  status: DiffMetricStatus,
+  attributes?: Readonly<Record<string, DiffMetricValue>>,
+): void {
+  emitMetric(sink, { name, durationMs: Math.max(0, performance.now() - startedAt), status, attributes });
+}
+
 export function measure<T>(
   sink: DiffMetricSink | undefined,
   name: string,
@@ -48,13 +44,13 @@ export function measure<T>(
   attributes?: Readonly<Record<string, DiffMetricValue>>,
 ): T {
   if (!sink) return operation();
-  const startedAt = now();
+  const startedAt = performance.now();
   try {
     const result = operation();
-    emitMetric(sink, { name, durationMs: Math.max(0, now() - startedAt), status: "ok", attributes });
+    finish(sink, name, startedAt, "ok", attributes);
     return result;
   } catch (error) {
-    emitMetric(sink, { name, durationMs: Math.max(0, now() - startedAt), status: "error", attributes });
+    finish(sink, name, startedAt, "error", attributes);
     throw error;
   }
 }
@@ -66,13 +62,13 @@ export async function measureAsync<T>(
   attributes?: Readonly<Record<string, DiffMetricValue>>,
 ): Promise<T> {
   if (!sink) return operation();
-  const startedAt = now();
+  const startedAt = performance.now();
   try {
     const result = await operation();
-    emitMetric(sink, { name, durationMs: Math.max(0, now() - startedAt), status: "ok", attributes });
+    finish(sink, name, startedAt, "ok", attributes);
     return result;
   } catch (error) {
-    emitMetric(sink, { name, durationMs: Math.max(0, now() - startedAt), status: "error", attributes });
+    finish(sink, name, startedAt, "error", attributes);
     throw error;
   }
 }

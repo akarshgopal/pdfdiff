@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_OVERLAY, toHex } from "./overlaySettings";
-import { styles, cx } from "./styles";
+import { cx } from "@pdfdiff/viewer-react/ui";
+import { styles } from "./styles";
 
 /**
  * A hand-drawn stand-in for a real comparison, not a screenshot: it renders in

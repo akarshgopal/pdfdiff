@@ -5,11 +5,6 @@ export interface RasterImage {
   readonly data: Uint8ClampedArray;
 }
 
-/** Minimal cancellation contract so the core stays independent of DOM types. */
-export interface AbortSignalLike {
-  readonly aborted: boolean;
-}
-
 export interface ProgressEvent {
   completed: number;
   total: number;
@@ -33,7 +28,7 @@ export interface VisualDiffOptions {
   modifiedColor?: RgbColor;
   unchangedOpacity?: number;
   regionOptions?: RegionOptions;
-  signal?: AbortSignalLike;
+  signal?: AbortSignal;
   metrics?: import("./instrumentation.js").DiffMetricSink;
 }
 
@@ -73,7 +68,7 @@ export interface RegionOptions {
   mergeGapY?: number;
   /** Order the surviving regions top-to-bottom then left-to-right instead of by size. */
   readingOrder?: boolean;
-  signal?: AbortSignalLike;
+  signal?: AbortSignal;
   metrics?: import("./instrumentation.js").DiffMetricSink;
 }
 
@@ -198,7 +193,7 @@ export interface ComparisonReadyEvent {
   readonly alignment?: readonly import("./document-alignment.js").AlignedPagePair[];
 }
 
-export interface DiffEngine<Source, Signal extends AbortSignalLike = AbortSignalLike> {
+export interface DiffEngine<Source, Signal extends AbortSignal = AbortSignal> {
   compare(request: {
     earlier: Source;
     newer: Source;

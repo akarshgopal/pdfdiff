@@ -28,8 +28,8 @@ import {
   ViewerToolbar,
   WorkspaceHeader,
 } from "./ViewerChrome.js";
-import { comparisonProgress, summarizeComparison } from "./summary.js";
-import { canDownloadPageImage, downloadPageImage, downloadReport } from "./export.js";
+import { comparisonProgress } from "./summary.js";
+import { canDownloadPageImage, downloadPageImage, downloadReport, reportForComparison } from "./export.js";
 import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
 import {
   changeWalkerLabel,
@@ -39,6 +39,8 @@ import {
   missingSideLabel,
   toggleFullscreen,
   pageChanges,
+  selectedChangeAfterTextFilter,
+  semanticSummary,
   temporaryPairCue,
   textChangeMatchesFilter,
   textFilterShowsSide,
@@ -189,21 +191,6 @@ function SemanticNativePane({
       </div>
     </article>
   );
-}
-
-function semanticSummary(
-  semantic: DiffPage["semantic"],
-  textFilter: TextChangeFilter,
-): { status: string; detail: string } {
-  if (!semantic) return { status: "No semantic text changes", detail: "Native PDF rendering" };
-  const count = filterTextChanges(semantic.changes, textFilter).length;
-  const undecodable = semantic.textUndecodable === true;
-  return {
-    // When there are text changes the walker already names that count; this
-    // bar only carries status that the walker cannot (empty, unreadable).
-    status: undecodable ? "Text could not be read" : count ? "" : "No semantic text changes",
-    detail: undecodable ? "Embedded font has no Unicode mapping" : "",
-  };
 }
 
 const semanticLegendKeys = [
@@ -814,12 +801,6 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-/**
- * The workspace's primary action: walk the items the current view highlights.
- * Overlay, Split, and Swipe walk visual areas; Text walks text changes, further
- * narrowed by the active Text filter. The count names that grain so it cannot
- * be read as the document page headline.
- */
 function ChangeNavigator({
   page,
   mode,
@@ -934,7 +915,7 @@ export function PdfDiffViewer({
     modalOpen: showSettings || showPairing,
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const summary = useMemo(() => summarizeComparison(comparison), [comparison]);
+  const summary = useMemo(() => reportForComparison(comparison).totals, [comparison]);
   const progress = comparisonProgress(comparison.pages, processingProgress);
   const {
     pages,
@@ -1009,7 +990,10 @@ export function PdfDiffViewer({
             mode={mode}
             onModeChange={changeMode}
             textFilter={textFilter}
-            onTextFilterChange={setTextFilter}
+            onTextFilterChange={(next) => {
+              setSelectedRegion(selectedChangeAfterTextFilter(selectedRegion, previewPage, mode, next));
+              setTextFilter(next);
+            }}
             zoom={zoom}
             onZoomChange={setZoom}
             textUnavailable={previewPage.semantic?.textUndecodable}

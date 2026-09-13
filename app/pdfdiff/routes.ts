@@ -31,8 +31,61 @@ export const ROUTE_DOCUMENT_META: Record<AppRoute, { title: string; description:
   },
 };
 
-export function applyDocumentMeta(route: AppRoute): void {
+export const INDEXABLE_ROBOTS = "index, follow, max-image-preview:large";
+export const NOT_FOUND_ROBOTS = "noindex, follow";
+
+export function canonicalPathForRoute(route: AppRoute, pathname: string): string {
+  if (route === "home") return "/";
+  if (route === "privacy") return "/privacy";
+  if (route === "terms") return "/terms";
+  return pathname.replace(/\/+$/, "") || "/";
+}
+
+export function documentMetaForRoute(
+  route: AppRoute,
+  origin: string,
+  pathname: string,
+): {
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  robots: string;
+} {
   const meta = ROUTE_DOCUMENT_META[route];
-  document.title = meta.title;
-  document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute("content", meta.description);
+  return {
+    title: meta.title,
+    description: meta.description,
+    canonicalUrl: `${origin}${canonicalPathForRoute(route, pathname)}`,
+    robots: route === "not-found" ? NOT_FOUND_ROBOTS : INDEXABLE_ROBOTS,
+  };
+}
+
+function siteOrigin(): string {
+  const href = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href;
+  if (href) {
+    try {
+      return new URL(href).origin;
+    } catch {
+      // Fall through to the page origin when the HTML tag is not a URL.
+    }
+  }
+  return window.location.origin;
+}
+
+function setAttr(selector: string, attr: string, value: string): void {
+  document.querySelector(selector)?.setAttribute(attr, value);
+}
+
+/** The SPA ships one HTML file, so each route has to rewrite the homepage tags. */
+export function applyDocumentMeta(route: AppRoute): void {
+  const next = documentMetaForRoute(route, siteOrigin(), window.location.pathname);
+  document.title = next.title;
+  setAttr('meta[name="description"]', "content", next.description);
+  setAttr('meta[property="og:description"]', "content", next.description);
+  setAttr('meta[name="twitter:description"]', "content", next.description);
+  setAttr('link[rel="canonical"]', "href", next.canonicalUrl);
+  setAttr('meta[property="og:url"]', "content", next.canonicalUrl);
+  setAttr('meta[property="og:title"]', "content", next.title);
+  setAttr('meta[name="twitter:title"]', "content", next.title);
+  setAttr('meta[name="robots"]', "content", next.robots);
 }

@@ -1,8 +1,14 @@
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { createPdfJsEngine, type RenderQuality } from "@pdfdiff/pdfjs-browser";
-import type { ComparisonPage, ComparisonResult, RasterImage, VisualPageGeometry } from "@pdfdiff/core";
+import type {
+  ComparisonPage,
+  ComparisonResult,
+  DiffMetricSink,
+  DiffOptions,
+  RasterImage,
+  VisualPageGeometry,
+} from "@pdfdiff/core";
 import type { DiffComparison, DiffPage, DiffSemanticOverlay, DiffRegion, DiffTextChange } from "@pdfdiff/viewer-react";
-import type { PdfDiffEngine } from "./pdfdiff/PdfDiffApp";
 import { describeRegions } from "./pdfdiff/regionLabels";
 
 const MAX_VIEWER_TEXT_CHANGES = 80;
@@ -96,7 +102,7 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
     page.earlier ? imageUrl(page.earlier) : undefined,
     page.newer ? imageUrl(page.newer) : undefined,
     page.diff ? imageUrl(page.diff, "png") : undefined,
-    layerSources ? imageUrl(layerSources.base, "webp") : undefined,
+    layerSources ? imageUrl(layerSources.base) : undefined,
     layerSources ? imageUrl(layerSources.added, "png", true) : undefined,
     layerSources ? imageUrl(layerSources.removed, "png", true) : undefined,
     layerSources ? imageUrl(layerSources.modified, "png", true) : undefined,
@@ -204,8 +210,23 @@ const engine = createPdfJsEngine({
   createRasterDiffWorker: () => new Worker(new URL("./rasterDiffWorker.ts", import.meta.url), { type: "module" }),
 });
 
-export const browserPdfDiffEngine: PdfDiffEngine = {
-  async compare(request) {
+export const browserPdfDiffEngine = {
+  async compare(request: {
+    earlier: File;
+    newer: File;
+    options: DiffOptions;
+    signal: AbortSignal;
+    onReady?: (event: {
+      earlierName: string;
+      newerName: string;
+      earlierPageCount: number;
+      newerPageCount: number;
+      total: number;
+    }) => void;
+    onPage?: (page: DiffPage) => void;
+    onProgress?: (progress: { completed: number; total: number }) => void;
+    onMetric?: DiffMetricSink;
+  }): Promise<DiffComparison> {
     const convertedPages = new Map<number, DiffPage>();
     const urls = new Set<string>();
     const revokePage = (page: DiffPage): void => {

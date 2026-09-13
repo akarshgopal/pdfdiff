@@ -46,19 +46,19 @@ function canonicalOrigin(value: string | undefined): string | null {
   }
 }
 
+const PRODUCTION_SITE_ORIGIN = "https://pdfdiff.app";
+
+/** Swap the production origin in index.html when a preview/fork sets VITE_SITE_URL. */
+export function rewriteAbsoluteSiteMetadata(html: string, origin: string | null): string {
+  if (!origin || origin === PRODUCTION_SITE_ORIGIN) return html;
+  return html.replaceAll(PRODUCTION_SITE_ORIGIN, origin);
+}
+
 function absoluteMetadata(origin: string | null): Plugin {
   return {
     name: "pdfdiff-absolute-metadata",
     transformIndexHtml(html) {
-      const metadata = origin
-        ? [
-            `<link rel="canonical" href="${origin}/" />`,
-            `<meta property="og:url" content="${origin}/" />`,
-            `<meta property="og:image" content="${origin}/og.png" />`,
-            `<meta name="twitter:image" content="${origin}/og.png" />`,
-          ].join("\n    ")
-        : "";
-      return html.replace("<!-- absolute-site-metadata -->", metadata);
+      return rewriteAbsoluteSiteMetadata(html, origin);
     },
   };
 }

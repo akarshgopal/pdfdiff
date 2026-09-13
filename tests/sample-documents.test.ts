@@ -43,7 +43,7 @@ test("loadSamplePair fetches both sides as named PDF files", async () => {
     const body = bodies.get(url);
     assert.ok(body, url);
     assert.equal(init?.signal, undefined);
-    return new Response(body, { status: 200 });
+    return new Response(body, { status: 200, headers: { "Content-Type": "application/pdf" } });
   }) as typeof fetch;
   try {
     const pair = await loadSamplePair("cad");
@@ -64,6 +64,32 @@ test("loadSamplePair fails when a sample cannot be fetched", async () => {
   globalThis.fetch = (async () => new Response(null, { status: 404 })) as typeof fetch;
   try {
     await assert.rejects(() => loadSamplePair("contract"), /Failed to load work-order-original\.pdf/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("loadSamplePair rejects an SPA HTML 200 as a missing PDF", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response("<!doctype html><title>pdfdiff</title>", {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    })) as typeof fetch;
+  try {
+    await assert.rejects(() => loadSamplePair("cad"), /Failed to load wheel-hub-rev-a\.pdf/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("loadSamplePair accepts a PDF body when Content-Type is missing", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response("%PDF-1.4 mock", { status: 200 })) as typeof fetch;
+  try {
+    const pair = await loadSamplePair("cad");
+    assert.equal(pair.earlier.type, "application/pdf");
+    assert.equal(await pair.earlier.text(), "%PDF-1.4 mock");
   } finally {
     globalThis.fetch = originalFetch;
   }

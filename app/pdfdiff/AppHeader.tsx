@@ -1,7 +1,7 @@
 import { ThemeToggle } from "../../components/ui/theme-toggle";
 import { styles } from "./styles";
 
-/** Lucide dropped brand icons; this is the former `Github` glyph at ThemeToggle size. */
+/** Inlined: Lucide no longer ships brand icons. */
 function GithubIcon() {
   return (
     <svg

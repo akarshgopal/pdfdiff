@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { HOME_DESCRIPTION, HOME_TITLE } from "../app/pdfdiff/routes.ts";
+import { rewriteAbsoluteSiteMetadata } from "../vite.config.ts";
 
 const root = new URL("../", import.meta.url);
 
@@ -41,9 +42,25 @@ test("index.html ships title, description, social cards, and WebApplication JSON
   assert.ok(schema.featureList.some((item) => /never leave the device/i.test(item)));
 });
 
+test("VITE_SITE_URL rewrites the hardcoded pdfdiff.app origin in index.html", async () => {
+  const html = await readFile(new URL("index.html", root), "utf8");
+  assert.match(html, /https:\/\/pdfdiff\.app\//);
+  assert.equal(rewriteAbsoluteSiteMetadata(html, null), html);
+  assert.equal(rewriteAbsoluteSiteMetadata(html, "https://pdfdiff.app"), html);
+
+  const preview = rewriteAbsoluteSiteMetadata(html, "https://pdfdiff.example");
+  assert.doesNotMatch(preview, /https:\/\/pdfdiff\.app/);
+  assert.match(preview, /rel="canonical" href="https:\/\/pdfdiff\.example\/"/);
+  assert.match(preview, /property="og:url" content="https:\/\/pdfdiff\.example\/"/);
+  assert.match(preview, /property="og:image" content="https:\/\/pdfdiff\.example\/og\.png"/);
+  assert.match(preview, /name="twitter:image" content="https:\/\/pdfdiff\.example\/og\.png"/);
+  assert.match(preview, /"url": "https:\/\/pdfdiff\.example\/"/);
+  assert.match(preview, /"termsOfService": "https:\/\/pdfdiff\.example\/terms"/);
+});
+
 test("robots.txt and sitemap.xml point at pdfdiff.app", async () => {
   const robots = await readFile(new URL("public/robots.txt", root), "utf8");
-  assert.match(robots, /^User-agent: \*\nAllow: \/\n/m);
+  assert.match(robots, /^User-agent: \*\nAllow: \/\nDisallow: \/samples\/\n/m);
   assert.match(robots, /Sitemap: https:\/\/pdfdiff\.app\/sitemap\.xml/);
 
   const sitemap = await readFile(new URL("public/sitemap.xml", root), "utf8");

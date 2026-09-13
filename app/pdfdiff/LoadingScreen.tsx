@@ -1,4 +1,5 @@
-import { styles, cx } from "./styles";
+import { cx } from "@pdfdiff/viewer-react/ui";
+import { styles } from "./styles";
 import { AppHeader } from "./AppHeader";
 import { Button } from "../../components/ui/button";
 

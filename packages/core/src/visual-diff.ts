@@ -4,7 +4,11 @@ import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import { findChangeRegions } from "./regions.js";
 import type { RasterImage, RgbColor, VisualDiffOptions, VisualDiffResult } from "./types.js";
-import { clamp, luminance } from "./raster-utils.js";
+import { luminance } from "./raster-utils.js";
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
 
 const DEFAULT_ADDED: RgbColor = [16, 190, 190];
 const DEFAULT_REMOVED: RgbColor = [238, 72, 86];

@@ -418,8 +418,16 @@ test("document progress stays open until every page has a verdict", () => {
 // The rail label, the change counter, and next/previous all read one list, so
 // Text mode can never claim a different number of changes than the view shows.
 test("change navigation counts the list the current view highlights", async () => {
-  const { pageChanges, statusText, changeWalkerLabel, textFilterShowsSide, filterTextChanges } =
-    await import("../packages/viewer-react/src/viewer-utils.ts");
+  const {
+    pageChanges,
+    statusText,
+    changeWalkerLabel,
+    textFilterShowsSide,
+    filterTextChanges,
+    nextTextFilter,
+    selectedChangeAfterTextFilter,
+    semanticSummary,
+  } = await import("../packages/viewer-react/src/viewer-utils.ts");
   const page: DiffPage = {
     index: 0,
     status: "changed",
@@ -505,6 +513,39 @@ test("change navigation counts the list the current view highlights", async () =
     filterTextChanges(overlays, "changed").map((item) => item.id),
     ["t1"],
   );
+
+  const semantic = page.semantic!;
+  assert.equal(semanticSummary(semantic, "all").status, "");
+  assert.equal(semanticSummary(semantic, "added").status, "");
+  const withoutAdditions = { ...semantic, changes: semantic.changes.filter((change) => change.kind !== "added") };
+  assert.equal(semanticSummary(withoutAdditions, "added").status, "No added text on this page");
+  const withoutRemovals = { ...semantic, changes: semantic.changes.filter((change) => change.kind !== "removed") };
+  assert.equal(semanticSummary(withoutRemovals, "removed").status, "No removed text on this page");
+  const withoutReplacements = {
+    ...semantic,
+    changes: semantic.changes.filter((change) => change.kind !== "changed"),
+  };
+  assert.equal(semanticSummary(withoutReplacements, "changed").status, "No changed text on this page");
+  assert.equal(semanticSummary({ ...semantic, changes: [] }, "all").status, "No semantic text changes");
+  assert.deepEqual(semanticSummary(undefined, "added"), {
+    status: "No semantic text changes",
+    detail: "Native PDF rendering",
+  });
+  assert.deepEqual(semanticSummary({ ...semantic, textUndecodable: true }, "added"), {
+    status: "Text could not be read",
+    detail: "Embedded font has no Unicode mapping",
+  });
+
+  assert.equal(selectedChangeAfterTextFilter("t2", page, "semantic-text", "added"), "t2");
+  assert.equal(selectedChangeAfterTextFilter("t2", page, "semantic-text", "removed"), null);
+  assert.equal(selectedChangeAfterTextFilter("t2", page, "semantic-text", "all"), "t2");
+  assert.equal(selectedChangeAfterTextFilter(null, page, "semantic-text", "removed"), null);
+  assert.equal(selectedChangeAfterTextFilter("r1", page, "diff", "added"), "r1");
+
+  assert.equal(nextTextFilter("all", 1), "added");
+  assert.equal(nextTextFilter("changed", 1), "all");
+  assert.equal(nextTextFilter("all", -1), "changed");
+  assert.equal(nextTextFilter("added", -1), "all");
 });
 
 test("unreadable fonts keep a header warning; pages with no text do not", () => {
@@ -603,7 +644,8 @@ test("Text mode offers text-change filters; Overlay, Split, and Swipe do not", a
   assert.match(text, />Additions only</);
   assert.match(text, />Removals only</);
   assert.match(text, />Changes only</);
-  assert.match(text, /aria-checked="true"[^>]*>All text changes/);
+  assert.match(text, /aria-checked="true" tabindex="0"[^>]*>All text changes/);
+  assert.match(text, /aria-checked="false" tabindex="-1"[^>]*>Additions only/);
 
   const additions = renderToStaticMarkup(
     createElement(ViewerToolbar, {

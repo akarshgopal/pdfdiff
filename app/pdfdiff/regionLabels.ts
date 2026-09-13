@@ -42,7 +42,7 @@ function overlayBox(overlay: DiffSemanticOverlay): OverlayBox | null {
   };
 }
 
-export function overlapArea(a: Box, b: Box): number {
+function overlapArea(a: Box, b: Box): number {
   const overlapWidth = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
   const overlapHeight = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
   return overlapWidth > 0 && overlapHeight > 0 ? overlapWidth * overlapHeight : 0;

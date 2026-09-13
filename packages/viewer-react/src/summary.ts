@@ -1,21 +1,8 @@
 import type { ReportTotals } from "@pdfdiff/core";
-import type { DiffComparison, DiffPage } from "./types.js";
-import { reportForComparison } from "./export.js";
+import type { DiffPage } from "./types.js";
 import { pageStatus } from "./viewer-utils.js";
 
-/**
- * The document-level answer is always a page story. On-page region and
- * text-change counts name their own grain, so they cannot be mistaken for
- * a second headline. That story is only ready once every row has a settled
- * status — partial totals look like the same sentence.
- */
-
-export type ComparisonSummary = ReportTotals;
 export type ComparisonProgress = { readonly completed: number; readonly total: number };
-
-export function summarizeComparison(comparison: DiffComparison): ComparisonSummary {
-  return reportForComparison(comparison).totals;
-}
 
 /**
  * Absent once every page has a verdict. Completed is counted from settled
@@ -41,13 +28,8 @@ function pageStory(count: number, total: number, verb: string): string {
   return `${count} of ${total} pages ${verb}`;
 }
 
-/**
- * Document-level text warnings. Unreadable fonts are a trust issue — Text mode
- * cannot run on those pages — so they stay visible with an action. Pages that
- * simply have no selectable text are already compared visually; Text mode
- * explains itself on those pages, and a header chip does not help.
- */
-export function headerTextWarning(summary: ComparisonSummary): { message: string; title: string } | null {
+/** Unreadable fonts get a header chip; pages without selectable text do not. */
+export function headerTextWarning(summary: ReportTotals): { message: string; title: string } | null {
   if (!summary.pagesWithUnreadableText) return null;
   return {
     message: `Text comparison unavailable on ${summary.pagesWithUnreadableText} of ${summary.pages} pages`,
@@ -55,7 +37,7 @@ export function headerTextWarning(summary: ComparisonSummary): { message: string
   };
 }
 
-export function summaryHeadline(summary: ComparisonSummary): string {
+export function summaryHeadline(summary: ReportTotals): string {
   const { changedPages, addedPages, removedPages, movedPages, pages } = summary;
   if (changedPages + addedPages + removedPages + movedPages === 0) {
     return "No differences detected at current settings";
@@ -73,7 +55,7 @@ export function summaryHeadline(summary: ComparisonSummary): string {
   return parts.join(" · ");
 }
 
-export function workspaceHeadline(summary: ComparisonSummary, progress?: ComparisonProgress): string {
+export function workspaceHeadline(summary: ReportTotals, progress?: ComparisonProgress): string {
   if (progress) return `Comparing ${progress.completed} of ${progress.total} pages…`;
   return summaryHeadline(summary);
 }

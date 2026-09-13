@@ -1,8 +1,5 @@
 import { cx, ui } from "@pdfdiff/viewer-react/ui";
 
-export { cx, type TailwindClass } from "@pdfdiff/viewer-react/ui";
-export { ui };
-
 /** One page gutter and one content width for every screen, marketing or legal. */
 const gutter = "px-5 lg:px-8";
 const container = "mx-auto w-full max-w-[1120px]";

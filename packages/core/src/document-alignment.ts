@@ -1,7 +1,6 @@
 import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { DiffMetricSink } from "./instrumentation.js";
-import type { AbortSignalLike } from "./types.js";
 
 /**
  * Pairing page N with page N breaks the moment a revision inserts or removes a
@@ -39,7 +38,7 @@ export interface PageAlignmentOptions {
   readonly detectMoves?: boolean;
   /** Skip content matching and pair pages by position instead. */
   readonly sequential?: boolean;
-  readonly signal?: AbortSignalLike;
+  readonly signal?: AbortSignal;
   readonly metrics?: DiffMetricSink;
 }
 
@@ -111,7 +110,7 @@ function buildScoreGrid(
   newer: readonly PageFingerprint[],
   matchThreshold: number,
   band: number,
-  signal: AbortSignalLike | undefined,
+  signal: AbortSignal | undefined,
 ): Array<Array<ScoreCell | undefined>> {
   const drift = earlier.length && newer.length ? earlier.length / newer.length : 1;
   const grid: Array<Array<ScoreCell | undefined>> = Array.from({ length: earlier.length + 1 }, () => []);

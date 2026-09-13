@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,13 +23,15 @@ import {
   pagePairLabel,
   pageStatus,
   statusText,
+  nextTextFilter,
   textChangeFilters,
   viewModes,
   visiblePageIndexes,
   ZOOM_STEP,
   type TextChangeFilter,
 } from "./viewer-utils.js";
-import { comparisonProgress, headerTextWarning, workspaceHeadline, type ComparisonSummary } from "./summary.js";
+import type { ReportTotals } from "@pdfdiff/core";
+import { comparisonProgress, headerTextWarning, workspaceHeadline } from "./summary.js";
 import type { ExportChoice } from "./export.js";
 
 function ThumbPlaceholder() {
@@ -52,7 +54,7 @@ export function WorkspaceHeader({
   headerActions,
 }: {
   comparison: DiffComparison;
-  summary: ComparisonSummary;
+  summary: ReportTotals;
   processingProgress?: { completed: number; total: number };
   onNewComparison?: () => void;
   headerActions?: ReactNode;
@@ -471,6 +473,53 @@ export function PairingDialog({
   );
 }
 
+function textFilterKeyDirection(key: string): 1 | -1 | null {
+  if (key === "ArrowRight" || key === "ArrowDown") return 1;
+  if (key === "ArrowLeft" || key === "ArrowUp") return -1;
+  return null;
+}
+
+function TextFilterGroup({
+  textFilter,
+  onTextFilterChange,
+}: {
+  textFilter: TextChangeFilter;
+  onTextFilterChange: (filter: TextChangeFilter) => void;
+}) {
+  const groupRef = useRef<HTMLDivElement>(null);
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const direction = textFilterKeyDirection(event.key);
+    if (!direction) return;
+    event.preventDefault();
+    event.stopPropagation(); // Window-level arrows walk pages.
+    const next = nextTextFilter(textFilter, direction);
+    onTextFilterChange(next);
+    const root = groupRef.current;
+    requestAnimationFrame(() => {
+      root?.querySelector<HTMLElement>(`[data-text-filter="${next}"]`)?.focus();
+    });
+  };
+  return (
+    <div ref={groupRef} className={styles.toolbarGroup} role="radiogroup" aria-label="Text change filter">
+      {textChangeFilters.map((item) => (
+        <button
+          key={item.id}
+          data-text-filter={item.id}
+          className={cx(styles.filterChip, textFilter === item.id && styles.filterChipOn)}
+          type="button"
+          role="radio"
+          aria-checked={textFilter === item.id}
+          tabIndex={textFilter === item.id ? 0 : -1}
+          onClick={() => onTextFilterChange(item.id)}
+          onKeyDown={onKeyDown}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ViewerToolbar({
   mode,
   onModeChange,
@@ -528,20 +577,7 @@ export function ViewerToolbar({
         })}
       </div>
       {mode === "semantic-text" && onTextFilterChange ? (
-        <div className={styles.toolbarGroup} role="radiogroup" aria-label="Text change filter">
-          {textChangeFilters.map((item) => (
-            <button
-              key={item.id}
-              className={cx(styles.filterChip, textFilter === item.id && styles.filterChipOn)}
-              type="button"
-              role="radio"
-              aria-checked={textFilter === item.id}
-              onClick={() => onTextFilterChange(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <TextFilterGroup textFilter={textFilter} onTextFilterChange={onTextFilterChange} />
       ) : null}
       {navigation}
       <div className={styles.toolbarGroup}>
