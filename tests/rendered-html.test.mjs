@@ -13,10 +13,14 @@ async function clientBundleText() {
 test("builds a static private PDF comparison experience", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
   assert.match(html, /<title>Compare two PDFs privately in your browser \| pdfdiff<\/title>/i);
-  assert.match(html, /name="description" content="[^"]*Files never leave your device[^"]*"/i);
+  assert.match(html, /name="description"\s+content="[^"]*Files never leave your device[^"]*"/i);
   assert.match(html, /rel="canonical" href="https:\/\/pdfdiff\.app\/"/i);
   assert.match(html, /property="og:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
+  assert.match(html, /property="og:image:width" content="1200"/);
+  assert.match(html, /property="og:image:height" content="630"/);
   assert.match(html, /name="twitter:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
+  assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
+  assert.match(html, /rel="preload" href="\/fonts\/inter-latin\.woff2"/);
   assert.match(html, /type="application\/ld\+json"/i);
   assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
@@ -30,6 +34,7 @@ test("builds a static private PDF comparison experience", async () => {
   assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/sitemap.xml", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
 
   // One smoke check that the SPA actually shipped its app code; the copy itself is not a contract.
   const bundle = await clientBundleText();
@@ -40,6 +45,24 @@ test("builds a static private PDF comparison experience", async () => {
   assert.match(bundle, /pdfdiff-swipe-top/);
   assert.match(bundle, /Try a sample/);
   assert.match(bundle, /Datasheet/);
+  assert.match(bundle, /This page does not exist/);
+  assert.match(bundle, /Privacy Policy — pdfdiff/);
+  assert.match(bundle, /Terms of Service — pdfdiff/);
+  assert.match(bundle, /Page not found — pdfdiff/);
+});
+
+test("built CSS self-hosts Inter and the OG image stays compact", async () => {
+  const assetsDirectory = new URL("../dist/assets/", import.meta.url);
+  const files = await readdir(assetsDirectory);
+  const css = files.filter((file) => file.endsWith(".css"));
+  const styles = (await Promise.all(css.map((file) => readFile(new URL(file, assetsDirectory), "utf8")))).join("\n");
+  assert.match(styles, /\/fonts\/inter-latin\.woff2/);
+  assert.doesNotMatch(styles, /fonts\.googleapis|fonts\.gstatic/i);
+
+  const og = await readFile(new URL("../dist/og.png", import.meta.url));
+  assert.ok(og.byteLength < 300 * 1024, `dist/og.png is ${og.byteLength} bytes`);
+  assert.equal(og.readUInt32BE(16), 1200);
+  assert.equal(og.readUInt32BE(20), 630);
 });
 
 test("try-sample fixture pairs ship as static files", () => {
