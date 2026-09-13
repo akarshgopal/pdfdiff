@@ -5,6 +5,10 @@ in the browser. It renders visual
 diffs, extracts semantic text changes, and provides a focused page-by-page
 review workspace. See HELP.md for the user guide.
 
+![Two PDF revisions compared four ways: a pixel overlay, side-by-side pages, a
+slider revealing one revision under the other, and highlighted text
+changes](docs/launch.gif)
+
 ## Prerequisites
 
 - Node.js `>=22.13.0`
@@ -109,6 +113,7 @@ and the raster diff reports the difference as a real change.
 - `pnpm test`: build the packages and run the unit tests
 - `pnpm run test:dist`: build the site and check the shipped `dist/` output
 - `pnpm run test:viewer`: Playwright against a running app (`PDFDIFF_URL`, default `http://localhost:5173/`)
+- `node tools/launch-video.mjs`: record the landing demo (needs `pnpm dev` and ffmpeg)
 - `pnpm lint`: run ESLint
 - `pnpm bench:core`: run deterministic core performance and quality scenarios
 - `pnpm bench:browser`: run the app through Playwright and Chromium
