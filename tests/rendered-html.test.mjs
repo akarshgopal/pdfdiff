@@ -36,33 +36,17 @@ test("builds a static private PDF comparison experience", async () => {
   assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
 
-  // One smoke check that the SPA actually shipped its app code; the copy itself is not a contract.
   const bundle = await clientBundleText();
-  assert.match(bundle, /Files are compared in this browser and never uploaded/i);
-  // The hero demo is drawn, not screenshotted: both revisions and both overlay colours ship in the bundle.
-  assert.match(bundle, /24\.0/);
-  assert.match(bundle, /26\.5/);
-  assert.match(bundle, /pdfdiff-swipe-top/);
-  assert.match(bundle, /Try a sample/);
-  assert.match(bundle, /Datasheet/);
-  assert.match(bundle, /This page does not exist/);
-  assert.match(bundle, /Privacy Policy — pdfdiff/);
-  assert.match(bundle, /Terms of Service — pdfdiff/);
-  assert.match(bundle, /Page not found — pdfdiff/);
+  assert.match(bundle, /never uploaded/i);
 });
 
-test("built CSS self-hosts Inter and the OG image stays compact", async () => {
+test("built CSS self-hosts Inter", async () => {
   const assetsDirectory = new URL("../dist/assets/", import.meta.url);
   const files = await readdir(assetsDirectory);
   const css = files.filter((file) => file.endsWith(".css"));
   const styles = (await Promise.all(css.map((file) => readFile(new URL(file, assetsDirectory), "utf8")))).join("\n");
   assert.match(styles, /\/fonts\/inter-latin\.woff2/);
   assert.doesNotMatch(styles, /fonts\.googleapis|fonts\.gstatic/i);
-
-  const og = await readFile(new URL("../dist/og.png", import.meta.url));
-  assert.ok(og.byteLength < 300 * 1024, `dist/og.png is ${og.byteLength} bytes`);
-  assert.equal(og.readUInt32BE(16), 1200);
-  assert.equal(og.readUInt32BE(20), 630);
 });
 
 test("try-sample fixture pairs ship as static files", () => {

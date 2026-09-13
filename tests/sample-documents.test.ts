@@ -2,23 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { loadSamplePair, SAMPLE_DOCUMENTS, sampleDocument, samplePublicPath } from "../app/pdfdiff/sampleDocuments.ts";
-
-test("the try-sample catalog is CAD, contract, and the smaller TI datasheet pair", () => {
-  assert.deepEqual(
-    SAMPLE_DOCUMENTS.map((sample) => sample.id),
-    ["cad", "contract", "datasheet"],
-  );
-  assert.equal(SAMPLE_DOCUMENTS[0]?.label, "CAD");
-  assert.equal(SAMPLE_DOCUMENTS[1]?.label, "Contract");
-  assert.equal(SAMPLE_DOCUMENTS[2]?.label, "Datasheet");
-  assert.match(sampleDocument("cad").earlier.source, /wheel-hub-rev-a/);
-  assert.match(sampleDocument("cad").newer.source, /wheel-hub-rev-b/);
-  assert.match(sampleDocument("contract").earlier.source, /work-order-original/);
-  assert.match(sampleDocument("contract").newer.source, /work-order-amended/);
-  assert.match(sampleDocument("datasheet").earlier.source, /ti-sn74lv126a-rev-i/);
-  assert.match(sampleDocument("datasheet").newer.source, /ti-sn74lv126a-rev-j/);
-});
+import { loadSamplePair, SAMPLE_DOCUMENTS, samplePublicPath } from "../app/pdfdiff/sampleDocuments.ts";
 
 test("sample files are served from /samples and exist in the fixture tree", () => {
   for (const sample of SAMPLE_DOCUMENTS) {

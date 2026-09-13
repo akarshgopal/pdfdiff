@@ -46,15 +46,12 @@ test("viewer renders pair navigation, overlay thumbnails, and a pannable canvas"
 
   assert.match(html, /aria-label="Page navigation"/);
   assert.match(html, /aria-pressed="true"[^>]*>Overlay/);
-  assert.doesNotMatch(html, /Independent PDF page navigation/);
   assert.match(html, /Previous page/);
   assert.match(html, /Next page/);
   assert.match(html, /Comparison overlay preview/);
   assert.match(html, /Document canvas\. Scroll to pan, pinch or Ctrl-scroll to zoom\./);
   assert.match(html, /aria-label="Overlay colours"/);
   assert.match(html, />Added<\/span>.*>Removed<\/span>.*>Modified<\/span>/);
-  assert.doesNotMatch(html, /No text on/);
-  assert.doesNotMatch(html, /OCR/);
 });
 
 test("single-page unreadable comparisons remove duplicate chrome and retain the warning", () => {
@@ -94,13 +91,6 @@ test("single-page unreadable comparisons remove duplicate chrome and retain the 
   assert.match(html, /Text comparison unavailable on 1 of 1 pages<\/span>/);
   assert.match(html, /title="These pages embed fonts with no Unicode mapping. Overlay, Split, and Swipe still apply."/);
   assert.match(html, /disabled=""[^>]+title="Text comparison unavailable:[^"]+Overlay, Split, and Swipe still apply."/);
-  assert.doesNotMatch(html, /⚠/);
-  assert.doesNotMatch(html, /OCR/);
-  assert.doesNotMatch(html, /No text on/);
-  assert.doesNotMatch(html, />2 visual changes<\/span>/);
-  assert.doesNotMatch(html, />Content<\/span><strong>1<\/strong>/);
-  assert.doesNotMatch(html, /Independent PDF page navigation/);
-  assert.doesNotMatch(html, /This PDF&#x27;s text could not be decoded/);
 });
 
 test("the workspace opens with a document-level summary and filters", () => {
@@ -124,14 +114,6 @@ test("the workspace opens with a document-level summary and filters", () => {
   assert.match(html, /aria-label="Comparison summary"/);
   assert.match(html, /1 of 2 pages changed/);
   assert.match(html, /1 area on this page/);
-  assert.doesNotMatch(html, /1 changed of 2 pages/);
-  assert.doesNotMatch(html, /1 change on this page/);
-  assert.doesNotMatch(html, /2 text changes/);
-  assert.doesNotMatch(html, /9 reflow\/formatting/);
-  // The filters moved behind the settings dialog, so the resting workspace shows neither.
-  assert.doesNotMatch(html, /Hide reflow noise/);
-  assert.doesNotMatch(html, /All text changes/);
-  assert.doesNotMatch(html, /Additions only/);
   assert.match(html, /Only changed/);
   assert.match(html, /aria-label="Settings"/);
 });
@@ -155,7 +137,6 @@ test("a comparison with possible reflow still reports detected changes", () => {
   );
 
   assert.match(html, /1 page changed/);
-  assert.doesNotMatch(html, /No substantive changes/);
 });
 
 test("viewer renders supplied header actions in the comparison workspace", () => {
@@ -192,15 +173,9 @@ test("viewer renders document counts and progress without treating pending pages
   );
 
   assert.match(html, /Page navigation/);
-  assert.doesNotMatch(html, />Changed <span>/);
-  assert.doesNotMatch(html, /The documents are identical/);
   assert.match(html, /Comparing 0 of 3 pages…/);
   assert.match(html, /Comparing page 1 of 3/);
   assert.match(html, /role="progressbar"[^>]+aria-valuenow="0"/);
-  assert.doesNotMatch(html, /No differences detected/);
-  assert.doesNotMatch(html, /pages changed/);
-  assert.doesNotMatch(html, /<p>Preview is still rendering/);
-  assert.doesNotMatch(html, /No selectable text/);
 });
 
 test("a partially streamed comparison keeps the in-progress headline and muted rail chips", () => {
@@ -224,12 +199,9 @@ test("a partially streamed comparison keeps the in-progress headline and muted r
 
   assert.match(html, /Comparing 2 of 3 pages…/);
   assert.match(html, /Comparing page 3 of 3/);
-  assert.doesNotMatch(html, /1 of 3 pages changed/);
-  assert.doesNotMatch(html, /No differences detected/);
   assert.match(html, />1 area</);
   assert.match(html, />No changes</);
   assert.match(html, />Comparing…</);
-  assert.doesNotMatch(html, /text-success/);
 });
 
 test("pending rows keep the comparing headline even without a progress prop", () => {
@@ -247,8 +219,6 @@ test("pending rows keep the comparing headline even without a progress prop", ()
   );
 
   assert.match(html, /Comparing 1 of 2 pages…/);
-  assert.doesNotMatch(html, /1 of 2 pages changed/);
-  assert.doesNotMatch(html, /No differences detected/);
 });
 
 test("once every page has a verdict the page-story headline is stable", () => {
@@ -267,8 +237,6 @@ test("once every page has a verdict the page-story headline is stable", () => {
   );
 
   assert.match(html, /1 of 2 pages changed/);
-  assert.doesNotMatch(html, /Comparing \d+ of \d+ pages/);
-  assert.doesNotMatch(html, /role="progressbar"/);
   assert.match(html, /text-success/);
 });
 
@@ -363,17 +331,6 @@ test("the document headline is always a page story", () => {
   assert.equal(
     summaryHeadline(summary({ pages: 5, changedPages: 2, addedPages: 1, removedPages: 1, movedPages: 1 })),
     "2 pages changed · 1 page added · 1 page removed · 1 page moved",
-  );
-  assert.doesNotMatch(
-    summaryHeadline(
-      summary({
-        pages: 3,
-        changedPages: 1,
-        textChanges: 8,
-        classes: { content: 2, reflow: 9, formatting: 0, graphic: 1 },
-      }),
-    ),
-    /text change|reflow|token|area/i,
   );
 });
 

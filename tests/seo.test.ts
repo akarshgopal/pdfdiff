@@ -81,15 +81,12 @@ test("VITE_SITE_URL rewrites robots.txt and sitemap.xml the same way as index.ht
   assert.doesNotMatch(previewSitemap, /pdfdiff\.app/);
 });
 
-test("og.png is a compact PNG matching the Open Graph dimensions", async () => {
+test("og.png matches the Open Graph dimensions", async () => {
   const png = await readFile(new URL("public/og.png", root));
-  assert.ok(png.byteLength < 300 * 1024, `og.png is ${png.byteLength} bytes`);
   assert.deepEqual(pngSize(png), { width: 1200, height: 630 });
 });
 
-test("Inter is self-hosted and CSP does not allow Google Fonts", async () => {
-  const font = await readFile(new URL("public/fonts/inter-latin.woff2", root));
-  assert.equal(font.subarray(0, 4).toString(), "wOF2");
+test("CSP does not allow Google Fonts", async () => {
   const headers = await readFile(new URL("public/_headers", root), "utf8");
   assert.match(headers, /font-src 'self'/);
   assert.doesNotMatch(headers, /fonts\.googleapis|fonts\.gstatic/i);

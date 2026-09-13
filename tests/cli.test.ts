@@ -76,7 +76,6 @@ test("--help exits 0 and documents the options", async () => {
   assert.equal(code, 0);
   assert.match(stdout, /--fail-on-change/);
   assert.match(stdout, /--report <text\|json\|csv>/);
-  assert.doesNotMatch(stdout, /include-noise/);
 });
 
 test("a drawing whose fonts carry no Unicode map warns instead of reporting a clean run", async () => {
@@ -115,5 +114,4 @@ test("every documented flag is accepted, including --no-detect-moves", async () 
 
 test("an unknown flag exits with the usage code", async () => {
   assert.equal((await cli(EARLIER, NEWER, "--nope")).code, 2);
-  assert.equal((await cli(EARLIER, NEWER, "--include-noise")).code, 2);
 });

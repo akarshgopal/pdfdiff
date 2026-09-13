@@ -85,7 +85,7 @@ export function UploadScreen({
               <br />
               <em className={styles.headlineAccent}>See what changed.</em>
             </h1>
-            <p className={styles.introLead}>Overlay two revisions page by page — text and drawings.</p>
+            <p className={styles.introLead}>Overlay two revisions page by page, text and drawings.</p>
             <div className={styles.uploadGrid}>
               <FileDropzone
                 label="Earlier"

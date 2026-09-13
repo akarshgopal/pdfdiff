@@ -10,7 +10,7 @@ export function appRouteFromPath(pathname: string): AppRoute {
 
 export const HOME_TITLE = "Compare two PDFs privately in your browser | pdfdiff";
 export const HOME_DESCRIPTION =
-  "Free, browser-based PDF compare. See text and drawing changes between two revisions, page by page. Files never leave your device — nothing is uploaded.";
+  "Free, browser-based PDF compare. See text and drawing changes between two revisions, page by page. Files never leave your device. Nothing is uploaded.";
 
 export const ROUTE_DOCUMENT_META: Record<AppRoute, { title: string; description: string }> = {
   home: {

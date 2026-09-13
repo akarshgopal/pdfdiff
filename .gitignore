@@ -23,3 +23,6 @@ pnpm-debug.log*
 # os
 .DS_Store
 *.pem
+
+# media
+*.mp3
