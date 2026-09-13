@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { diffImages, diffSemanticText, type DiffMetric } from "@pdfdiff/core";
+import {
+  createDiffMetricsCollector,
+  diffImages,
+  diffSemanticText,
+  summarizeDiffMetrics,
+  type DiffMetric,
+} from "@pdfdiff/core";
 
 function raster(fill: number): { width: number; height: number; data: Uint8ClampedArray } {
   const data = new Uint8ClampedArray(16);
@@ -62,4 +68,23 @@ test("core comparison emits opt-in phase metrics", () => {
   assert.ok(metrics.some((metric) => metric.name === "core.visual.overlay"));
   assert.ok(metrics.some((metric) => metric.name === "core.visual.regions"));
   assert.ok(metrics.every((metric) => metric.status === "ok" && metric.durationMs >= 0));
+});
+
+test("the metrics collector snapshots and summarises recorded phases", () => {
+  const collector = createDiffMetricsCollector();
+  const earlier = raster(255);
+  const newer = raster(255);
+  newer.data[0] = 0;
+  diffImages(earlier, newer, {
+    threshold: 0,
+    regionOptions: { minPixels: 1 },
+    metrics: collector.sink,
+  });
+  const snapshot = collector.snapshot();
+  assert.ok(snapshot.length > 0);
+  assert.notEqual(snapshot, collector.snapshot());
+  assert.deepEqual(snapshot, collector.snapshot());
+  const summary = summarizeDiffMetrics(snapshot);
+  assert.equal(summary.length, snapshot.length);
+  assert.ok(summary.every((row) => typeof row.name === "string" && row.durationMs >= 0));
 });

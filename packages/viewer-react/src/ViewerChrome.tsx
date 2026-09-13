@@ -33,6 +33,35 @@ import {
 import type { ReportTotals } from "@pdfdiff/core";
 import { comparisonProgress, headerTextWarning, workspaceHeadline } from "./summary.js";
 import type { ExportChoice } from "./export.js";
+import { helpModes, helpShortcuts, helpSteps } from "./help-content.js";
+
+function ModalDialog({
+  labelledBy,
+  className,
+  onClose,
+  children,
+}: {
+  labelledBy: string;
+  className: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    ref.current?.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className={cx("m-auto p-0 text-foreground backdrop:bg-foreground/50", className)}
+      onCancel={onClose}
+      onClose={onClose}
+      aria-labelledby={labelledBy}
+    >
+      {children}
+    </dialog>
+  );
+}
 
 function ThumbPlaceholder() {
   return (
@@ -374,7 +403,7 @@ export function PairingControls({
     <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
       {canChangePair ? (
         // The pair label is the only thing worth clicking here, so it is the button.
-        <button className={styles.quietButton} title="Change pairing" onClick={onChangePair}>
+        <button className={styles.quietButton} type="button" title="Change pairing" onClick={onChangePair}>
           {manual ? "Temporary · " : ""}
           {pagePairLabel(page, pageIndex)}
         </button>
@@ -382,7 +411,7 @@ export function PairingControls({
         <span className="text-center text-xs text-foreground">{pagePairLabel(page, pageIndex)}</span>
       )}
       {manual ? (
-        <button className={styles.quietButton} onClick={onReturnToDocument}>
+        <button className={styles.quietButton} type="button" onClick={onReturnToDocument}>
           Return to document
         </button>
       ) : null}
@@ -410,18 +439,8 @@ export function PairingDialog({
   onApply: (earlier: number, newer: number) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
   return (
-    <dialog
-      ref={ref}
-      className={`${ui.dialog} m-auto w-80 p-5 text-foreground backdrop:bg-foreground/50`}
-      onCancel={onClose}
-      onClose={onClose}
-      aria-labelledby="pairing-title"
-    >
+    <ModalDialog labelledBy="pairing-title" className={`${ui.dialog} w-80 p-5`} onClose={onClose}>
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {
@@ -469,7 +488,7 @@ export function PairingDialog({
           </button>
         </div>
       </form>
-    </dialog>
+    </ModalDialog>
   );
 }
 
@@ -693,119 +712,171 @@ export function SettingsDialog({
   const update = <Key extends keyof ViewerSettings>(key: Key, value: ViewerSettings[Key]) =>
     onSettingsChange({ ...settings, [key]: value });
   useEffect(() => closeButtonRef.current?.focus(), []);
-  useEffect(() => {
-    const handleEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
   return (
-    <div
-      className={styles.dialogBackdrop}
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        className={styles.settingsDialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="viewer-settings-title"
-      >
-        <header className={styles.helpHeader}>
-          <h2 id="viewer-settings-title" className={styles.helpTitle}>
-            Settings
-          </h2>
-          <button
-            ref={closeButtonRef}
-            className={styles.iconButton}
-            type="button"
-            aria-label="Close settings"
-            onClick={onClose}
-          >
-            ×
-          </button>
-        </header>
-        <div className={styles.settingsBody}>
-          <section className={styles.settingsGroup}>
-            <h3 className={styles.settingsGroupTitle}>Overlay colours</h3>
-            <label className={styles.settingsRow}>
-              Newer content
-              <input
-                className={styles.overlaySwatch}
-                type="color"
-                value={overlay.addedColor}
-                aria-label="Colour for newer content"
-                onChange={(event) => onOverlayChange({ ...overlay, addedColor: event.target.value })}
-              />
-            </label>
-            <label className={styles.settingsRow}>
-              Earlier content
-              <input
-                className={styles.overlaySwatch}
-                type="color"
-                value={overlay.removedColor}
-                aria-label="Colour for earlier content"
-                onChange={(event) => onOverlayChange({ ...overlay, removedColor: event.target.value })}
-              />
-            </label>
-            <label className={styles.settingsRow}>
-              Modified content
-              <input
-                className={styles.overlaySwatch}
-                type="color"
-                value={overlay.modifiedColor}
-                aria-label="Colour for modified content"
-                onChange={(event) => onOverlayChange({ ...overlay, modifiedColor: event.target.value })}
-              />
-            </label>
-            <label className={styles.settingsRow}>
-              Unchanged {Math.round(overlay.unchangedOpacity * 100)}%
-              <input
-                className={styles.overlayRange}
-                style={{ "--range-fill": `${Math.round(overlay.unchangedOpacity * 100)}%` } as CSSProperties}
-                type="range"
-                min={0}
-                max={100}
-                value={Math.round(overlay.unchangedOpacity * 100)}
-                aria-label="How strongly unchanged content shows through"
-                onChange={(event) =>
-                  onOverlayChange({ ...overlay, unchangedOpacity: Number(event.target.value) / 100 })
-                }
-              />
-            </label>
-          </section>
-          <section className={styles.settingsGroup}>
-            <h3 className={styles.settingsGroupTitle}>View</h3>
-            <SettingsCheckbox
-              label="Outline changed regions"
-              checked={settings.showBoundingBoxes}
-              onChange={(value) => update("showBoundingBoxes", value)}
+    <ModalDialog labelledBy="viewer-settings-title" className={styles.settingsDialog} onClose={onClose}>
+      <header className={styles.helpHeader}>
+        <h2 id="viewer-settings-title" className={styles.helpTitle}>
+          Settings
+        </h2>
+        <button
+          ref={closeButtonRef}
+          className={styles.iconButton}
+          type="button"
+          aria-label="Close settings"
+          onClick={onClose}
+        >
+          ×
+        </button>
+      </header>
+      <div className={styles.settingsBody}>
+        <section className={styles.settingsGroup}>
+          <h3 className={styles.settingsGroupTitle}>Overlay colours</h3>
+          <label className={styles.settingsRow}>
+            Newer content
+            <input
+              className={styles.overlaySwatch}
+              type="color"
+              value={overlay.addedColor}
+              aria-label="Colour for newer content"
+              onChange={(event) => onOverlayChange({ ...overlay, addedColor: event.target.value })}
             />
+          </label>
+          <label className={styles.settingsRow}>
+            Earlier content
+            <input
+              className={styles.overlaySwatch}
+              type="color"
+              value={overlay.removedColor}
+              aria-label="Colour for earlier content"
+              onChange={(event) => onOverlayChange({ ...overlay, removedColor: event.target.value })}
+            />
+          </label>
+          <label className={styles.settingsRow}>
+            Modified content
+            <input
+              className={styles.overlaySwatch}
+              type="color"
+              value={overlay.modifiedColor}
+              aria-label="Colour for modified content"
+              onChange={(event) => onOverlayChange({ ...overlay, modifiedColor: event.target.value })}
+            />
+          </label>
+          <label className={styles.settingsRow}>
+            Unchanged {Math.round(overlay.unchangedOpacity * 100)}%
+            <input
+              className={styles.overlayRange}
+              style={{ "--range-fill": `${Math.round(overlay.unchangedOpacity * 100)}%` } as CSSProperties}
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(overlay.unchangedOpacity * 100)}
+              aria-label="How strongly unchanged content shows through"
+              onChange={(event) => onOverlayChange({ ...overlay, unchangedOpacity: Number(event.target.value) / 100 })}
+            />
+          </label>
+        </section>
+        <section className={styles.settingsGroup}>
+          <h3 className={styles.settingsGroupTitle}>View</h3>
+          <SettingsCheckbox
+            label="Outline changed regions"
+            checked={settings.showBoundingBoxes}
+            onChange={(value) => update("showBoundingBoxes", value)}
+          />
+        </section>
+        {onMatchPagesChange ? (
+          <section className={styles.settingsGroup}>
+            <h3 className={styles.settingsGroupTitle}>Comparison</h3>
+            <SettingsCheckbox
+              label="Match pages automatically"
+              checked={matchPages !== false}
+              onChange={onMatchPagesChange}
+            />
+            <p className={styles.settingsNote}>
+              Pairs pages by content so inserted or removed pages stay aligned. Off compares page 1 with page 1.
+              Changing this compares the PDFs again.
+            </p>
           </section>
-          {onMatchPagesChange ? (
-            <section className={styles.settingsGroup}>
-              <h3 className={styles.settingsGroupTitle}>Comparison</h3>
-              <SettingsCheckbox
-                label="Match pages automatically"
-                checked={matchPages !== false}
-                onChange={onMatchPagesChange}
-              />
-              <p className={styles.settingsNote}>
-                Pairs pages by content so inserted or removed pages stay aligned. Off compares page 1 with page 1.
-                Changing this compares the PDFs again.
+        ) : null}
+      </div>
+      <footer className={styles.helpFooter}>
+        <button className={styles.quietButton} type="button" onClick={onClose}>
+          Done
+        </button>
+      </footer>
+    </ModalDialog>
+  );
+}
+
+export function HelpDialog({ onClose }: { onClose: () => void }) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+  return (
+    <ModalDialog labelledBy="viewer-help-title" className={styles.helpDialog} onClose={onClose}>
+      <header className={styles.helpHeader}>
+        <h2 id="viewer-help-title" className={styles.helpTitle}>
+          How to compare PDFs
+        </h2>
+        <button
+          ref={closeButtonRef}
+          className={styles.iconButton}
+          type="button"
+          aria-label="Close help"
+          onClick={onClose}
+        >
+          ×
+        </button>
+      </header>
+      <div className={styles.helpBody}>
+        <section className={styles.helpSection} aria-labelledby="viewer-help-start">
+          <h3 id="viewer-help-start" className={styles.helpSectionTitle}>
+            In the workspace
+          </h3>
+          <ol className={styles.helpSteps}>
+            {helpSteps.map((step) => (
+              <li key={step.number} className={styles.helpStep}>
+                <span className={styles.helpKey}>{step.number}</span>
+                <h4 className={styles.helpStepTitle}>{step.title}</h4>
+                <p className={styles.helpStepCopy}>{step.copy}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+        <section className={styles.helpSection} aria-labelledby="viewer-help-modes">
+          <h3 id="viewer-help-modes" className={styles.helpSectionTitle}>
+            View modes
+          </h3>
+          <div className={styles.helpModeList}>
+            {helpModes.map(([name, copy]) => (
+              <p key={name} className={styles.helpMode}>
+                <strong className={styles.helpModeName}>{name}</strong> — {copy}
               </p>
-            </section>
-          ) : null}
-        </div>
-        <footer className={styles.helpFooter}>
-          <button className={styles.quietButton} type="button" onClick={onClose}>
-            Done
-          </button>
-        </footer>
-      </section>
-    </div>
+            ))}
+          </div>
+        </section>
+        <section className={styles.helpSection} aria-labelledby="viewer-help-shortcuts">
+          <h3 id="viewer-help-shortcuts" className={styles.helpSectionTitle}>
+            Shortcuts
+          </h3>
+          <div className={styles.helpShortcutGrid}>
+            {helpShortcuts.map(([shortcut, copy]) => (
+              <p key={shortcut} className={styles.helpShortcut}>
+                <kbd className={styles.helpKey}>{shortcut}</kbd>
+                <span>{copy}</span>
+              </p>
+            ))}
+          </div>
+        </section>
+        <p className={styles.helpNote}>
+          <strong>Colours and view filters apply immediately.</strong> Changing page matching runs the comparison again.
+        </p>
+      </div>
+      <footer className={styles.helpFooter}>
+        <button className={styles.quietButton} type="button" onClick={onClose}>
+          Back to comparison
+        </button>
+      </footer>
+    </ModalDialog>
   );
 }

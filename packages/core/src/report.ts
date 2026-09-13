@@ -209,8 +209,7 @@ function changeLine(change: ReportTextChange): string {
 const CLASS_ORDER: readonly ChangeClass[] = ["content", "graphic", "reflow", "formatting"];
 
 /** Human-readable summary for a terminal or a redline appendix. */
-export function reportToText(report: ComparisonReport, _options: { readonly includeNoise?: boolean } = {}): string {
-  void _options; // Legacy includeNoise callers now receive every detected change.
+export function reportToText(report: ComparisonReport): string {
   const { totals } = report;
   const lines = [
     `${report.earlierName} → ${report.newerName}`,

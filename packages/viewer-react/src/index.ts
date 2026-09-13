@@ -21,4 +21,5 @@ export {
   collapsedRailSummary,
   missingSelectableTextNotice,
 } from "./viewer-utils.js";
+export { sourceSideForEvent } from "./useViewerKeyboard.js";
 export * from "./PdfDiffViewer.js";

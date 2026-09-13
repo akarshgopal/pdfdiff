@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
@@ -48,10 +48,10 @@ function canonicalOrigin(value: string | undefined): string | null {
 
 const PRODUCTION_SITE_ORIGIN = "https://pdfdiff.app";
 
-/** Swap the production origin in index.html when a preview/fork sets VITE_SITE_URL. */
-export function rewriteAbsoluteSiteMetadata(html: string, origin: string | null): string {
-  if (!origin || origin === PRODUCTION_SITE_ORIGIN) return html;
-  return html.replaceAll(PRODUCTION_SITE_ORIGIN, origin);
+/** Swap the production origin when a preview/fork sets VITE_SITE_URL. */
+export function rewriteAbsoluteSiteMetadata(text: string, origin: string | null): string {
+  if (!origin || origin === PRODUCTION_SITE_ORIGIN) return text;
+  return text.replaceAll(PRODUCTION_SITE_ORIGIN, origin);
 }
 
 function absoluteMetadata(origin: string | null): Plugin {
@@ -59,6 +59,12 @@ function absoluteMetadata(origin: string | null): Plugin {
     name: "pdfdiff-absolute-metadata",
     transformIndexHtml(html) {
       return rewriteAbsoluteSiteMetadata(html, origin);
+    },
+    closeBundle() {
+      if (!origin || origin === PRODUCTION_SITE_ORIGIN) return;
+      for (const file of ["dist/robots.txt", "dist/sitemap.xml"]) {
+        writeFileSync(file, rewriteAbsoluteSiteMetadata(readFileSync(file, "utf8"), origin));
+      }
     },
   };
 }

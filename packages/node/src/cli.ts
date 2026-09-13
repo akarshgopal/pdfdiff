@@ -24,7 +24,6 @@ Options:
   --out <path>              Write the report to a file instead of stdout
   --fail-on-change          Exit 1 when a substantive change is found
   --fail-on-unreadable      Exit 1 when any page's text could not be decoded
-  --include-noise           Keep pages that changed only by reflow or formatting
   --no-detect-moves         Report moved pages as a removal plus an addition
   --threshold <0..1>        Page match threshold for alignment (default: 0.55)
   -h, --help                Show this message
@@ -58,7 +57,6 @@ function parseArguments(argv: readonly string[]) {
         out: { type: "string" },
         "fail-on-change": { type: "boolean", default: false },
         "fail-on-unreadable": { type: "boolean", default: false },
-        "include-noise": { type: "boolean", default: false },
         // parseArgs has no --no-<flag> negation, so the documented spelling is the option.
         "no-detect-moves": { type: "boolean", default: false },
         threshold: { type: "string" },
@@ -76,7 +74,6 @@ function parseArguments(argv: readonly string[]) {
     out: values.out,
     failOnChange: values["fail-on-change"]!,
     failOnUnreadable: values["fail-on-unreadable"]!,
-    includeNoise: values["include-noise"]!,
     detectMoves: !values["no-detect-moves"],
     threshold: readThreshold(values.threshold),
   };
@@ -87,7 +84,7 @@ type CliOptions = ReturnType<typeof parseArguments>;
 function render(report: ComparisonReport, options: CliOptions): string {
   if (options.format === "json") return reportToJson(report);
   if (options.format === "csv") return reportToCsv(report);
-  return reportToText(report, { includeNoise: options.includeNoise });
+  return reportToText(report);
 }
 
 async function main(argv: readonly string[]): Promise<number> {

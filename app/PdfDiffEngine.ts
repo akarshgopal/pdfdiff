@@ -8,10 +8,9 @@ import type {
   RasterImage,
   VisualPageGeometry,
 } from "@pdfdiff/core";
-import type { DiffComparison, DiffPage, DiffSemanticOverlay, DiffRegion, DiffTextChange } from "@pdfdiff/viewer-react";
+import type { DiffComparison, DiffPage, DiffSemanticOverlay, DiffRegion } from "@pdfdiff/viewer-react";
 import { describeRegions } from "./pdfdiff/regionLabels";
 
-const MAX_VIEWER_TEXT_CHANGES = 80;
 const MAX_VIEWER_SEMANTIC_OVERLAYS = 160;
 
 function imageDataFromRaster(image: RasterImage): ImageData {
@@ -55,21 +54,6 @@ function regionsForPage(page: ComparisonPage, overlays: readonly DiffSemanticOve
     })),
     overlays,
   );
-}
-
-function textChangesForPage(page: ComparisonPage): DiffTextChange[] {
-  return (page.semantic?.changes ?? []).slice(0, MAX_VIEWER_TEXT_CHANGES).map((change) => ({
-    id: change.id,
-    text:
-      change.kind === "changed"
-        ? `${change.before} → ${change.after}`
-        : change.kind === "removed"
-          ? change.before
-          : change.after,
-    kind: change.kind,
-    beforeText: change.before || undefined,
-    afterText: change.after || undefined,
-  }));
 }
 
 function normalizedQuad(
@@ -128,8 +112,6 @@ async function toViewerPage(page: ComparisonPage): Promise<DiffPage> {
     regions: regionsForPage(page, [...semanticBeforeOverlays, ...semanticAfterOverlays]),
     changeClasses: page.changeClasses,
     noticeable: page.noticeable,
-    textChanges: textChangesForPage(page),
-    textChangeCount: page.semantic?.changes.length ?? 0,
     semantic: page.semantic,
     semanticBeforeOverlays,
     semanticAfterOverlays,
@@ -153,6 +135,7 @@ type RawPagePairResolver = (request: {
   earlierPageIndex: number;
   newerPageIndex: number;
   quality?: RenderQuality;
+  withLayers?: boolean;
   signal: AbortSignal;
 }) => Promise<ComparisonPage>;
 
@@ -180,7 +163,7 @@ async function toViewerComparison(
     comparePagePair: resolveRawPagePair
       ? async (request) => {
           if (request.signal.aborted) throw new DOMException("The page comparison was aborted.", "AbortError");
-          const key = `${request.earlierPageIndex}:${request.newerPageIndex}:${request.quality ?? "standard"}`;
+          const key = `${request.earlierPageIndex}:${request.newerPageIndex}:${request.quality ?? "standard"}:${request.withLayers !== false}`;
           const cached = pairCache.get(key);
           if (cached) return cached;
           const page = await toViewerPage(await resolveRawPagePair(request));
@@ -256,7 +239,7 @@ export const browserPdfDiffEngine = {
       });
       const comparison = await toViewerComparison(
         result,
-        ({ earlierPageIndex, newerPageIndex, quality, signal }) =>
+        ({ earlierPageIndex, newerPageIndex, quality, withLayers, signal }) =>
           engine.comparePagePair({
             earlier: request.earlier,
             newer: request.newer,
@@ -264,6 +247,7 @@ export const browserPdfDiffEngine = {
             newerPageIndex,
             options: request.options,
             quality,
+            withLayers,
             signal,
             onMetric: request.onMetric,
           }),

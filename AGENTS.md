@@ -5,10 +5,11 @@
 
 ## Layout
 
-Four workspace packages under `packages/` (`pnpm-workspace.yaml` globs `packages/*`),
+Workspace packages under `packages/` (`pnpm-workspace.yaml` globs `packages/*`),
 plus the app shell at the repo root — there is no `src/`.
 
 - `@pdfdiff/core` — headless raster, alignment, region, and semantic text algorithms. No DOM, no PDF.js.
+- `@pdfdiff/pdfjs-text` — DOM-free PDF.js text extraction. Shared by the browser adapter and the Node CLI.
 - `@pdfdiff/pdfjs-browser` — PDF.js adapter: loading, rendering, and the raster-diff Web Worker.
 - `@pdfdiff/viewer-react` — the React viewer. Also exports `./ui` (the style tables) and `./theme.css`.
 - `@pdfdiff/node` — headless comparison for Node plus the `pdfdiff` CLI bin.

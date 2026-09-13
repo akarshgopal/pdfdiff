@@ -20,15 +20,18 @@ pnpm build
 
 ## Package architecture
 
-The application is split into three workspace packages so the comparison
+The application is split into workspace packages so the comparison
 logic can be reused independently of the browser app:
 
 - `@pdfdiff/core` — headless raster, alignment, connected-region, and semantic
   text comparison algorithms. It has no DOM or PDF.js dependency.
+- `@pdfdiff/pdfjs-text` — DOM-free PDF.js text extraction, shared by the
+  browser adapter and the Node CLI.
 - `@pdfdiff/pdfjs-browser` — the browser/PDF.js adapter that loads and renders
   PDF files, then orchestrates the core algorithms.
 - `@pdfdiff/viewer-react` — a reusable React viewer for a completed comparison.
   It owns navigation, view modes, inspection controls, and keyboard shortcuts.
+- `@pdfdiff/node` — headless text comparison for Node, plus the `pdfdiff` CLI.
 - `app/` — the product shell: upload flow, privacy messaging, loading state,
   default engine wiring, analytics callbacks, and the in-app help section.
 - `main.tsx` and `index.html` — the static Vite application entry and metadata.
@@ -105,6 +108,7 @@ and the raster diff reports the difference as a real change.
 - `pnpm deploy`: build and deploy the static assets to Cloudflare
 - `pnpm test`: build the packages and run the unit tests
 - `pnpm run test:dist`: build the site and check the shipped `dist/` output
+- `pnpm run test:viewer`: Playwright against a running app (`PDFDIFF_URL`, default `http://localhost:5173/`)
 - `pnpm lint`: run ESLint
 - `pnpm bench:core`: run deterministic core performance and quality scenarios
 - `pnpm bench:browser`: run the app through Playwright and Chromium
@@ -134,6 +138,7 @@ files again when repeating a comparison.
 - Edit product code under `app/`.
 - Keep reusable comparison code in `packages/`.
 - Keep `pnpm-lock.yaml` as the only package-manager lockfile.
+- See CONTRIBUTING.md, SECURITY.md, and NOTICE (third-party fixture copyright).
 
 ## Learn More
 

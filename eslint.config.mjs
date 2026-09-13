@@ -7,7 +7,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 const eslintConfig = defineConfig([
-  globalIgnores(["**/dist/**", "public/pdfjs/**", "public/samples/**", ".next/**"]),
+  globalIgnores(["**/dist/**", "public/pdfjs/**", "public/samples/**"]),
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   react.configs.flat.recommended,

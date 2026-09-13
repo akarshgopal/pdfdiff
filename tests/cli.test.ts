@@ -76,6 +76,7 @@ test("--help exits 0 and documents the options", async () => {
   assert.equal(code, 0);
   assert.match(stdout, /--fail-on-change/);
   assert.match(stdout, /--report <text\|json\|csv>/);
+  assert.doesNotMatch(stdout, /include-noise/);
 });
 
 test("a drawing whose fonts carry no Unicode map warns instead of reporting a clean run", async () => {
@@ -108,19 +109,11 @@ test("the PCB fixture does not promote text extraction spacing to semantic chang
 });
 
 test("every documented flag is accepted, including --no-detect-moves", async () => {
-  const { code, stderr } = await cli(
-    EARLIER,
-    NEWER,
-    "--no-detect-moves",
-    "--include-noise",
-    "--threshold",
-    "0.6",
-    "--report",
-    "json",
-  );
+  const { code, stderr } = await cli(EARLIER, NEWER, "--no-detect-moves", "--threshold", "0.6", "--report", "json");
   assert.equal(code, 0, stderr);
 });
 
 test("an unknown flag exits with the usage code", async () => {
   assert.equal((await cli(EARLIER, NEWER, "--nope")).code, 2);
+  assert.equal((await cli(EARLIER, NEWER, "--include-noise")).code, 2);
 });

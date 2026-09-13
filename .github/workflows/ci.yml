@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm accuracy:check
+      - run: pnpm test:dist
+      - run: npx playwright install --with-deps chromium
+      - name: Preview and exercise the viewer
+        run: |
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort &
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:4173/; then
+              PDFDIFF_URL=http://127.0.0.1:4173/ node tools/verify-viewer.mjs
+              exit $?
+            fi
+            sleep 1
+          done
+          echo "vite preview did not start"
+          exit 1

@@ -91,6 +91,7 @@ export interface PositionedTextItem {
   readonly str: string;
   readonly textStart: number;
   readonly textEnd: number;
+  /** Extractor fields. Core diffs `str`, `bounds`, and `quad`; callers may still read the rest. */
   readonly dir: string;
   readonly fontName: string;
   readonly width: number;

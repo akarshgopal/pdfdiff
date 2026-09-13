@@ -21,9 +21,21 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "pixelmatch": "^7.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akarshgopal/pdfdiff.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/akarshgopal/pdfdiff",
+  "bugs": {
+    "url": "https://github.com/akarshgopal/pdfdiff/issues"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

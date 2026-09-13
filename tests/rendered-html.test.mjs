@@ -79,6 +79,17 @@ test("try-sample fixture pairs ship as static files", () => {
   }
 });
 
+test("dist ships security headers and PDF.js side-cars", async () => {
+  const headers = await readFile(new URL("../dist/_headers", import.meta.url), "utf8");
+  assert.match(headers, /Content-Security-Policy:.*worker-src 'self' blob:/);
+  assert.match(headers, /\/assets\/\*\n {2}Cache-Control: public, max-age=31536000, immutable/);
+  assert.match(headers, /\/pdfjs\/\*\n {2}Cache-Control: public, max-age=86400/);
+  assert.equal(existsSync(new URL("../dist/pdfjs/cmaps", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/pdfjs/wasm", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/pdfjs/standard_fonts", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/pdfjs/iccs", import.meta.url)), true);
+});
+
 test("Cloudflare deployment contains static assets only", async () => {
   const config = await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8");
   assert.doesNotMatch(config, /"main"\s*:/);

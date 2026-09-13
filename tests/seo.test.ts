@@ -69,6 +69,18 @@ test("robots.txt and sitemap.xml point at pdfdiff.app", async () => {
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/terms<\/loc>/);
 });
 
+test("VITE_SITE_URL rewrites robots.txt and sitemap.xml the same way as index.html", async () => {
+  const robots = await readFile(new URL("public/robots.txt", root), "utf8");
+  const sitemap = await readFile(new URL("public/sitemap.xml", root), "utf8");
+  const previewRobots = rewriteAbsoluteSiteMetadata(robots, "https://pdfdiff.example");
+  const previewSitemap = rewriteAbsoluteSiteMetadata(sitemap, "https://pdfdiff.example");
+  assert.match(previewRobots, /Sitemap: https:\/\/pdfdiff\.example\/sitemap\.xml/);
+  assert.doesNotMatch(previewRobots, /pdfdiff\.app/);
+  assert.match(previewSitemap, /<loc>https:\/\/pdfdiff\.example\/<\/loc>/);
+  assert.match(previewSitemap, /<loc>https:\/\/pdfdiff\.example\/privacy<\/loc>/);
+  assert.doesNotMatch(previewSitemap, /pdfdiff\.app/);
+});
+
 test("og.png is a compact PNG matching the Open Graph dimensions", async () => {
   const png = await readFile(new URL("public/og.png", root));
   assert.ok(png.byteLength < 300 * 1024, `og.png is ${png.byteLength} bytes`);

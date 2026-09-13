@@ -114,7 +114,6 @@ test("the workspace opens with a document-level summary and filters", () => {
             ...currentPage,
             changeClasses: { content: 2, reflow: 9, formatting: 0, graphic: 1 },
             noticeable: true,
-            textChangeCount: 2,
           },
           { index: 1, status: "same", beforeSrc: "b", afterSrc: "a" },
         ],

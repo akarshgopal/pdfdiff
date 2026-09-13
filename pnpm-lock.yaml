@@ -99,9 +99,9 @@ importers:
       '@pdfdiff/core':
         specifier: workspace:*
         version: link:../core
-      '@pdfdiff/pdfjs-browser':
+      '@pdfdiff/pdfjs-text':
         specifier: workspace:*
-        version: link:../pdfjs-browser
+        version: link:../pdfjs-text
       pdfjs-dist:
         specifier: ^6.2.108
         version: 6.2.108
@@ -111,9 +111,18 @@ importers:
       '@pdfdiff/core':
         specifier: workspace:*
         version: link:../core
+      '@pdfdiff/pdfjs-text':
+        specifier: workspace:*
+        version: link:../pdfjs-text
       pdfjs-dist:
         specifier: ^6.2.108
         version: 6.2.108
+
+  packages/pdfjs-text:
+    dependencies:
+      '@pdfdiff/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/viewer-react:
     dependencies:
