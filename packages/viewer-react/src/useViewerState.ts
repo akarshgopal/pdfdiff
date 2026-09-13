@@ -1,25 +1,46 @@
 import { useCallback, useEffect, useState } from "react";
-import type { DiffComparison, DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
+import { DEFAULT_OVERLAY, rgbToHex } from "@pdfdiff/core";
+import type {
+  DiffComparison,
+  DiffPage,
+  DiffViewMode,
+  OverlayStyle,
+  RenderQuality,
+  SourceSide,
+  ViewerSettings,
+} from "./types.js";
 import {
   clampPageIndex,
   pagePairNumbers,
   qualityForZoom,
+  selectedChangeAfterTextFilter,
   sourcePageCount,
   viewModes,
   visiblePageIndexes,
+  type TextChangeFilter,
 } from "./viewer-utils.js";
 import { useViewerKeyboard } from "./useViewerKeyboard.js";
+import { downloadPageImage } from "./export.js";
+
+export type ViewerModal = "help" | "settings" | "pairing" | null;
+
+const DEFAULT_SETTINGS: ViewerSettings = { showBoundingBoxes: false, onlyChanged: false };
+
+export const DEFAULT_OVERLAY_STYLE: OverlayStyle = {
+  addedColor: rgbToHex(DEFAULT_OVERLAY.addedColor),
+  removedColor: rgbToHex(DEFAULT_OVERLAY.removedColor),
+  modifiedColor: rgbToHex(DEFAULT_OVERLAY.modifiedColor),
+  unchangedOpacity: DEFAULT_OVERLAY.unchangedOpacity,
+};
 
 export function useViewerState({
   comparison,
-  onSave,
-  onlyChanged,
-  modalOpen,
+  defaultOverlay,
+  onOverlayChange,
 }: {
   comparison: DiffComparison;
-  onSave?: () => void;
-  onlyChanged: boolean;
-  modalOpen: boolean;
+  defaultOverlay?: OverlayStyle;
+  onOverlayChange?: (overlay: OverlayStyle) => void;
 }) {
   const pages = comparison.pages;
   const [pageIndex, setPageIndex] = useState(0);
@@ -27,8 +48,12 @@ export function useViewerState({
   const [zoom, setZoom] = useState(100);
   const [swipe, setSwipe] = useState(50);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [showHelp, setShowHelp] = useState(false);
-  const [quality, setQuality] = useState<RenderQuality>("standard");
+  const [overlay, setOverlay] = useState<OverlayStyle>(defaultOverlay ?? DEFAULT_OVERLAY_STYLE);
+  const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
+  const [textFilter, setTextFilter] = useState<TextChangeFilter>("all");
+  const [modal, setModal] = useState<ViewerModal>(null);
+  const [railCollapsed, setRailCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [manualPair, setManualPair] = useState<{ earlier: number; newer: number } | null>(null);
   const [resolution, setResolution] = useState<{
     comparison: DiffComparison;
@@ -37,9 +62,11 @@ export function useViewerState({
     page?: DiffPage;
     error?: string;
   } | null>(null);
+  const [quality, setQuality] = useState<RenderQuality>("standard");
   const currentPage = pages[pageIndex];
   const pair = manualPair ?? pagePairNumbers(currentPage);
-  const pairKey = `${pageIndex}:${pair.earlier}:${pair.newer}`;
+  const withLayers = mode === "diff" || quality === "high" || Boolean(manualPair);
+  const pairKey = `${pair.earlier}:${pair.newer}:${quality}:${withLayers}`;
   const resolved = resolution?.comparison === comparison && resolution.key === pairKey ? resolution : null;
   const previewPage =
     resolved?.page ??
@@ -52,11 +79,8 @@ export function useViewerState({
         }
       : currentPage);
   const canResolve = Boolean(comparison.comparePagePair && pair.earlier && pair.newer);
-  const needsResolution =
-    canResolve &&
-    resolved?.quality !== quality &&
-    (Boolean(manualPair) || quality === "high" || Boolean(resolved) || (mode === "diff" && !currentPage?.layers));
-  const visibleIndexes = visiblePageIndexes(pages, onlyChanged, pageIndex);
+  const needsResolution = canResolve && !resolved;
+  const visibleIndexes = visiblePageIndexes(pages, settings.onlyChanged, pageIndex);
   const position = visibleIndexes.indexOf(pageIndex);
   const selectPage = useCallback(
     (index: number) => {
@@ -77,13 +101,24 @@ export function useViewerState({
   const changePair = (earlier: number, newer: number) => {
     setManualPair({ earlier, newer });
     setSelectedRegion(null);
+    setModal(null);
+  };
+  const changeOverlay = (next: OverlayStyle): void => {
+    setOverlay(next);
+    onOverlayChange?.(next);
+  };
+  const changeTextFilter = (next: TextChangeFilter) => {
+    setSelectedRegion(selectedChangeAfterTextFilter(selectedRegion, previewPage, mode, next));
+    setTextFilter(next);
+  };
+  const changeMode = (next: DiffViewMode) => {
+    setSelectedRegion(null);
+    setMode(next);
   };
   const sourceCounts = {
     earlier: comparison.earlierPageCount ?? sourcePageCount(pages, "earlier"),
     newer: comparison.newerPageCount ?? sourcePageCount(pages, "newer"),
   };
-  // Documents drift apart when one side gains a page, so each side can be
-  // walked on its own; the result is the same manual pair the dialog produces.
   const goToSourcePage = (side: SourceSide, page: number) => {
     const next = { earlier: pair.earlier ?? 1, newer: pair.newer ?? 1 };
     next[side] = Math.min(Math.max(1, page), Math.max(1, sourceCounts[side]));
@@ -97,6 +132,7 @@ export function useViewerState({
         earlierPageIndex: pair.earlier - 1,
         newerPageIndex: pair.newer - 1,
         quality,
+        withLayers,
         signal: controller.signal,
       })
       .then((page) => {
@@ -112,24 +148,31 @@ export function useViewerState({
           });
       });
     return () => controller.abort();
-  }, [comparison, needsResolution, pair.earlier, pair.newer, pairKey, quality]);
+  }, [comparison, needsResolution, pair.earlier, pair.newer, pairKey, quality, withLayers]);
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
   useViewerKeyboard({
-    enabled: !showHelp && !modalOpen,
+    enabled: modal === null,
     onStepPage: stepPage,
     onStepSourcePage: (side, direction) => goToSourcePage(side, (pair[side] ?? 1) + direction),
     onSourceBoundary: (side, last) => goToSourcePage(side, last ? sourceCounts[side] : 1),
     onBoundary: (last) => selectPage(visibleIndexes[last ? visibleIndexes.length - 1 : 0] ?? pageIndex),
     onClearSelection: () => setSelectedRegion(null),
-    onChangeMode: setMode,
+    onChangeMode: changeMode,
     onCycleMode: (direction) =>
-      setMode(
+      changeMode(
         viewModes[(viewModes.findIndex((item) => item.id === mode) + direction + viewModes.length) % viewModes.length]!
           .id,
       ),
     zoom,
     onZoomChange: changeZoom,
-    onSave,
-    onShowHelp: () => setShowHelp(true),
+    onSave: () => {
+      if (previewPage) void downloadPageImage(comparison, previewPage, overlay);
+    },
+    onShowHelp: () => setModal("help"),
   });
   return {
     pages,
@@ -138,7 +181,12 @@ export function useViewerState({
     zoom,
     swipe,
     selectedRegion,
-    showHelp,
+    overlay,
+    settings,
+    textFilter,
+    modal,
+    railCollapsed,
+    isFullscreen,
     currentPage,
     previewPage,
     earlierPageCount: sourceCounts.earlier,
@@ -153,10 +201,14 @@ export function useViewerState({
     hasNextPage: position < visibleIndexes.length - 1,
     pairComparisonPending: Boolean(manualPair && !resolved),
     pairError: resolved?.error ?? previewPage?.error ?? null,
-    changeMode: setMode,
+    changeMode,
     setZoom: changeZoom,
     setSwipe,
     setSelectedRegion,
-    setShowHelp,
+    changeOverlay,
+    setSettings,
+    changeTextFilter,
+    setModal,
+    setRailCollapsed,
   };
 }

@@ -32,7 +32,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && cp src/theme.css dist/theme.css"
+    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json && cp src/theme.css dist/theme.css"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -41,5 +41,17 @@
     "@pdfdiff/core": "workspace:*",
     "tailwind-merge": "^3.6.0",
     "lucide-react": "^1.34.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akarshgopal/pdfdiff.git",
+    "directory": "packages/viewer-react"
+  },
+  "homepage": "https://github.com/akarshgopal/pdfdiff",
+  "bugs": {
+    "url": "https://github.com/akarshgopal/pdfdiff/issues"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

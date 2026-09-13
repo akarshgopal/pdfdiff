@@ -31,10 +31,23 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "@pdfdiff/core": "workspace:*",
+    "@pdfdiff/pdfjs-text": "workspace:*",
     "pdfjs-dist": "^6.2.108"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akarshgopal/pdfdiff.git",
+    "directory": "packages/pdfjs-browser"
+  },
+  "homepage": "https://github.com/akarshgopal/pdfdiff",
+  "bugs": {
+    "url": "https://github.com/akarshgopal/pdfdiff/issues"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

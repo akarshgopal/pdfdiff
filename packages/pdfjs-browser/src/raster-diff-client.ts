@@ -1,4 +1,4 @@
-import { PdfDiffAbortError, throwIfAborted, type DiffMetricSink } from "@pdfdiff/core";
+import { throwIfAborted, type DiffMetricSink } from "@pdfdiff/core";
 import { runRasterDiffJob, type RasterDiffJob, type RasterDiffJobResult } from "./raster-diff-job.js";
 import type { RasterDiffRequest, RasterDiffResponse } from "./raster-diff-worker.js";
 
@@ -78,7 +78,7 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
         const result = await new Promise<RasterDiffJobResult>((resolve, reject) => {
           const onAbort = (): void => {
             pending.delete(id);
-            reject(new PdfDiffAbortError());
+            reject(new DOMException("The PDF operation was cancelled.", "AbortError"));
           };
           signal.addEventListener("abort", onAbort, { once: true });
           pending.set(id, {
@@ -96,7 +96,7 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
         proven = true;
         return replay(metrics, result);
       } catch (error) {
-        if (signal.aborted) throw new PdfDiffAbortError();
+        throwIfAborted(signal);
         // Before the worker has proven itself the job still owns its buffers,
         // so the page can still be compared here rather than lost.
         if (!proven) return replay(metrics, runRasterDiffJob(job));

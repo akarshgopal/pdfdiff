@@ -53,11 +53,17 @@ export const styles = {
   workspaceMain:
     "grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[124px_minmax(0,1fr)] lg:grid-rows-none xl:grid-cols-[140px_minmax(0,1fr)]",
   workspaceMainSinglePage: "grid-cols-1 lg:grid-cols-1 xl:grid-cols-1",
-  workspaceMainRailCollapsed: "lg:grid-cols-[44px_minmax(0,1fr)] xl:grid-cols-[44px_minmax(0,1fr)]",
+  workspaceMainRailCollapsed: "lg:grid-cols-[64px_minmax(0,1fr)] xl:grid-cols-[64px_minmax(0,1fr)]",
   pageRail:
     "order-2 flex min-h-0 items-center gap-2 overflow-x-auto overflow-y-hidden border-t border-sidebar-border bg-sidebar px-2 py-2 lg:order-none lg:block lg:overflow-x-hidden lg:overflow-y-auto lg:border-t-0 lg:border-r lg:px-2.5 lg:py-4",
+  pageRailCollapsed: "lg:px-1.5 lg:py-3",
   railHeader: "flex shrink-0 flex-col gap-2 lg:mb-3",
+  railHeaderCollapsed: "flex-row items-center lg:mb-2 lg:flex-col",
   railHeaderTop: "flex items-center justify-between gap-1",
+  railCollapsedSummary:
+    "m-0 flex min-w-0 items-center gap-2 text-3xs font-medium leading-tight text-sidebar-foreground lg:flex-col lg:items-center lg:gap-1 lg:text-center",
+  railCollapsedPage: "tabular-nums",
+  railCollapsedChanged: "font-semibold tabular-nums text-primary",
   railToggle: cx(ui.control, ui.focus, "size-7 shrink-0 border-transparent bg-transparent p-0"),
   railHeading: cx(ui.caps, "m-0 hidden px-0.5 text-sidebar-foreground lg:block"),
   pageButton: `${ui.focus} w-[72px] shrink-0 cursor-pointer rounded-xl border border-transparent bg-transparent p-1.5 text-left text-sidebar-foreground transition-colors hover:bg-card/75 lg:mb-2 lg:w-full`,
@@ -88,6 +94,7 @@ export const styles = {
   toolbarGroup: "flex flex-wrap items-center gap-1.5",
   toolbarNavigation:
     "order-3 flex min-w-0 flex-1 basis-full items-center justify-center gap-2 2xl:order-none 2xl:basis-auto",
+  pairingCue: "max-w-full text-center text-2xs font-medium text-muted-foreground",
   modeGroup: "flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border border-border bg-muted p-0.5",
   modeButton: cx(ui.control, ui.focus, "min-h-8 border-transparent bg-transparent px-2 disabled:opacity-35"),
   modeButtonCurrent: "border-border bg-card text-foreground",
@@ -146,6 +153,7 @@ export const styles = {
   semanticLegendChanged: "bg-primary",
   semanticLegendNote: "ml-auto basis-full md:basis-auto",
   semanticGrid: "grid min-h-[min(470px,45vh)] grid-cols-1 gap-px bg-stage md:grid-cols-2",
+  semanticGridSingle: "md:grid-cols-1",
   semanticColumn: "min-w-0 bg-background",
   semanticHeader: `${ui.caps} border-b border-border bg-card px-5 py-3`,
   semanticViewport: "relative w-full overflow-hidden bg-white",

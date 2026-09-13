@@ -1,4 +1,5 @@
-import type { DiffPage, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
+import { PAGE_MATCH_THRESHOLD } from "@pdfdiff/core";
+import type { DiffPage, DiffRegionKind, DiffViewMode, RenderQuality, SourceSide } from "./types.js";
 
 export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcut: string }> = [
   { id: "diff", label: "Overlay", shortcut: "1" },
@@ -6,6 +7,42 @@ export const viewModes: ReadonlyArray<{ id: DiffViewMode; label: string; shortcu
   { id: "swipe", label: "Swipe", shortcut: "3" },
   { id: "semantic-text", label: "Text", shortcut: "4" },
 ];
+
+/** Text-mode highlight filter. Overlay, Split, and Swipe ignore this. */
+export type TextChangeFilter = "all" | DiffRegionKind;
+
+export const textChangeFilters: ReadonlyArray<{ id: TextChangeFilter; label: string }> = [
+  { id: "all", label: "All text changes" },
+  { id: "added", label: "Additions only" },
+  { id: "removed", label: "Removals only" },
+  { id: "changed", label: "Changes only" },
+];
+
+export function textChangeMatchesFilter(kind: DiffRegionKind, filter: TextChangeFilter): boolean {
+  return filter === "all" || kind === filter;
+}
+
+export function filterTextChanges<T extends { readonly kind: DiffRegionKind }>(
+  items: readonly T[],
+  filter: TextChangeFilter,
+): readonly T[] {
+  return filter === "all" ? items : items.filter((item) => item.kind === filter);
+}
+
+export function nextTextFilter(current: TextChangeFilter, direction: 1 | -1): TextChangeFilter {
+  const ids = textChangeFilters.map((item) => item.id);
+  const index = ids.indexOf(current);
+  return ids[(index + direction + ids.length) % ids.length]!;
+}
+
+/**
+ * Additions live on the newer page, removals on the earlier page, and a
+ * replacement is both. Hide the side that cannot show the active filter.
+ */
+export function textFilterShowsSide(filter: TextChangeFilter, side: SourceSide): boolean {
+  if (filter === "all" || filter === "changed") return true;
+  return filter === "added" ? side === "newer" : side === "earlier";
+}
 
 export const MIN_ZOOM = 25;
 export const MAX_ZOOM = 400;
@@ -72,21 +109,67 @@ export function pageStatus(page: DiffPage): NonNullable<DiffPage["status"]> {
 
 /**
  * The changes the current view can actually point at. Text mode highlights text
- * runs and every other mode highlights pixel regions, and the two counts differ,
- * so the rail, the counter, and next/previous all read the list that is on screen.
+ * runs — further narrowed by the Text filter — and every other mode highlights
+ * pixel regions. The rail, the counter, and next/previous all read this list.
  */
-export function pageChanges(page: DiffPage, mode: DiffViewMode): ReadonlyArray<{ readonly id: string }> {
-  if (mode === "semantic-text") return page.semantic?.changes ?? [];
+export function pageChanges(
+  page: DiffPage,
+  mode: DiffViewMode,
+  textFilter: TextChangeFilter = "all",
+): ReadonlyArray<{ readonly id: string }> {
+  if (mode === "semantic-text") return filterTextChanges(page.semantic?.changes ?? [], textFilter);
   return page.regions ?? [];
 }
 
-/** What the rail says about a page: its count when it changed, its state otherwise. */
-export function statusText(page: DiffPage, status: NonNullable<DiffPage["status"]>, mode: DiffViewMode): string {
-  const count = status === "changed" ? pageChanges(page, mode).length : 0;
-  return count ? `${count} change${count === 1 ? "" : "s"}` : statusLabels[status];
+/** Drop a selection the new Text filter would hide; Overlay/Split/Swipe keep it. */
+export function selectedChangeAfterTextFilter(
+  selected: string | null,
+  page: DiffPage,
+  mode: DiffViewMode,
+  textFilter: TextChangeFilter,
+): string | null {
+  if (!selected) return null;
+  return pageChanges(page, mode, textFilter).some((change) => change.id === selected) ? selected : null;
 }
 
-export function statusLabel(status: NonNullable<DiffPage["status"]>): string {
+/** Overlay, Split, and Swipe walk visual regions; Text walks extracted-text edits. */
+function changeGrain(mode: DiffViewMode): "area" | "text change" {
+  return mode === "semantic-text" ? "text change" : "area";
+}
+
+function grainNoun(count: number, mode: DiffViewMode): string {
+  const grain = changeGrain(mode);
+  if (count === 1) return grain;
+  return grain === "area" ? "areas" : "text changes";
+}
+
+/** Rail chip: the on-page count in the active view's unit, never a bare "changes". */
+function changeCountLabel(count: number, mode: DiffViewMode): string {
+  return `${count} ${grainNoun(count, mode)}`;
+}
+
+/**
+ * Walker copy. `selectedIndex` is -1 when nothing is selected, matching
+ * Array#findIndex. The unit is named so this string cannot be read as pages.
+ */
+export function changeWalkerLabel(count: number, selectedIndex: number, mode: DiffViewMode): string {
+  if (selectedIndex < 0) return `${changeCountLabel(count, mode)} on this page`;
+  const name = changeGrain(mode) === "area" ? "Area" : "Text change";
+  return `${name} ${selectedIndex + 1} of ${count} on this page`;
+}
+
+/** What the rail says about a page: its count when it changed, its state otherwise. */
+export function statusText(
+  page: DiffPage,
+  status: NonNullable<DiffPage["status"]>,
+  mode: DiffViewMode,
+  textFilter: TextChangeFilter = "all",
+): string {
+  const count = status === "changed" ? pageChanges(page, mode, textFilter).length : 0;
+  return count ? changeCountLabel(count, mode) : statusLabels[status];
+}
+
+function statusLabel(status: NonNullable<DiffPage["status"]>): string {
   return statusLabels[status];
 }
 
@@ -94,10 +177,6 @@ export function statusLabel(status: NonNullable<DiffPage["status"]>): string {
 export function missingSideLabel(page: DiffPage, side: SourceSide): string | undefined {
   if (side === "earlier") return page.status === "added" ? "No earlier page — added page" : undefined;
   return page.status === "removed" ? "No newer page — removed page" : undefined;
-}
-
-export function sourceForSide(page: DiffPage | null | undefined, side: SourceSide): string | undefined {
-  return side === "earlier" ? page?.beforeSrc : page?.afterSrc;
 }
 
 export function sourcePageCount(pages: ReadonlyArray<DiffPage>, side: SourceSide): number {
@@ -120,4 +199,122 @@ export function visiblePageIndexes(pages: readonly DiffPage[], onlyChanged: bool
   return pages.flatMap((page, index) =>
     !onlyChanged || index === selected || pageStatus(page) !== "same" || page.alignment === "moved" ? [index] : [],
   );
+}
+
+/** Shown next to a temporary pair that looks unrelated to the document pairing. */
+export const MISPAIR_CUE = "These pages may not match";
+
+/** Pixel change below this can still be an edit of the same page. */
+const MISPAIR_CHANGE_FLOOR = 25;
+/** Temporary pair must be this many times the typical document pair. */
+const MISPAIR_CHANGE_RATIO = 3;
+/** And this many points above typical, so a quiet document does not trip on a modest edit. */
+const MISPAIR_CHANGE_DELTA = 20;
+/** Jaccard on a handful of tokens is noise; fall through to visual density. */
+const MISPAIR_MIN_TOKENS = 8;
+
+function isDocumentPair(page: DiffPage, documentPages: readonly DiffPage[]): boolean {
+  return documentPages.some(
+    (entry) => entry.earlierPageNumber === page.earlierPageNumber && entry.newerPageNumber === page.newerPageNumber,
+  );
+}
+
+function hasStableText(page: DiffPage): boolean {
+  const semantic = page.semantic;
+  return Boolean(
+    semantic &&
+    semantic.textUndecodable !== true &&
+    semantic.hasBeforeText &&
+    semantic.hasAfterText &&
+    semantic.beforeTokenCount >= MISPAIR_MIN_TOKENS &&
+    semantic.afterTokenCount >= MISPAIR_MIN_TOKENS,
+  );
+}
+
+function typicalDocumentChangePercent(pages: readonly DiffPage[]): number | undefined {
+  const values = pages
+    .filter((page) => page.earlierPageNumber !== undefined && page.newerPageNumber !== undefined)
+    .map((page) => page.changedPercent)
+    .filter((value): value is number => value !== undefined)
+    .sort((a, b) => a - b);
+  if (values.length === 0) return undefined;
+  return values[Math.floor(values.length / 2)];
+}
+
+function visuallyUnrelated(page: DiffPage, documentPages: readonly DiffPage[]): boolean {
+  const changedPercent = page.changedPercent;
+  if (changedPercent === undefined || changedPercent < MISPAIR_CHANGE_FLOOR) return false;
+  const typical = typicalDocumentChangePercent(documentPages);
+  if (typical === undefined) return true;
+  return changedPercent >= typical * MISPAIR_CHANGE_RATIO && changedPercent >= typical + MISPAIR_CHANGE_DELTA;
+}
+
+/**
+ * A temporary pair is suspicious when the aligner would not have matched it, or
+ * when there is no text to ask and the visual rewrite is far above the document's
+ * usual pairing.
+ */
+export function isLikelyMispair(page: DiffPage, documentPages: readonly DiffPage[]): boolean {
+  if (page.status === "processing" || page.status === "error") return false;
+  if (page.earlierPageNumber === undefined || page.newerPageNumber === undefined) return false;
+  if (isDocumentPair(page, documentPages)) return false;
+  if (hasStableText(page) && page.similarity !== undefined) {
+    return page.similarity < PAGE_MATCH_THRESHOLD;
+  }
+  return visuallyUnrelated(page, documentPages);
+}
+
+export function temporaryPairCue(page: DiffPage, documentPages: readonly DiffPage[]): string | null {
+  return isLikelyMispair(page, documentPages) ? MISPAIR_CUE : null;
+}
+
+/** Pages a reviewer would count as changed, including moves that stayed identical. */
+export function changedPageCount(pages: readonly DiffPage[]): number {
+  return pages.reduce((count, page) => {
+    const status = pageStatus(page);
+    if (status === "processing" || status === "error") return count;
+    return count + (status !== "same" || page.alignment === "moved" ? 1 : 0);
+  }, 0);
+}
+
+/** Compact location for the collapsed page rail; names pages, not areas. */
+export function collapsedRailSummary(pageIndex: number, pageCount: number, changed: number): string {
+  const current = `Page ${pageIndex + 1} of ${pageCount}`;
+  if (changed <= 0) return current;
+  return `${current} · ${changed === 1 ? "1 changed" : `${changed} changed`}`;
+}
+
+const textFilterEmptyStatus: Record<TextChangeFilter, string> = {
+  all: "No semantic text changes",
+  added: "No added text on this page",
+  removed: "No removed text on this page",
+  changed: "No changed text on this page",
+};
+
+/**
+ * Status the change walker cannot show: unreadable text, or nothing matching
+ * the Text filter. An empty status means the walker already names the count.
+ */
+export function semanticSummary(
+  semantic: DiffPage["semantic"],
+  textFilter: TextChangeFilter,
+): { status: string; detail: string } {
+  if (!semantic) return { status: "No semantic text changes", detail: "Native PDF rendering" };
+  if (semantic.textUndecodable === true) {
+    return { status: "Text could not be read", detail: "Embedded font has no Unicode mapping" };
+  }
+  const count = filterTextChanges(semantic.changes, textFilter).length;
+  if (count) return { status: "", detail: "" };
+  return { status: textFilterEmptyStatus[textFilter], detail: "" };
+}
+
+/** Text mode empty state when the page has no extractable text. */
+export function missingSelectableTextNotice(page: DiffPage): { title: string; detail: string } | null {
+  const semantic = page.semantic;
+  if (!semantic || semantic.textUndecodable) return null;
+  if (semantic.hasBeforeText || semantic.hasAfterText) return null;
+  return {
+    title: "No selectable text on this page",
+    detail: "Overlay, Split, and Swipe still compare this page visually.",
+  };
 }

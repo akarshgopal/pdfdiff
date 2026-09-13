@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_OVERLAY, toHex } from "./overlaySettings";
-import { styles, cx } from "./styles";
+import { cx } from "@pdfdiff/viewer-react/ui";
+import { styles } from "./styles";
 
 /**
  * A hand-drawn stand-in for a real comparison, not a screenshot: it renders in
@@ -21,6 +22,13 @@ const MODE_CAPTION: Record<Mode, string> = {
   split: "Matched pages side by side, changed regions boxed.",
   swipe: "Drag the divider to reveal one revision under the other.",
   text: "Added and removed wording highlighted in place.",
+};
+
+const MODE_COUNT: Record<Mode, string> = {
+  overlay: "3 areas on this page",
+  split: "3 areas on this page",
+  swipe: "3 areas on this page",
+  text: "2 text changes on this page",
 };
 
 /** Body copy as bars; the two entries that differ carry the revision that owns them. */
@@ -185,7 +193,7 @@ export function HeroDemo() {
           →
         </span>
         <span className={styles.demoChip}>assy-4471-revB.pdf</span>
-        <span className={styles.demoCount}>3 changes on this page</span>
+        <span className={styles.demoCount}>{MODE_COUNT[mode]}</span>
       </div>
       <div className={styles.demoStage}>
         {mode === "overlay" ? <OverlayPage /> : null}

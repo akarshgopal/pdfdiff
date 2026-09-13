@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import type { DiffMetric } from "@pdfdiff/core";
 import { PdfDiffApp } from "./app/pdfdiff/PdfDiffApp";
 import { LegalPage } from "./app/pdfdiff/LegalPage";
+import { NotFoundPage } from "./app/pdfdiff/NotFoundPage";
+import { applyDocumentMeta, appRouteFromPath } from "./app/pdfdiff/routes";
 import "./app/globals.css";
 
 declare global {
@@ -11,28 +13,17 @@ declare global {
   }
 }
 
-const route = window.location.pathname.replace(/\/+$/, "") || "/";
+const route = appRouteFromPath(window.location.pathname);
+applyDocumentMeta(route);
 
 function App() {
   const recordMetric = useCallback((metric: DiffMetric): void => {
     window.__PDFDIFF_METRICS__?.push(metric);
   }, []);
-  if (route === "/privacy") return <LegalPage kind="privacy" />;
-  if (route === "/terms") return <LegalPage kind="terms" />;
+  if (route === "privacy") return <LegalPage kind="privacy" />;
+  if (route === "terms") return <LegalPage kind="terms" />;
+  if (route === "not-found") return <NotFoundPage />;
   return <PdfDiffApp onMetric={window.__PDFDIFF_METRICS__ ? recordMetric : undefined} />;
-}
-
-if (route === "/privacy" || route === "/terms") {
-  const privacy = route === "/privacy";
-  document.title = `${privacy ? "Privacy Policy" : "Terms of Service"} — pdfdiff`;
-  document
-    .querySelector<HTMLMetaElement>('meta[name="description"]')
-    ?.setAttribute(
-      "content",
-      privacy
-        ? "How pdfdiff handles PDF files, browser storage, and technical data."
-        : "The terms that govern use of the pdfdiff browser-based PDF comparison service.",
-    );
 }
 
 createRoot(document.getElementById("root")!).render(

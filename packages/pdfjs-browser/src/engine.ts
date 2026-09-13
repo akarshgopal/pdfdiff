@@ -1,14 +1,14 @@
 import {
   alignPages,
-  classifyRegions,
+  classifyPage,
   limitRegions,
   fingerprintPage,
+  pageSimilarity,
   diffSemanticPages,
   measureAsync,
   throwIfAborted,
   type ComparisonPage,
   type AlignedPagePair,
-  type ClassifierBox,
   type ComparisonReadyEvent,
   type PageAlignmentKind,
   type ComparisonResult,
@@ -19,9 +19,6 @@ import {
   type PageText,
   type RasterImage,
   type RgbColor,
-  type SemanticPageDiff,
-  type TextQuad,
-  type VisualPageGeometry,
 } from "@pdfdiff/core";
 import { extractDocumentText, extractPageText } from "./text.js";
 import { createRasterDiffClient, type RasterDiffClient, type RasterDiffWorkerFactory } from "./raster-diff-client.js";
@@ -75,7 +72,7 @@ function regionMergeGaps(pageHeight: number): { mergeGapX: number; mergeGapY: nu
   };
 }
 
-const DEFAULT_UNCHANGED_OPACITY = 0.24;
+const DEFAULT_UNCHANGED_OPACITY = 0.4;
 
 /** An unset overlay style leaves the core defaults in place. */
 function overlayStyle(options: DiffOptions): {
@@ -134,40 +131,6 @@ function pageMetricSink(sink: DiffMetricSink | undefined, pageNumber: number): D
       ...metric,
       attributes: { pageNumber, ...metric.attributes },
     });
-}
-
-/** Text lives in PDF points; regions live in rendered pixels. Meet in pixels. */
-function quadBox(quad: TextQuad, geometry: VisualPageGeometry): ClassifierBox {
-  const xs = quad.map((point) => point.x * geometry.scale + geometry.offsetX);
-  const ys = quad.map((point) => point.y * geometry.scale + geometry.offsetY);
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
-  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
-}
-
-function quadBoxes(quads: readonly TextQuad[], geometry: VisualPageGeometry | undefined): ClassifierBox[] {
-  return geometry ? quads.map((quad) => quadBox(quad, geometry)) : [];
-}
-
-function classificationBoxes(
-  semantic: SemanticPageDiff,
-  geometry: { earlier?: VisualPageGeometry; newer?: VisualPageGeometry },
-) {
-  const changedText = [
-    ...semantic.beforeOverlays.flatMap((overlay) => quadBoxes(overlay.quads, geometry.earlier)),
-    ...semantic.afterOverlays.flatMap((overlay) => quadBoxes(overlay.quads, geometry.newer)),
-  ];
-  const unchanged = semantic.unchangedLines ?? [];
-  const movedText = unchanged
-    .filter((line) => line.shifted)
-    .flatMap((line) => [
-      ...quadBoxes(line.beforeQuads, geometry.earlier),
-      ...quadBoxes(line.afterQuads, geometry.newer),
-    ]);
-  const staticText = unchanged
-    .filter((line) => !line.shifted)
-    .flatMap((line) => quadBoxes(line.afterQuads, geometry.newer));
-  return { changedText, movedText, staticText };
 }
 
 interface PageComparisonRequest {
@@ -248,13 +211,20 @@ async function compareExistingPage(request: PageComparisonRequest): Promise<Comp
     earlier: geometryForPage(rendered.earlier, width, height),
     newer: geometryForPage(rendered.newer, width, height, diff.dx, diff.dy),
   };
-  const classification = classifyRegions({ regions: diff.regions, ...classificationBoxes(semantic, visualGeometry) });
+  const classification = classifyPage({ regions: diff.regions, semantic, geometry: visualGeometry });
   return {
     index: request.index,
     earlierPageNumber,
     newerPageNumber,
     alignment: request.alignment ?? "matched",
-    similarity: request.similarity,
+    similarity:
+      request.similarity ??
+      (oldText.decodable === false || newText.decodable === false
+        ? undefined
+        : pageSimilarity(
+            fingerprintPage(oldText.text, earlierPageNumber),
+            fingerprintPage(newText.text, newerPageNumber),
+          )),
     width,
     height,
     status: diff.changedPixels === 0 && semantic.changes.length === 0 ? "same" : "changed",
@@ -534,6 +504,7 @@ async function comparePdfPagePair(
   newerPageNumber: number,
   options: DiffOptions,
   quality: RenderQuality,
+  withLayers: boolean,
   signal: AbortSignal,
   loadPair: (
     earlier: PdfSource,
@@ -570,7 +541,7 @@ async function comparePdfPagePair(
         index: earlierPageNumber - 1,
         options,
         signal,
-        withLayers: true,
+        withLayers,
         quality,
         metrics: onMetric,
         rasterDiff,
@@ -600,6 +571,7 @@ export interface PdfJsEngine extends DiffEngine<PdfSource, AbortSignal> {
     newerPageIndex: number;
     options: DiffOptions;
     quality?: RenderQuality;
+    withLayers?: boolean;
     signal: AbortSignal;
     onMetric?: DiffMetricSink;
   }): Promise<ComparisonPage>;
@@ -662,7 +634,17 @@ export function createPdfJsEngine({
         rasterDiff,
       );
     },
-    comparePagePair: ({ earlier, newer, earlierPageIndex, newerPageIndex, options, quality, signal, onMetric }) =>
+    comparePagePair: ({
+      earlier,
+      newer,
+      earlierPageIndex,
+      newerPageIndex,
+      options,
+      quality,
+      withLayers,
+      signal,
+      onMetric,
+    }) =>
       comparePdfPagePair(
         earlier,
         newer,
@@ -670,6 +652,7 @@ export function createPdfJsEngine({
         newerPageIndex + 1,
         options,
         quality ?? "standard",
+        withLayers ?? true,
         signal,
         loadPair,
         rasterDiff,

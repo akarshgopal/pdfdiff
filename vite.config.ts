@@ -1,9 +1,10 @@
-import { cpSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
+import { SAMPLE_DOCUMENTS } from "./app/pdfdiff/sampleDocuments.ts";
 
 /**
  * PDF.js fetches these on demand and, when they are missing, silently drops
@@ -19,6 +20,21 @@ function stagePdfJsAssets(): void {
   }
 }
 
+/**
+ * Copy the three try-sample pairs into `public/samples/` so Vite serves them in
+ * dev and emits them into `dist/` for the static Cloudflare deploy. Fetching
+ * on click keeps the datasheet pair out of the JS bundle.
+ */
+function stageSamplePdfs(): void {
+  for (const sample of SAMPLE_DOCUMENTS) {
+    for (const side of [sample.earlier, sample.newer]) {
+      const dest = path.join("public/samples", side.source);
+      mkdirSync(path.dirname(dest), { recursive: true });
+      cpSync(path.join("examples/pdf-fixtures", side.source), dest);
+    }
+  }
+}
+
 function canonicalOrigin(value: string | undefined): string | null {
   if (!value) return null;
   try {
@@ -30,25 +46,32 @@ function canonicalOrigin(value: string | undefined): string | null {
   }
 }
 
+const PRODUCTION_SITE_ORIGIN = "https://pdfdiff.app";
+
+/** Swap the production origin when a preview/fork sets VITE_SITE_URL. */
+export function rewriteAbsoluteSiteMetadata(text: string, origin: string | null): string {
+  if (!origin || origin === PRODUCTION_SITE_ORIGIN) return text;
+  return text.replaceAll(PRODUCTION_SITE_ORIGIN, origin);
+}
+
 function absoluteMetadata(origin: string | null): Plugin {
   return {
     name: "pdfdiff-absolute-metadata",
     transformIndexHtml(html) {
-      const metadata = origin
-        ? [
-            `<link rel="canonical" href="${origin}/" />`,
-            `<meta property="og:url" content="${origin}/" />`,
-            `<meta property="og:image" content="${origin}/og.png" />`,
-            `<meta name="twitter:image" content="${origin}/og.png" />`,
-          ].join("\n    ")
-        : "";
-      return html.replace("<!-- absolute-site-metadata -->", metadata);
+      return rewriteAbsoluteSiteMetadata(html, origin);
+    },
+    closeBundle() {
+      if (!origin || origin === PRODUCTION_SITE_ORIGIN) return;
+      for (const file of ["dist/robots.txt", "dist/sitemap.xml"]) {
+        writeFileSync(file, rewriteAbsoluteSiteMetadata(readFileSync(file, "utf8"), origin));
+      }
     },
   };
 }
 
 export default defineConfig(({ mode }) => {
   stagePdfJsAssets();
+  stageSamplePdfs();
   const env = loadEnv(mode, process.cwd(), "");
   return {
     plugins: [tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],

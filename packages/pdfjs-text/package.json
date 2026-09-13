@@ -1,0 +1,41 @@
+{
+  "name": "@pdfdiff/pdfjs-text",
+  "version": "0.1.0",
+  "description": "DOM-free PDF.js text extraction for PDF Diff.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@pdfdiff/core": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akarshgopal/pdfdiff.git",
+    "directory": "packages/pdfjs-text"
+  },
+  "homepage": "https://github.com/akarshgopal/pdfdiff",
+  "bugs": {
+    "url": "https://github.com/akarshgopal/pdfdiff/issues"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

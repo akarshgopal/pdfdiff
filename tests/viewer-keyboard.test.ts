@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { sourceSideForEvent } from "../packages/viewer-react/dist/useViewerKeyboard.js";
+import { sourceSideForEvent } from "@pdfdiff/viewer-react";
 
 const event = (key: string, modifier?: "shiftKey" | "ctrlKey" | "metaKey") =>
   ({

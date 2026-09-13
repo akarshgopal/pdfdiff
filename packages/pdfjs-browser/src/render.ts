@@ -1,5 +1,5 @@
 import { AnnotationMode, type PDFPageProxy } from "pdfjs-dist";
-import { measureAsync, PdfDiffAbortError, throwIfAborted } from "@pdfdiff/core";
+import { measureAsync, throwIfAborted } from "@pdfdiff/core";
 import type { LoadedPdf, RenderOptions, RenderedPage, RenderedPagePair } from "./types.js";
 
 const BACKGROUND = "rgb(255, 255, 255)";
@@ -112,7 +112,7 @@ async function renderIntoCanvas(
       },
     );
   } catch (error) {
-    if (options.signal?.aborted) throw new PdfDiffAbortError();
+    throwIfAborted(options.signal);
     throw error;
   } finally {
     detachAbort();

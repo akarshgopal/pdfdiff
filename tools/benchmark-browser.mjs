@@ -5,7 +5,7 @@ import { integerOption, metricSummary, now, percentile } from "./benchmark-utils
 
 const DEFAULT_RUNS = 3;
 const DEFAULT_WARMUPS = 1;
-const DEFAULT_URL = "http://localhost:3000/";
+const DEFAULT_URL = "http://localhost:5173/";
 const DEFAULT_EARLIER = "examples/pdf-fixtures/contracts/work-order-original.pdf";
 const DEFAULT_NEWER = "examples/pdf-fixtures/contracts/work-order-amended.pdf";
 const DEFAULT_OUTPUT = "benchmarks/runs/browser.json";

@@ -1,4 +1,5 @@
-import type { ChangeRegion } from "./types.js";
+import type { ChangeRegion, TextQuad, VisualPageGeometry } from "./types.js";
+import type { SemanticPageDiff } from "./semantic-types.js";
 
 /**
  * A pixel diff says where the page repainted. It cannot say why. One edit near
@@ -108,6 +109,54 @@ export function classifyRegions(input: ClassifyRegionsInput): PageClassification
     return { ...region, changeClass };
   });
   return { regions, counts, noticeable: counts.content > 0 || counts.graphic > 0 };
+}
+
+/** Text lives in PDF points; regions live in rendered pixels. Meet in pixels. */
+function quadBox(quad: TextQuad, geometry: VisualPageGeometry): ClassifierBox {
+  const xs = quad.map((point) => point.x * geometry.scale + geometry.offsetX);
+  const ys = quad.map((point) => point.y * geometry.scale + geometry.offsetY);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+}
+
+function quadBoxes(quads: readonly TextQuad[], geometry: VisualPageGeometry | undefined): ClassifierBox[] {
+  return geometry ? quads.map((quad) => quadBox(quad, geometry)) : [];
+}
+
+function classificationBoxes(
+  semantic: SemanticPageDiff,
+  geometry: { earlier?: VisualPageGeometry; newer?: VisualPageGeometry },
+) {
+  const changedText = [
+    ...semantic.beforeOverlays.flatMap((overlay) => quadBoxes(overlay.quads, geometry.earlier)),
+    ...semantic.afterOverlays.flatMap((overlay) => quadBoxes(overlay.quads, geometry.newer)),
+  ];
+  const unchanged = semantic.unchangedLines ?? [];
+  const movedText = unchanged
+    .filter((line) => line.shifted)
+    .flatMap((line) => [
+      ...quadBoxes(line.beforeQuads, geometry.earlier),
+      ...quadBoxes(line.afterQuads, geometry.newer),
+    ]);
+  const staticText = unchanged
+    .filter((line) => !line.shifted)
+    .flatMap((line) => quadBoxes(line.afterQuads, geometry.newer));
+  return { changedText, movedText, staticText };
+}
+
+/** Classify pixel regions against the semantic layer. Both adapters call this. */
+export function classifyPage(input: {
+  readonly regions: readonly ChangeRegion[];
+  readonly semantic: SemanticPageDiff;
+  readonly geometry: { earlier?: VisualPageGeometry; newer?: VisualPageGeometry };
+  readonly tolerance?: number;
+}): PageClassification {
+  return classifyRegions({
+    regions: input.regions,
+    ...classificationBoxes(input.semantic, input.geometry),
+    tolerance: input.tolerance,
+  });
 }
 
 export function zeroClassCounts(): ChangeClassCounts {

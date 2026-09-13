@@ -1,8 +1,5 @@
 import { cx, ui } from "@pdfdiff/viewer-react/ui";
 
-export { cx, type TailwindClass } from "@pdfdiff/viewer-react/ui";
-export { ui };
-
 /** One page gutter and one content width for every screen, marketing or legal. */
 const gutter = "px-5 lg:px-8";
 const container = "mx-auto w-full max-w-[1120px]";
@@ -11,6 +8,12 @@ export const styles = {
   root: "min-h-screen bg-background font-sans tracking-tight text-foreground",
   shell: "flex min-h-screen w-full flex-col",
   topbar: `${gutter} flex min-h-[56px] items-center justify-between gap-5 border-b border-border bg-card`,
+  topbarActions: "flex items-center gap-2",
+  githubLink: cx(
+    ui.control,
+    ui.focus,
+    "size-8 no-underline hover:bg-background focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  ),
   logo: "inline-flex items-center gap-2.5 whitespace-nowrap text-base font-semibold tracking-tight text-foreground no-underline",
   logoMark: "grid size-[26px] place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground",
   intro: `${gutter} ${container} grid grid-cols-1 items-center gap-x-14 gap-y-10 pb-12 pt-10 text-center lg:pb-16 lg:pt-[clamp(36px,4.5vw,60px)] xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:text-left`,
@@ -18,6 +21,7 @@ export const styles = {
   eyebrow: cx(ui.caps, "m-0 text-primary"),
   headline: "text-[clamp(32px,4vw,48px)] font-semibold leading-display tracking-tighter",
   headlineAccent: "not-italic text-primary",
+  introLead: "mt-3 max-w-md text-sm leading-relaxed text-muted-foreground",
   uploadGrid: "mt-8 grid w-full grid-cols-1 gap-3.5 lg:grid-cols-[1fr_auto_1fr]",
   swapUpload: cx(
     ui.control,
@@ -28,6 +32,10 @@ export const styles = {
   rememberCheckbox: `${ui.focus} pdfdiff-switch`,
   introActions: "mt-5 flex w-full flex-col items-center gap-3 xl:items-start",
   compareButton: "min-h-12 px-6",
+  samples: "mt-6 flex w-full flex-col items-center gap-2 xl:items-start",
+  samplesLabel: cx(ui.caps, "m-0"),
+  samplesRow: "flex flex-wrap justify-center gap-2 xl:justify-start",
+  sampleButton: cx(ui.control, ui.focus, "min-h-8 px-3"),
   privacyNote: "inline-flex items-center gap-2 text-xs leading-relaxed text-muted-foreground",
   privacyDot: "size-1.5 shrink-0 rounded-full bg-success",
   errorBox:
@@ -65,7 +73,6 @@ export const styles = {
   demoCaption: "mt-2 min-h-[2lh] text-2xs leading-normal text-muted-foreground",
   footer: `${gutter} mt-auto border-t border-border bg-card`,
   footerInner: `${container} flex min-h-16 flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center`,
-  footerCredit: "text-xs text-muted-foreground",
   footerLinks: "flex flex-wrap items-center gap-x-5 gap-y-2",
   footerLink: `${ui.focus} text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:ring-offset-2 focus-visible:ring-offset-card`,
   loading: "grid min-h-[440px] flex-1 place-items-center p-8",

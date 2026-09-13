@@ -35,14 +35,6 @@ export interface DiffRegion {
   changeClass?: ChangeClass;
 }
 
-export interface DiffTextChange {
-  id: string;
-  text: string;
-  kind: DiffRegionKind;
-  beforeText?: string;
-  afterText?: string;
-}
-
 export interface DiffSemanticOverlay {
   id: string;
   kind: DiffRegionKind;
@@ -75,8 +67,6 @@ export interface DiffPage {
   readonly regions?: readonly DiffRegion[];
   readonly changeClasses?: ChangeClassCounts;
   readonly noticeable?: boolean;
-  readonly textChanges?: readonly DiffTextChange[];
-  readonly textChangeCount?: number;
   readonly semantic?: SemanticPageDiff;
   readonly semanticBeforeOverlays?: readonly DiffSemanticOverlay[];
   readonly semanticAfterOverlays?: readonly DiffSemanticOverlay[];
@@ -94,6 +84,7 @@ export interface DiffComparison {
     earlierPageIndex: number;
     newerPageIndex: number;
     quality?: RenderQuality;
+    withLayers?: boolean;
     signal: AbortSignal;
   }) => Promise<DiffPage>;
   readonly dispose?: () => void;

@@ -1,7 +1,6 @@
 import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { DiffMetricSink } from "./instrumentation.js";
-import type { AbortSignalLike } from "./types.js";
 
 /**
  * Pairing page N with page N breaks the moment a revision inserts or removes a
@@ -10,7 +9,8 @@ import type { AbortSignalLike } from "./types.js";
  * reader would consider the same page.
  */
 
-const DEFAULT_MATCH_THRESHOLD = 0.55;
+/** Jaccard overlap below this is treated as a different page, not an edit. */
+export const PAGE_MATCH_THRESHOLD = 0.55;
 /** Pages rarely travel far, so only consider partners inside a moving window. */
 const DEFAULT_BAND = 12;
 const GAP_PENALTY = -0.3;
@@ -38,7 +38,7 @@ export interface PageAlignmentOptions {
   readonly detectMoves?: boolean;
   /** Skip content matching and pair pages by position instead. */
   readonly sequential?: boolean;
-  readonly signal?: AbortSignalLike;
+  readonly signal?: AbortSignal;
   readonly metrics?: DiffMetricSink;
 }
 
@@ -110,7 +110,7 @@ function buildScoreGrid(
   newer: readonly PageFingerprint[],
   matchThreshold: number,
   band: number,
-  signal: AbortSignalLike | undefined,
+  signal: AbortSignal | undefined,
 ): Array<Array<ScoreCell | undefined>> {
   const drift = earlier.length && newer.length ? earlier.length / newer.length : 1;
   const grid: Array<Array<ScoreCell | undefined>> = Array.from({ length: earlier.length + 1 }, () => []);
@@ -256,7 +256,7 @@ export function alignPages(
         return newer.map((page) => ({ newerPageNumber: page.pageNumber, kind: "added" as const, similarity: 0 }));
       if (newer.length === 0)
         return earlier.map((page) => ({ earlierPageNumber: page.pageNumber, kind: "removed" as const, similarity: 0 }));
-      const matchThreshold = options.matchThreshold ?? DEFAULT_MATCH_THRESHOLD;
+      const matchThreshold = options.matchThreshold ?? PAGE_MATCH_THRESHOLD;
       const band = bandFor(earlier.length, newer.length, options.band ?? DEFAULT_BAND);
       const grid = buildScoreGrid(earlier, newer, matchThreshold, band, options.signal);
       const pairs = tracebackPairs(grid, earlier, newer);

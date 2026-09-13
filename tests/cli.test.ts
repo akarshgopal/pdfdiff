@@ -108,16 +108,7 @@ test("the PCB fixture does not promote text extraction spacing to semantic chang
 });
 
 test("every documented flag is accepted, including --no-detect-moves", async () => {
-  const { code, stderr } = await cli(
-    EARLIER,
-    NEWER,
-    "--no-detect-moves",
-    "--include-noise",
-    "--threshold",
-    "0.6",
-    "--report",
-    "json",
-  );
+  const { code, stderr } = await cli(EARLIER, NEWER, "--no-detect-moves", "--threshold", "0.6", "--report", "json");
   assert.equal(code, 0, stderr);
 });
 

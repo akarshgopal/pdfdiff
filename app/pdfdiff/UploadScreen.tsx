@@ -2,11 +2,13 @@ import { useState } from "react";
 import type { ChangeEvent, DragEvent, RefObject } from "react";
 import { Button } from "../../components/ui/button";
 import { FileDropzone } from "../../components/ui/file-dropzone";
-import { styles, cx } from "./styles";
+import { cx } from "@pdfdiff/viewer-react/ui";
+import { styles } from "./styles";
 import { AppHeader } from "./AppHeader";
 import { AppFooter } from "./AppFooter";
 import { HeroDemo } from "./HeroDemo";
 import type { ComparisonHistorySummary } from "./comparisonHistory";
+import { SAMPLE_DOCUMENTS, type SampleId } from "./sampleDocuments";
 import { formatFileSize } from "../../lib/format";
 
 type FileSide = "earlier" | "newer";
@@ -27,6 +29,7 @@ export interface UploadScreenProps {
   onInput: (side: FileSide, event: ChangeEvent<HTMLInputElement>) => void;
   onSwap: () => void;
   onCompare: () => void;
+  onTrySample: (id: SampleId) => void;
   onRepeat: (id: string) => void;
   onClearHistory: () => void;
   inputEarlier: RefObject<HTMLInputElement | null>;
@@ -49,6 +52,7 @@ export function UploadScreen({
   onInput,
   onSwap,
   onCompare,
+  onTrySample,
   onRepeat,
   onClearHistory,
   inputEarlier,
@@ -81,6 +85,7 @@ export function UploadScreen({
               <br />
               <em className={styles.headlineAccent}>See what changed.</em>
             </h1>
+            <p className={styles.introLead}>Overlay two revisions page by page, text and drawings.</p>
             <div className={styles.uploadGrid}>
               <FileDropzone
                 label="Earlier"
@@ -151,6 +156,7 @@ export function UploadScreen({
                 Remember these PDFs in this browser so you can reopen the comparison
               </label>
             </div>
+            <TrySample onTrySample={onTrySample} />
             {error ? (
               <div className={styles.errorBox} role="alert">
                 {error}
@@ -165,6 +171,29 @@ export function UploadScreen({
         <AppFooter />
       </div>
     </main>
+  );
+}
+
+function TrySample({ onTrySample }: { onTrySample: (id: SampleId) => void }) {
+  return (
+    <div className={styles.samples} role="group" aria-labelledby="try-sample-heading">
+      <h2 id="try-sample-heading" className={styles.samplesLabel}>
+        Try a sample
+      </h2>
+      <div className={styles.samplesRow}>
+        {SAMPLE_DOCUMENTS.map((sample) => (
+          <button
+            key={sample.id}
+            className={styles.sampleButton}
+            type="button"
+            title={sample.title}
+            onClick={() => onTrySample(sample.id)}
+          >
+            {sample.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

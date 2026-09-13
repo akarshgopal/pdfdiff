@@ -12,26 +12,66 @@ async function clientBundleText() {
 
 test("builds a static private PDF comparison experience", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
-  assert.match(html, /<title>pdfdiff — see what changed between two PDFs<\/title>/i);
-  assert.match(
-    html,
-    /name="description" content="Compare two PDF revisions page by page[^"]*never leave your device\."/i,
-  );
+  assert.match(html, /<title>Compare two PDFs privately in your browser \| pdfdiff<\/title>/i);
+  assert.match(html, /name="description"\s+content="[^"]*Files never leave your device[^"]*"/i);
+  assert.match(html, /rel="canonical" href="https:\/\/pdfdiff\.app\/"/i);
+  assert.match(html, /property="og:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
+  assert.match(html, /property="og:image:width" content="1200"/);
+  assert.match(html, /property="og:image:height" content="630"/);
+  assert.match(html, /name="twitter:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
+  assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
+  assert.match(html, /rel="preload" href="\/fonts\/inter-latin\.woff2"/);
+  assert.match(html, /type="application\/ld\+json"/i);
+  assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
   assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/i);
   assert.match(html, /rel="manifest" href="\/site\.webmanifest"/i);
   assert.match(html, /id="root"/i);
   assert.match(html, /<script[^>]+type="module"/i);
   assert.match(html, /<link[^>]+stylesheet/i);
+  assert.doesNotMatch(html, /google-analytics|gtag\(|googletagmanager|posthog/i);
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
+  assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/sitemap.xml", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
 
-  // One smoke check that the SPA actually shipped its app code; the copy itself is not a contract.
   const bundle = await clientBundleText();
-  assert.match(bundle, /Files are compared in this browser and never uploaded/i);
-  // The hero demo is drawn, not screenshotted: both revisions and both overlay colours ship in the bundle.
-  assert.match(bundle, /24\.0/);
-  assert.match(bundle, /26\.5/);
-  assert.match(bundle, /pdfdiff-swipe-top/);
+  assert.match(bundle, /never uploaded/i);
+});
+
+test("built CSS self-hosts Inter", async () => {
+  const assetsDirectory = new URL("../dist/assets/", import.meta.url);
+  const files = await readdir(assetsDirectory);
+  const css = files.filter((file) => file.endsWith(".css"));
+  const styles = (await Promise.all(css.map((file) => readFile(new URL(file, assetsDirectory), "utf8")))).join("\n");
+  assert.match(styles, /\/fonts\/inter-latin\.woff2/);
+  assert.doesNotMatch(styles, /fonts\.googleapis|fonts\.gstatic/i);
+});
+
+test("try-sample fixture pairs ship as static files", () => {
+  const samples = [
+    "cad/wheel-hub-rev-a.pdf",
+    "cad/wheel-hub-rev-b.pdf",
+    "contracts/work-order-original.pdf",
+    "contracts/work-order-amended.pdf",
+    "datasheets/ti-sn74lv126a-rev-i.pdf",
+    "datasheets/ti-sn74lv126a-rev-j.pdf",
+  ];
+  for (const file of samples) {
+    assert.equal(existsSync(new URL(`../dist/samples/${file}`, import.meta.url)), true, file);
+  }
+});
+
+test("dist ships security headers and PDF.js side-cars", async () => {
+  const headers = await readFile(new URL("../dist/_headers", import.meta.url), "utf8");
+  assert.match(headers, /Content-Security-Policy:.*worker-src 'self' blob:/);
+  assert.match(headers, /\/assets\/\*\n {2}Cache-Control: public, max-age=31536000, immutable/);
+  assert.match(headers, /\/pdfjs\/\*\n {2}Cache-Control: public, max-age=86400/);
+  assert.equal(existsSync(new URL("../dist/pdfjs/cmaps", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/pdfjs/wasm", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/pdfjs/standard_fonts", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/pdfjs/iccs", import.meta.url)), true);
 });
 
 test("Cloudflare deployment contains static assets only", async () => {

@@ -65,7 +65,32 @@ test("undecodable text is detected even when the extractor did not flag it", () 
 });
 
 test("readable pages are unaffected and still diff normally", () => {
-  const diff = diffSemanticPages(page("Effective date: 30 days"), page("Effective date: 60 days"));
+  const beforeText = "Effective date: 30 days";
+  const afterText = "Effective date: 60 days";
+  const item = (text: string): PageText["items"][number] => ({
+    pageNumber: 1,
+    str: text,
+    textStart: 0,
+    textEnd: text.length,
+    dir: "ltr",
+    fontName: "font",
+    width: text.length * 8,
+    height: 12,
+    fontSize: 12,
+    hasEOL: false,
+    transform: [1, 0, 0, 1, 40, 40],
+    bounds: { x: 40, y: 40, width: text.length * 8, height: 12 },
+    quad: [
+      { x: 40, y: 40 },
+      { x: 40 + text.length * 8, y: 40 },
+      { x: 40 + text.length * 8, y: 52 },
+      { x: 40, y: 52 },
+    ],
+  });
+  const diff = diffSemanticPages(
+    page(beforeText, { items: [item(beforeText)] }),
+    page(afterText, { items: [item(afterText)] }),
+  );
   assert.notEqual(diff.textUndecodable, true);
   assert.equal(diff.hasBeforeText, true);
   assert.ok(diff.beforeTokenCount > 0);

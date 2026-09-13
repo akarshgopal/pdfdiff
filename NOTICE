@@ -1,0 +1,38 @@
+pdfdiff
+Copyright (c) 2026 Akarsh Gopal
+
+This product is licensed under the MIT License (see LICENSE). It includes
+third-party documents used only as comparison fixtures. Those documents are
+not covered by the MIT License of this repository. Redistribute or use them
+only under their original terms.
+
+Fixture provenance is recorded in examples/pdf-fixtures/README.md.
+
+CAD drawings
+  Source: University of Florida EML2322L Engineering Change Notice example
+  https://web.mae.ufl.edu/designlab/Lab%20Assignments/EML2322L-Engineering%20Change%20Notice.pdf
+  Extracted pages 3 and 4 (wheel-hub rev A / rev B).
+
+PCB schematics
+  Source: Olimex OLIMEXINO-STM32
+  https://www.olimex.com/wiki/Olimexino-STM32
+  Rev A and Rev B schematics as published by Olimex.
+
+Contract samples
+  Source: Minnesota Department of Commerce MC-LEEP sample
+  https://mn.gov/commerce-stat/pdfs/leep-master-contract-sample.pdf
+  Extracted Exhibit A (work order) and Exhibit B (amended work order).
+  Government work; not legal advice.
+
+Datasheets
+  Texas Instruments SN74HC595 and SN74LV126A revision pairs.
+  https://www.ti.com/lit/ds/symlink/sn74hc595.pdf
+  https://www.ti.com/lit/ds/symlink/sn74lv126a.pdf
+  TI literature is used here as a comparison fixture. TI retains copyright.
+  These files are also fetched by the live site under /samples/datasheets/.
+
+Other bundled third-party material
+  Inter (SIL Open Font License), see public/fonts/OFL.txt.
+  PDF.js side-car fonts, cmaps, WASM, and ICC profiles are copied from
+  pdfjs-dist at build time and are not committed. See that package for its
+  licenses.

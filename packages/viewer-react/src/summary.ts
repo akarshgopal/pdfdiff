@@ -1,29 +1,61 @@
 import type { ReportTotals } from "@pdfdiff/core";
-import type { DiffComparison } from "./types.js";
-import { reportForComparison } from "./export.js";
+import type { DiffPage } from "./types.js";
+import { pageStatus } from "./viewer-utils.js";
+
+export type ComparisonProgress = { readonly completed: number; readonly total: number };
 
 /**
- * Per-page status answers "did this page change". A reviewer opens the tool
- * asking a document-level question — how much changed, and how much of it is
- * real. The exported report already totals exactly that, so the summary bar
- * and a downloaded report can never disagree.
+ * Absent once every page has a verdict. Completed is counted from settled
+ * rows so the headline cannot lag the rail as pages stream in.
  */
-
-export type ComparisonSummary = ReportTotals;
-
-export function summarizeComparison(comparison: DiffComparison): ComparisonSummary {
-  return reportForComparison(comparison).totals;
+export function comparisonProgress(
+  pages: readonly DiffPage[],
+  reported?: ComparisonProgress,
+): ComparisonProgress | undefined {
+  if (pages.length === 0) return reported;
+  const pending = pages.filter((page) => pageStatus(page) === "processing").length;
+  if (pending === 0) return undefined;
+  return { completed: pages.length - pending, total: Math.max(reported?.total ?? 0, pages.length) };
 }
 
-export function summaryHeadline(summary: ComparisonSummary): string {
-  if (summary.changedPages + summary.addedPages + summary.removedPages + summary.movedPages === 0) {
+function pageStat(count: number, verb: string): string {
+  return count === 1 ? `1 page ${verb}` : `${count} pages ${verb}`;
+}
+
+/** A lone stat can carry the document size; several stats each already name pages. */
+function pageStory(count: number, total: number, verb: string): string {
+  if (count === total) return pageStat(count, verb);
+  return `${count} of ${total} pages ${verb}`;
+}
+
+/** Unreadable fonts get a header chip; pages without selectable text do not. */
+export function headerTextWarning(summary: ReportTotals): { message: string; title: string } | null {
+  if (!summary.pagesWithUnreadableText) return null;
+  return {
+    message: `Text comparison unavailable on ${summary.pagesWithUnreadableText} of ${summary.pages} pages`,
+    title: "These pages embed fonts with no Unicode mapping. Overlay, Split, and Swipe still apply.",
+  };
+}
+
+export function summaryHeadline(summary: ReportTotals): string {
+  const { changedPages, addedPages, removedPages, movedPages, pages } = summary;
+  if (changedPages + addedPages + removedPages + movedPages === 0) {
     return "No differences detected at current settings";
   }
-  if (summary.pages === 1 && summary.changedPages === 1 && !summary.addedPages && !summary.removedPages)
-    return "1 page changed";
-  const parts = [`${summary.changedPages} changed`];
-  if (summary.addedPages) parts.push(`${summary.addedPages} added`);
-  if (summary.removedPages) parts.push(`${summary.removedPages} removed`);
-  if (summary.movedPages) parts.push(`${summary.movedPages} moved`);
-  return `${parts.join(" · ")} of ${summary.pages} pages`;
+  const parts: string[] = [];
+  if (changedPages) parts.push(pageStat(changedPages, "changed"));
+  if (addedPages) parts.push(pageStat(addedPages, "added"));
+  if (removedPages) parts.push(pageStat(removedPages, "removed"));
+  if (movedPages) parts.push(pageStat(movedPages, "moved"));
+  if (parts.length === 1) {
+    const verb = changedPages ? "changed" : addedPages ? "added" : removedPages ? "removed" : "moved";
+    const count = changedPages || addedPages || removedPages || movedPages;
+    return pageStory(count, pages, verb);
+  }
+  return parts.join(" · ");
+}
+
+export function workspaceHeadline(summary: ReportTotals, progress?: ComparisonProgress): string {
+  if (progress) return `Comparing ${progress.completed} of ${progress.total} pages…`;
+  return summaryHeadline(summary);
 }

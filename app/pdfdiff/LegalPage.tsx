@@ -26,8 +26,8 @@ function PrivacyPolicy() {
       <LegalSection title="Who is responsible">
         <p>
           pdfdiff is operated by Akarsh Gopal. For privacy questions or requests, email{" "}
-          <a className={styles.legalLink} href="mailto:feedback@pdfdiff.app?subject=Privacy%20request">
-            feedback@pdfdiff.app
+          <a className={styles.legalLink} href="mailto:akarsh@pdfdiff.app?subject=Privacy%20request">
+            akarsh@pdfdiff.app
           </a>
           .
         </p>
@@ -176,8 +176,8 @@ function TermsOfService() {
         </p>
         <p>
           If the pdfdiff website or software itself is the issue, email{" "}
-          <a className={styles.legalLink} href="mailto:feedback@pdfdiff.app?subject=Legal%20notice">
-            feedback@pdfdiff.app
+          <a className={styles.legalLink} href="mailto:akarsh@pdfdiff.app?subject=Legal%20notice">
+            akarsh@pdfdiff.app
           </a>{" "}
           with enough detail to identify the material. Incomplete, automated, or bulk notices may go unanswered.
         </p>
@@ -262,8 +262,8 @@ function TermsOfService() {
         </p>
         <p>
           Questions about these terms can be sent to{" "}
-          <a className={styles.legalLink} href="mailto:feedback@pdfdiff.app?subject=Terms%20question">
-            feedback@pdfdiff.app
+          <a className={styles.legalLink} href="mailto:akarsh@pdfdiff.app?subject=Terms%20question">
+            akarsh@pdfdiff.app
           </a>
           .
         </p>

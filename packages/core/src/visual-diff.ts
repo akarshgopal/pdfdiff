@@ -4,11 +4,16 @@ import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import { findChangeRegions } from "./regions.js";
 import type { RasterImage, RgbColor, VisualDiffOptions, VisualDiffResult } from "./types.js";
-import { clamp, luminance } from "./raster-utils.js";
+import { DEFAULT_OVERLAY } from "./overlay.js";
+import { luminance } from "./raster-utils.js";
 
-const DEFAULT_ADDED: RgbColor = [16, 190, 190];
-const DEFAULT_REMOVED: RgbColor = [238, 72, 86];
-const DEFAULT_MODIFIED: RgbColor = [184, 126, 220];
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+const DEFAULT_ADDED = DEFAULT_OVERLAY.addedColor;
+const DEFAULT_REMOVED = DEFAULT_OVERLAY.removedColor;
+const DEFAULT_MODIFIED = DEFAULT_OVERLAY.modifiedColor;
 type ChangeDirection = 1 | 2 | 3;
 const BACKGROUND_DISTANCE = 0.04;
 
@@ -113,7 +118,7 @@ function overlayFromDiffMask(
   const addedColor = validColor(options.addedColor, DEFAULT_ADDED);
   const removedColor = validColor(options.removedColor, DEFAULT_REMOVED);
   const modifiedColor = validColor(options.modifiedColor, DEFAULT_MODIFIED);
-  const unchangedOpacity = clamp(options.unchangedOpacity ?? 0.25, 0, 1);
+  const unchangedOpacity = clamp(options.unchangedOpacity ?? DEFAULT_OVERLAY.unchangedOpacity, 0, 1);
   const changedMask = new Uint8Array(total);
   const directionMask = new Uint8Array(total);
   let changedPixels = 0;

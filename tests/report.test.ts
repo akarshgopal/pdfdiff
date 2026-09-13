@@ -152,7 +152,7 @@ test("the text report includes possible reflow by default", () => {
   assert.match(quiet, /1 pages may include reflow or formatting/);
   assert.match(quiet, /A 2 → B 3/);
 
-  assert.match(reportToText(REPORT, { includeNoise: true }), /A 2 → B 3/);
+  assert.match(reportToText(REPORT), /A 2 → B 3/);
 });
 
 test("change detection includes possible reflow", () => {

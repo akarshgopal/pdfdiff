@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { fingerprintPage, type PageFingerprint, type PageText } from "@pdfdiff/core";
-import { extractPageText } from "@pdfdiff/pdfjs-browser/text";
+import { extractPageText } from "@pdfdiff/pdfjs-text";
 
 /**
  * Alignment and the semantic diff both run on extracted text alone, so the

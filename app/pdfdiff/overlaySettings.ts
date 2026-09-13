@@ -1,37 +1,20 @@
-import type { OverlayStyle, RgbColor } from "@pdfdiff/core";
+import { DEFAULT_OVERLAY, hexToRgb, rgbToHex, type OverlayStyle, type RgbColor } from "@pdfdiff/core";
+
+export { DEFAULT_OVERLAY };
+export const toHex = rgbToHex;
+export const fromHex = hexToRgb;
 
 /**
  * Overlay colours are baked into each page raster while it is compared, so they
  * are chosen before a run rather than tweaked in the viewer. Keeping the choice
  * on the device means a reviewer sets their palette once — which matters most
  * for anyone the default palette does not work for.
+ *
+ * Unchanged content stays at 40% so drawings and datasheets remain readable;
+ * a fainter page lets line-edge speckle dominate the overlay without helping.
  */
 
 const STORAGE_KEY = "pdfdiff-overlay";
-
-export const DEFAULT_OVERLAY: OverlayStyle = {
-  addedColor: [16, 190, 190],
-  removedColor: [238, 72, 86],
-  modifiedColor: [184, 126, 220],
-  unchangedOpacity: 0.24,
-};
-
-export function toHex([red, green, blue]: RgbColor): string {
-  return `#${[red, green, blue]
-    .map((channel) =>
-      Math.max(0, Math.min(255, Math.round(channel)))
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-}
-
-export function fromHex(value: string, fallback: RgbColor): RgbColor {
-  const match = /^#?([0-9a-f]{6})$/i.exec(value.trim());
-  if (!match) return fallback;
-  const channels = Number.parseInt(match[1]!, 16);
-  return [(channels >> 16) & 255, (channels >> 8) & 255, channels & 255];
-}
 
 function isRgb(value: unknown): value is RgbColor {
   return (

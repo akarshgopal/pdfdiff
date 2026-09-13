@@ -23,7 +23,9 @@ Downloaded on 2026-08-28 over HTTPS.
 
 The original multi-page downloads are retained in [`sources/`](sources/)
 solely to make the extracted-page provenance explicit. These are reference
-fixtures, not legal, manufacturing, or engineering advice.
+fixtures, not legal, manufacturing, or engineering advice. Third-party
+copyright is recorded in [`NOTICE`](../../NOTICE); they are not MIT-licensed
+with the rest of this repository.
 
 ## Safety and integrity checks
 

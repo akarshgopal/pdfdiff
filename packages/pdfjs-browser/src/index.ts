@@ -1,5 +1,4 @@
 export * from "./types.js";
-export * from "./worker.js";
 export * from "./pdf.js";
 export * from "./render.js";
 export * from "./text.js";
