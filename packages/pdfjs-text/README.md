@@ -1,7 +1,7 @@
 # @pdfdiff/pdfjs-text
 
 DOM-free PDF.js text extraction. Both `@pdfdiff/pdfjs-browser` and
-`@pdfdiff/node` use this so a CLI report describes changes in the same
+`pdfdiff` use this so a CLI report describes changes in the same
 line-level terms the viewer shows.
 
 ```ts

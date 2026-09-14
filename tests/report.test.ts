@@ -6,6 +6,7 @@ import {
   hasUnreadableText,
   reportToCsv,
   reportToJson,
+  reportToMarkdown,
   reportToText,
   type ComparisonPage,
 } from "@pdfdiff/core";
@@ -198,6 +199,14 @@ test("a page whose text could not be decoded is called out, not reported as clea
 
 test("a readable comparison is not flagged as unreadable", () => {
   assert.equal(hasUnreadableText(REPORT), false);
+});
+
+test("markdown names pages and quotes text edits", () => {
+  const markdown = reportToMarkdown(REPORT);
+  assert.match(markdown, /^# spec-v1\.pdf → spec-v2\.pdf/m);
+  assert.match(markdown, /## Page 1/);
+  assert.match(markdown, /- changed: 30 days → 60 days/);
+  assert.match(markdown, /- added: New schedule/);
 });
 
 test("pages without extractable text are counted for the trust warning", () => {

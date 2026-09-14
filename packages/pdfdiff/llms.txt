@@ -1,0 +1,33 @@
+# pdfdiff
+
+Compare two PDF files from the command line or Node. Raster overlay plus extracted-text changes. Node >= 22.13.
+
+## CLI
+
+```
+npx pdfdiff <earlier.pdf> <newer.pdf>
+npx pdfdiff earlier.pdf newer.pdf --report json --fail-on-change
+npx pdfdiff earlier.pdf newer.pdf --images ./diff-out
+npx pdfdiff earlier.pdf newer.pdf --text-only --report markdown
+```
+
+`--report` is `text` (default), `json`, `csv`, or `markdown`. `--images <dir>` writes overlay PNGs named `a{earlier}-b{newer}.png` for changed, added, and removed pages. `--text-only` skips pixel comparison. `--fail-on-change` exits 1 when anything changed. `--fail-on-unreadable` exits 1 when fonts have no Unicode map.
+
+Exit codes: 0 ok, 1 fail-on-* tripped, 2 usage, 3 runtime.
+
+JSON schema: `pdfdiff/report.schema.json`. Warnings go to stderr; the report goes to stdout (or `--out`).
+
+## Node
+
+```ts
+import { comparePdfs } from "pdfdiff";
+const { report } = await comparePdfs("earlier.pdf", "newer.pdf");
+```
+
+Pass `{ visual: false }` for text only, or `onOverlay` to receive RGBA overlays.
+
+## Do not
+
+- Treat a clean result as trustworthy when `totals.pagesWithUnreadableText > 0` — drawings can still change visually, but wording cannot be read.
+- Expect pixel-identical output to https://pdfdiff.app. Node uses Skia, the site uses the browser canvas.
+- Diff scanned PDFs for text; use the visual path (the default) for drawings and scans.

@@ -22,6 +22,12 @@ pnpm dev
 pnpm build
 ```
 
+Headless CLI (also `npx pdfdiff` once published):
+
+```bash
+pnpm pdfdiff earlier.pdf newer.pdf --report json --fail-on-change
+```
+
 ## Package architecture
 
 The application is split into workspace packages so the comparison
@@ -35,7 +41,7 @@ logic can be reused independently of the browser app:
   PDF files, then orchestrates the core algorithms.
 - `@pdfdiff/viewer-react` — a reusable React viewer for a completed comparison.
   It owns navigation, view modes, inspection controls, and keyboard shortcuts.
-- `@pdfdiff/node` — headless text comparison for Node, plus the `pdfdiff` CLI.
+- `pdfdiff` — headless comparison for Node, plus the `pdfdiff` CLI (`npx pdfdiff`).
 - `app/` — the product shell: upload flow, privacy messaging, loading state,
   default engine wiring, analytics callbacks, and the in-app help section.
 - `main.tsx` and `index.html` — the static Vite application entry and metadata.
@@ -68,7 +74,7 @@ const engine = createPdfJsEngine({
 
 `createRasterDiffWorker` is optional. Without it — and whenever the worker
 cannot be constructed — the same code runs in-process, which is why
-`@pdfdiff/node` needs no worker at all.
+the Node CLI needs no worker at all.
 
 Page rasters are transferred rather than copied, so handing a page to the
 worker costs no memory. The overlap does: the batch pass keeps one page of

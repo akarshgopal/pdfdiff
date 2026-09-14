@@ -12,7 +12,7 @@ plus the app shell at the repo root — there is no `src/`.
 - `@pdfdiff/pdfjs-text` — DOM-free PDF.js text extraction. Shared by the browser adapter and the Node CLI.
 - `@pdfdiff/pdfjs-browser` — PDF.js adapter: loading, rendering, and the raster-diff Web Worker.
 - `@pdfdiff/viewer-react` — the React viewer. Also exports `./ui` (the style tables) and `./theme.css`.
-- `@pdfdiff/node` — headless comparison for Node plus the `pdfdiff` CLI bin.
+- `pdfdiff` — headless comparison for Node plus the `pdfdiff` CLI bin.
 - `app/`, `components/`, `lib/`, `main.tsx`, `index.html` — the static Vite product shell.
 - `tests/` (`node --test`, TypeScript run through `--experimental-strip-types`), `tools/` (benchmark and accuracy scripts).
 

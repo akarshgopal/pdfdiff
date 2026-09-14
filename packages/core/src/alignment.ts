@@ -2,13 +2,7 @@ import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { RasterImage } from "./types.js";
 import type { DiffMetricSink } from "./instrumentation.js";
-import { luminance } from "./raster-utils.js";
-
-function blankImage(width: number, height: number): RasterImage {
-  const data = new Uint8ClampedArray(width * height * 4);
-  data.fill(255);
-  return { width, height, data };
-}
+import { blankImage, luminance } from "./raster-utils.js";
 
 function shiftImage(source: RasterImage, dx: number, dy: number): RasterImage {
   if (dx === 0 && dy === 0) return source;

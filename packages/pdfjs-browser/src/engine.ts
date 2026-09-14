@@ -1,11 +1,21 @@
 import {
+  ADDED_PAGE_THRESHOLD,
+  CLASSIFY_REGION_LIMIT,
+  REGION_MIN_PIXELS,
+  STANDARD_RENDER_MAX_DIMENSION,
+  STANDARD_RENDER_MAX_PIXELS,
+  STANDARD_RENDER_SCALE,
   alignPages,
+  blankImage,
   classifyPage,
+  comparisonThreshold,
+  geometryForPage,
   limitRegions,
   fingerprintPage,
   pageSimilarity,
   diffSemanticPages,
   measureAsync,
+  regionMergeGaps,
   throwIfAborted,
   type ComparisonPage,
   type AlignedPagePair,
@@ -17,7 +27,6 @@ import {
   type DiffMetricSink,
   type DiffOptions,
   type PageText,
-  type RasterImage,
   type RgbColor,
 } from "@pdfdiff/core";
 import { extractDocumentText, extractPageText } from "./text.js";
@@ -27,19 +36,8 @@ import { loadPdfPair } from "./pdf.js";
 import { renderPage, renderPagePair } from "./render.js";
 import type { LoadedPdf, PdfSource, RenderedPage } from "./types.js";
 
-const PREVIEW_SCALE = 2;
-const MAX_PIXELS = 3_000_000;
-const MAX_DIMENSION = 2800;
-const REGION_MIN_PIXELS = 8;
 /** How many regions the viewer shows. */
 const MAX_REGIONS = 80;
-/**
- * Classification runs over far more regions than are displayed, so a page's
- * class counts and its "is anything noticeable" verdict describe the whole
- * page rather than whichever regions happened to be largest.
- */
-const CLASSIFY_REGION_LIMIT = 1200;
-const ADDED_PAGE_THRESHOLD = 0.08;
 
 export type RenderQuality = "standard" | "high";
 
@@ -56,21 +54,13 @@ interface RenderBudget {
  * memory bounded, raise it if reviewers ask to zoom further.
  */
 const RENDER_BUDGETS: Record<RenderQuality, RenderBudget> = {
-  standard: { scale: PREVIEW_SCALE, maxPixels: MAX_PIXELS, maxDimension: MAX_DIMENSION },
+  standard: {
+    scale: STANDARD_RENDER_SCALE,
+    maxPixels: STANDARD_RENDER_MAX_PIXELS,
+    maxDimension: STANDARD_RENDER_MAX_DIMENSION,
+  },
   high: { scale: 3, maxPixels: 6_750_000, maxDimension: 4200 },
 };
-
-/**
- * Changed pixels arrive one glyph at a time; these gaps rejoin a word or line
- * without pulling in the line below, and scale with the rendered page so the
- * behaviour holds for both letter pages and large-format drawings.
- */
-function regionMergeGaps(pageHeight: number): { mergeGapX: number; mergeGapY: number } {
-  return {
-    mergeGapX: Math.max(6, Math.round(pageHeight * 0.009)),
-    mergeGapY: Math.max(2, Math.round(pageHeight * 0.0025)),
-  };
-}
 
 const DEFAULT_UNCHANGED_OPACITY = 0.4;
 
@@ -89,10 +79,6 @@ function overlayStyle(options: DiffOptions): {
   };
 }
 
-function comparisonThreshold(sensitivity: number): number {
-  return Math.max(0.025, 0.18 - sensitivity * 0.00145);
-}
-
 function sourceByteLength(source: PdfSource): number {
   if (typeof File !== "undefined" && source instanceof File) return source.size;
   if (source instanceof ArrayBuffer) return source.byteLength;
@@ -104,24 +90,8 @@ function yieldToBrowser(signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, 0));
 }
 
-function blankImage(width: number, height: number): RasterImage {
-  const data = new Uint8ClampedArray(width * height * 4);
-  data.fill(255);
-  return { width, height, data };
-}
-
 function emptyPageText(pageNumber: number, page: RenderedPage): PageText {
   return { pageNumber, width: page.widthPoints, height: page.heightPoints, items: [], text: "", hasText: false };
-}
-
-function geometryForPage(page: RenderedPage, width: number, height: number, shiftX = 0, shiftY = 0) {
-  return {
-    widthPoints: page.widthPoints,
-    heightPoints: page.heightPoints,
-    scale: page.scale,
-    offsetX: (width - page.widthPoints * page.scale) / 2 + shiftX,
-    offsetY: (height - page.heightPoints * page.scale) / 2 + shiftY,
-  };
 }
 
 function pageMetricSink(sink: DiffMetricSink | undefined, pageNumber: number): DiffMetricSink | undefined {
@@ -263,9 +233,9 @@ interface MissingPageRequest {
 async function compareMissingPage(request: MissingPageRequest): Promise<ComparisonPage> {
   const { document, pageNumber, hasEarlier, signal, metrics } = request;
   const rendered = await renderPage(document, pageNumber, {
-    scale: PREVIEW_SCALE,
-    maxPixels: MAX_PIXELS,
-    maxDimension: MAX_DIMENSION,
+    scale: STANDARD_RENDER_SCALE,
+    maxPixels: STANDARD_RENDER_MAX_PIXELS,
+    maxDimension: STANDARD_RENDER_MAX_DIMENSION,
     signal,
     metrics,
   });

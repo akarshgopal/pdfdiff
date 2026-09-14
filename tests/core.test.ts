@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { diffImages, diffSemanticText, type DiffMetric } from "@pdfdiff/core";
+import {
+  DEFAULT_SENSITIVITY,
+  boundedRenderSize,
+  comparisonThreshold,
+  diffImages,
+  diffSemanticText,
+  type DiffMetric,
+} from "@pdfdiff/core";
 
 function raster(fill: number): { width: number; height: number; data: Uint8ClampedArray } {
   const data = new Uint8ClampedArray(16);
@@ -8,6 +15,20 @@ function raster(fill: number): { width: number; height: number; data: Uint8Clamp
   for (let offset = 3; offset < data.length; offset += 4) data[offset] = 255;
   return { width: 2, height: 2, data };
 }
+
+test("the default sensitivity maps to the same pixel threshold in every adapter", () => {
+  assert.equal(comparisonThreshold(DEFAULT_SENSITIVITY), 0.18 - 28 * 0.00145);
+});
+
+test("boundedRenderSize keeps scale, pixels, and longest edge in budget", () => {
+  const letter = boundedRenderSize(612, 792, 2, 3_000_000, 2800);
+  assert.equal(letter.scale, 2);
+  assert.equal(letter.width, 1224);
+  assert.equal(letter.height, 1584);
+  const drawing = boundedRenderSize(2000, 2000, 2, 3_000_000, 2800);
+  assert.ok(drawing.scale < 2);
+  assert.ok(Math.max(drawing.width, drawing.height) <= 2800);
+});
 
 test("core raster comparison works without browser globals", () => {
   const earlier = raster(255);
