@@ -22,11 +22,20 @@ pnpm dev
 pnpm build
 ```
 
-Headless CLI (also `npx pdfdiff` once published):
+Headless CLI, from a clone (packages are not on npm yet):
 
 ```bash
-pnpm pdfdiff earlier.pdf newer.pdf --report json --fail-on-change
+pnpm install
+pnpm run build:packages
+pnpm exec pdfdiff earlier.pdf newer.pdf --report json --fail-on-change
 ```
+
+Prefer `pnpm exec pdfdiff` over `pnpm pdfdiff` in CI: a non-zero CLI exit
+otherwise becomes a pnpm ELIFECYCLE error. `pnpm pdfdiff` still works from
+this repo and builds the CLI (and its workspace deps) only when
+`packages/pdfdiff/dist/cli.js` is missing. Once published to npm,
+`npx pdfdiff` will work. CLI packages ship as 0.1.0; the repo tag `v1.0.0`
+is the app/site release, not the npm CLI version.
 
 ## Package architecture
 
@@ -41,7 +50,8 @@ logic can be reused independently of the browser app:
   PDF files, then orchestrates the core algorithms.
 - `@pdfdiff/viewer-react` — a reusable React viewer for a completed comparison.
   It owns navigation, view modes, inspection controls, and keyboard shortcuts.
-- `pdfdiff` — headless comparison for Node, plus the `pdfdiff` CLI (`npx pdfdiff`).
+- `pdfdiff` — headless comparison for Node, plus the `pdfdiff` CLI. Not on npm
+  yet; see the from-clone path above. Once published: `npx pdfdiff`.
 - `app/` — the product shell: upload flow, privacy messaging, loading state,
   default engine wiring, analytics callbacks, and the in-app help section.
 - `main.tsx` and `index.html` — the static Vite application entry and metadata.
@@ -88,7 +98,11 @@ pnpm build:packages
 ```
 
 The package manifests contain `main`, `types`, `exports`, `files`, and
-workspace dependency boundaries for a future publish step. The browser adapter
+workspace dependency boundaries for a future publish step. The packages that
+will publish are `@pdfdiff/core`, `@pdfdiff/pdfjs-text`, and `pdfdiff`, all at
+`0.1.0`. `workspace:*` is rewritten by `pnpm publish` from the monorepo;
+`pnpm pack` alone does not produce a consumer-installable tarball. Publish
+order: core → pdfjs-text → pdfdiff, with `--access public`. The browser adapter
 expects its host bundler to provide the PDF.js worker URL:
 
 ```ts
