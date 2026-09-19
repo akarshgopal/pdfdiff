@@ -26,5 +26,5 @@ pnpm-debug.log*
 *.pem
 
 # media
-*.mp3.grok-prompts/
+*.mp3
 .grok-prompts/
