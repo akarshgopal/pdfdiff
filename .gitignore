@@ -13,6 +13,7 @@
 /work/
 /public/pdfjs/
 /public/samples/
+/public/llms.txt
 
 # logs
 npm-debug.log*
@@ -27,4 +28,6 @@ pnpm-debug.log*
 
 # media
 *.mp3
+/launch-video.*
+/cli-video.*
 .grok-prompts/

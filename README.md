@@ -28,6 +28,9 @@ Headless CLI:
 npx @pdfdiff/cli earlier.pdf newer.pdf --report json --fail-on-change
 ```
 
+![An agent running @pdfdiff/cli: an overlay PNG of a changed drawing, a JSON report,
+and a colour-coded text diff](docs/cli-launch.gif)
+
 CLI packages ship as 0.1.0; the repo tag `v1.0.0` is the app/site release, not
 the npm CLI version.
 
@@ -139,6 +142,7 @@ and the raster diff reports the difference as a real change.
 - `pnpm run test:dist`: build the site and check the shipped `dist/` output
 - `pnpm run test:viewer`: Playwright against a running app (`PDFDIFF_URL`, default `http://localhost:5173/`)
 - `node tools/launch-video.mjs`: record the landing demo (needs `pnpm dev` and ffmpeg)
+- `node tools/cli-video.mjs`: record the CLI demo (needs ffmpeg; runs the real CLI for every frame)
 - `pnpm lint`: run ESLint
 - `pnpm bench:core`: run deterministic core performance and quality scenarios
 - `pnpm bench:browser`: run the app through Playwright and Chromium

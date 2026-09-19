@@ -4,15 +4,16 @@ Compare two PDF files from the command line or Node. Raster overlay plus extract
 
 ## CLI
 
-Not on npm yet. From a clone: `pnpm install && pnpm run build:packages`, then
-`pnpm exec pdfdiff`. Once published: `npx @pdfdiff/cli`. Packages ship as 0.1.0;
-repo tag v1.0.0 is the app/site release.
+`npx @pdfdiff/cli`. Published packages: `@pdfdiff/cli`, `@pdfdiff/core`,
+`@pdfdiff/pdfjs-text`, all at 0.1.0; repo tag v1.0.0 is the app/site release.
+From a clone instead: `pnpm install && pnpm run build:packages`, then
+`pnpm exec pdfdiff`.
 
 ```
-pnpm exec pdfdiff <earlier.pdf> <newer.pdf>
-pnpm exec pdfdiff earlier.pdf newer.pdf --report json --fail-on-change
-pnpm exec pdfdiff earlier.pdf newer.pdf --images ./diff-out
-pnpm exec pdfdiff earlier.pdf newer.pdf --text-only --report markdown
+npx @pdfdiff/cli <earlier.pdf> <newer.pdf>
+npx @pdfdiff/cli earlier.pdf newer.pdf --report json --fail-on-change
+npx @pdfdiff/cli earlier.pdf newer.pdf --images ./diff-out
+npx @pdfdiff/cli earlier.pdf newer.pdf --text-only --report markdown
 ```
 
 `--report` is `text` (default), `json`, `csv`, or `markdown`. `--images <dir>` writes overlay PNGs named `a{earlier}-b{newer}.png` for changed, added, and removed pages. `--text-only` skips pixel comparison. `--fail-on-change` exits 1 when anything changed. `--fail-on-unreadable` exits 1 when fonts have no Unicode map. `--quiet` suppresses progress and warnings; the report still prints.

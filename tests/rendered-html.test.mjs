@@ -33,6 +33,8 @@ test("builds a static private PDF comparison experience", async () => {
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
   assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/sitemap.xml", import.meta.url)), true);
+  // Staged from the CLI package, not committed, and the sitemap advertises it.
+  assert.equal(existsSync(new URL("../dist/llms.txt", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
 

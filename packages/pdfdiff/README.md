@@ -7,6 +7,9 @@ the [browser app](https://pdfdiff.app) runs, without a browser.
 Requires Node `>=22.13.0`. CLI packages ship as **0.1.0**. The repo tag
 `v1.0.0` is the app/site release, not the npm CLI version.
 
+![An agent running @pdfdiff/cli: an overlay PNG of a changed drawing, a JSON report,
+and a colour-coded text diff](https://raw.githubusercontent.com/akarshgopal/pdfdiff/main/docs/cli-launch.gif)
+
 ## Install
 
 ```bash

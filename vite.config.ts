@@ -35,6 +35,11 @@ function stageSamplePdfs(): void {
   }
 }
 
+/** Agents probe `/llms.txt` at the site root; serve the CLI package's copy, not a second one. */
+function stageLlmsTxt(): void {
+  cpSync("packages/pdfdiff/llms.txt", "public/llms.txt");
+}
+
 function canonicalOrigin(value: string | undefined): string | null {
   if (!value) return null;
   try {
@@ -72,6 +77,7 @@ function absoluteMetadata(origin: string | null): Plugin {
 export default defineConfig(({ mode }) => {
   stagePdfJsAssets();
   stageSamplePdfs();
+  stageLlmsTxt();
   const env = loadEnv(mode, process.cwd(), "");
   return {
     plugins: [tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],

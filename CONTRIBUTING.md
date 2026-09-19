@@ -30,7 +30,7 @@ Use `pnpm` only. Prettier owns formatting (120 columns).
 - `pnpm accuracy:check` — fixture text-accuracy corpus
 - `pnpm typecheck` / `pnpm lint` / `pnpm format:check`
 
-CI runs those. `pnpm test:viewer` and `node tools/launch-video.mjs` are local
+CI runs those. `pnpm test:viewer` and `node tools/launch-video.mjs` / `node tools/cli-video.mjs` are local
 Playwright helpers; they need a running app and are not part of CI.
 
 ## Pull requests
