@@ -1,14 +1,7 @@
-import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { RasterImage } from "./types.js";
 import type { DiffMetricSink } from "./instrumentation.js";
-import { luminance } from "./raster-utils.js";
-
-function blankImage(width: number, height: number): RasterImage {
-  const data = new Uint8ClampedArray(width * height * 4);
-  data.fill(255);
-  return { width, height, data };
-}
+import { blankImage, luminance } from "./raster-utils.js";
 
 function shiftImage(source: RasterImage, dx: number, dy: number): RasterImage {
   if (dx === 0 && dy === 0) return source;
@@ -76,7 +69,7 @@ function alignByTranslationUnmeasured(
   const maxShift = Math.max(4, Math.min(18, Math.round(Math.max(earlier.width, earlier.height) / 180)));
   for (let dy = -maxShift; dy <= maxShift; dy += 2) {
     for (let dx = -maxShift; dx <= maxShift; dx += 2) {
-      throwIfAborted(signal);
+      signal?.throwIfAborted();
       const score = translationScore(earlier, newer, dx, dy);
       if (score < bestScore) {
         bestScore = score;
@@ -87,7 +80,7 @@ function alignByTranslationUnmeasured(
   }
   for (let dy = bestY - 1; dy <= bestY + 1; dy += 1) {
     for (let dx = bestX - 1; dx <= bestX + 1; dx += 1) {
-      throwIfAborted(signal);
+      signal?.throwIfAborted();
       const score = translationScore(earlier, newer, dx, dy);
       if (score < bestScore) {
         bestScore = score;

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { diffImages, diffSemanticText, alignByTranslation } from "@pdfdiff/core";
-import { integerOption, metricSummary, now, percentile } from "./benchmark-utils.mjs";
+import { integerOption, metricSummary, percentile } from "./benchmark-utils.mjs";
 
 const DEFAULT_RUNS = 5;
 const DEFAULT_WARMUPS = 1;
@@ -131,11 +131,11 @@ async function runScenario(entry, runs, warmups) {
   const results = [];
   for (let index = 0; index < runs; index += 1) {
     metrics = [];
-    const startedAt = now();
+    const startedAt = performance.now();
     const quality = entry.operation(sink);
     results.push({
       index: index + 1,
-      durationMs: Math.max(0, now() - startedAt),
+      durationMs: Math.max(0, performance.now() - startedAt),
       quality,
       metrics,
     });

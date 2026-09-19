@@ -17,8 +17,9 @@ pnpm format:check
 
 Keep comparison algorithms in `@pdfdiff/core`. PDF.js loading and rendering
 stay in `@pdfdiff/pdfjs-browser`. Text extraction that Node also needs lives
-in `@pdfdiff/pdfjs-text`. The React workspace is `@pdfdiff/viewer-react`.
-Product chrome (upload, samples, legal pages) stays under `app/`.
+in `@pdfdiff/pdfjs-text`. The React workspace is `@pdfdiff/viewer-react`. The
+Node CLI is `pdfdiff`. Product chrome (upload, samples, legal pages) stays
+under `app/`.
 
 Use `pnpm` only. Prettier owns formatting (120 columns).
 

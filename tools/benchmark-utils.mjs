@@ -3,10 +3,6 @@ export function integerOption(value, fallback, minimum = 1) {
   return Number.isFinite(parsed) && parsed >= minimum ? Math.floor(parsed) : fallback;
 }
 
-export function now() {
-  return globalThis.performance?.now() ?? Date.now();
-}
-
 export function percentile(values, amount) {
   if (!values.length) return 0;
   const sorted = [...values].sort((a, b) => a - b);

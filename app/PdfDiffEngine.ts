@@ -141,9 +141,9 @@ type RawPagePairResolver = (request: {
 
 async function toViewerComparison(
   result: ComparisonResult,
-  resolveRawPagePair?: RawPagePairResolver,
-  convertedPages = new Map<number, DiffPage>(),
-  urls = new Set<string>(),
+  resolveRawPagePair: RawPagePairResolver,
+  convertedPages: Map<number, DiffPage>,
+  urls: Set<string>,
 ): Promise<DiffComparison> {
   const pages = await Promise.all(result.pages.map((page) => convertedPages.get(page.index) ?? toViewerPage(page)));
   const pairCache = new Map<string, DiffPage>();
@@ -160,22 +160,20 @@ async function toViewerComparison(
     newerName: result.newerName ?? "Newer PDF",
     pages,
     elapsedMs: result.elapsedMs,
-    comparePagePair: resolveRawPagePair
-      ? async (request) => {
-          if (request.signal.aborted) throw new DOMException("The page comparison was aborted.", "AbortError");
-          const key = `${request.earlierPageIndex}:${request.newerPageIndex}:${request.quality ?? "standard"}:${request.withLayers !== false}`;
-          const cached = pairCache.get(key);
-          if (cached) return cached;
-          const page = await toViewerPage(await resolveRawPagePair(request));
-          if (request.signal.aborted) {
-            for (const url of pageUrls(page)) URL.revokeObjectURL(url);
-            throw new DOMException("The page comparison was aborted.", "AbortError");
-          }
-          trackPageUrls(page);
-          pairCache.set(key, page);
-          return page;
-        }
-      : undefined,
+    comparePagePair: async (request) => {
+      request.signal.throwIfAborted();
+      const key = `${request.earlierPageIndex}:${request.newerPageIndex}:${request.quality ?? "standard"}:${request.withLayers !== false}`;
+      const cached = pairCache.get(key);
+      if (cached) return cached;
+      const page = await toViewerPage(await resolveRawPagePair(request));
+      if (request.signal.aborted) {
+        for (const url of pageUrls(page)) URL.revokeObjectURL(url);
+        throw new DOMException("The page comparison was aborted.", "AbortError");
+      }
+      trackPageUrls(page);
+      pairCache.set(key, page);
+      return page;
+    },
     dispose: () => {
       if (disposed) return;
       disposed = true;
@@ -256,14 +254,8 @@ export const browserPdfDiffEngine = {
       );
       return {
         ...comparison,
-        earlierPageCount: result.pages.reduce(
-          (count, page) => (page.earlierPageNumber !== undefined ? count + 1 : count),
-          0,
-        ),
-        newerPageCount: result.pages.reduce(
-          (count, page) => (page.newerPageNumber !== undefined ? count + 1 : count),
-          0,
-        ),
+        earlierPageCount: result.pages.filter((page) => page.earlierPageNumber !== undefined).length,
+        newerPageCount: result.pages.filter((page) => page.newerPageNumber !== undefined).length,
       };
     } catch (error) {
       urls.forEach((url) => URL.revokeObjectURL(url));

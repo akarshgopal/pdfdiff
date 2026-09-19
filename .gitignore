@@ -6,6 +6,7 @@
 # build
 /dist/
 **/dist/
+*.tgz
 *.tsbuildinfo
 /.wrangler/
 /outputs/

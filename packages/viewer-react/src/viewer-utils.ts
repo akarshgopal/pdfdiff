@@ -92,13 +92,13 @@ export function pagePairDescription(page: DiffPage, index: number, status: NonNu
   const earlier = page.earlierPageNumber;
   const newer = page.newerPageNumber;
   if (page.alignment === "moved" && earlier !== undefined && newer !== undefined) {
-    return `Page moved from A ${earlier} to B ${newer}, ${statusLabel(status)}`;
+    return `Page moved from A ${earlier} to B ${newer}, ${statusLabels[status]}`;
   }
   if (earlier !== undefined && newer !== undefined)
-    return `Compare A page ${earlier} with B page ${newer}, ${statusLabel(status)}`;
+    return `Compare A page ${earlier} with B page ${newer}, ${statusLabels[status]}`;
   if (earlier !== undefined) return `A page ${earlier} was removed`;
   if (newer !== undefined) return `B page ${newer} was added`;
-  return `Comparison row ${index + 1}, ${statusLabel(status)}`;
+  return `Comparison row ${index + 1}, ${statusLabels[status]}`;
 }
 
 export function pageStatus(page: DiffPage): NonNullable<DiffPage["status"]> {
@@ -167,10 +167,6 @@ export function statusText(
 ): string {
   const count = status === "changed" ? pageChanges(page, mode, textFilter).length : 0;
   return count ? changeCountLabel(count, mode) : statusLabels[status];
-}
-
-function statusLabel(status: NonNullable<DiffPage["status"]>): string {
-  return statusLabels[status];
 }
 
 /** The absent side of an added or removed page; undefined means the page is still rendering. */

@@ -1,5 +1,5 @@
 import { type ChangeEvent, type DragEvent, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import type { DiffMetricSink, DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
+import { DEFAULT_SENSITIVITY, type DiffMetricSink, type DiffOptions as CoreDiffOptions } from "@pdfdiff/core";
 import type { DiffComparison } from "@pdfdiff/viewer-react";
 
 /**
@@ -70,7 +70,7 @@ export function PdfDiffApp({ onMetric }: PdfDiffAppProps) {
   const [pageProgress, setPageProgress] = useState<{ completed: number; total: number } | null>(null);
   const [activeDrop, setActiveDrop] = useState<"earlier" | "newer" | null>(null);
   const [options, setOptions] = useState<DiffOptions>(() => ({
-    sensitivity: 28,
+    sensitivity: DEFAULT_SENSITIVITY,
     alignment: "translation",
     matchPages: true,
     overlay: readOverlaySettings(),

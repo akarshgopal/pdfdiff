@@ -1,5 +1,5 @@
 import type { AlignedPagePair, PageAlignmentKind } from "./document-alignment.js";
-import type { ChangeClass, ChangeClassCounts } from "./classification.js";
+import type { ChangeClassCounts } from "./classification.js";
 import type { SemanticChangeKind } from "./semantic.js";
 import type { ComparisonPage, PageStatus } from "./types.js";
 
@@ -206,15 +206,13 @@ function changeLine(change: ReportTextChange): string {
   return `  ~ ${change.before} → ${change.after}`;
 }
 
-const CLASS_ORDER: readonly ChangeClass[] = ["content", "graphic", "reflow", "formatting"];
-
 /** Human-readable summary for a terminal or a redline appendix. */
 export function reportToText(report: ComparisonReport): string {
   const { totals } = report;
   const lines = [
     `${report.earlierName} → ${report.newerName}`,
     `${totals.changedPages} changed · ${totals.addedPages} added · ${totals.removedPages} removed · ${totals.movedPages} moved of ${totals.pages} pages`,
-    `${totals.textChanges} text changes · ${CLASS_ORDER.map((name) => `${totals.classes[name]} ${name}`).join(" · ")}`,
+    `${totals.textChanges} text changes`,
   ];
   if (totals.noisePages) lines.push(`${totals.noisePages} pages may include reflow or formatting`);
   if (totals.pagesWithUnreadableText)
@@ -229,7 +227,50 @@ export function reportToText(report: ComparisonReport): string {
     if (page.status === "same" && page.alignment !== "moved") continue;
     lines.push(pageLabel(page));
     for (const change of page.textChanges) lines.push(changeLine(change));
-    if (page.textChanges.length === 0) lines.push("  (visual change only)");
+    if (page.textChanges.length === 0) lines.push(`  (${visualOnlyLabel(page)})`);
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+function visualOnlyLabel(page: ReportPage): string {
+  if (page.changedPercent === undefined) return "visual change only";
+  return `visual change only, ${page.changedPercent.toFixed(2)}% pixels`;
+}
+
+function markdownChangeLine(change: ReportTextChange): string {
+  if (change.kind === "added") return `- added: ${change.after}`;
+  if (change.kind === "removed") return `- removed: ${change.before}`;
+  return `- changed: ${change.before} → ${change.after}`;
+}
+
+/** Markdown summary for a pull request comment or an agent reply. */
+export function reportToMarkdown(report: ComparisonReport): string {
+  const { totals } = report;
+  const lines = [
+    `# ${report.earlierName} → ${report.newerName}`,
+    "",
+    `${totals.changedPages} changed · ${totals.addedPages} added · ${totals.removedPages} removed · ${totals.movedPages} moved of ${totals.pages} pages`,
+    "",
+    `${totals.textChanges} text changes`,
+  ];
+  if (totals.noisePages) lines.push("", `${totals.noisePages} pages may include reflow or formatting`);
+  if (totals.pagesWithUnreadableText) {
+    lines.push(
+      "",
+      `**Warning:** ${totals.pagesWithUnreadableText} pages embed fonts with no Unicode mapping. Their text extracts as glyph codes, so no text change on those pages can be detected.`,
+    );
+  } else if (totals.pagesWithoutText) {
+    lines.push("", `${totals.pagesWithoutText} pages have no selectable text; those compared visually only`);
+  }
+  lines.push("");
+
+  for (const page of report.pages) {
+    if (page.status === "same" && page.alignment !== "moved") continue;
+    lines.push(`## ${pageLabel(page)}`);
+    if (page.changedPercent !== undefined) lines.push(`- ${page.changedPercent.toFixed(2)}% pixels changed`);
+    for (const change of page.textChanges) lines.push(markdownChangeLine(change));
+    if (page.textChanges.length === 0) lines.push(`- ${visualOnlyLabel(page)}`);
+    lines.push("");
   }
   return `${lines.join("\n")}\n`;
 }

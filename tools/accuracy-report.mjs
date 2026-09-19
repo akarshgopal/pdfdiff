@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { comparePdfText } from "../packages/node/dist/index.js";
+import { comparePdfText } from "../packages/pdfdiff/dist/index.js";
 
 const input = process.argv[2]?.startsWith("--") ? undefined : process.argv[2];
 const corpusPath = resolve(input ?? "benchmarks/accuracy/corpus.json");

@@ -1,5 +1,5 @@
 {
-  "name": "pdfdiff",
+  "name": "@pdfdiff/app",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -8,7 +8,7 @@
   "scripts": {
     "predev": "pnpm run build:packages",
     "dev": "vite",
-    "build:packages": "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-text build && pnpm --filter @pdfdiff/pdfjs-browser build && pnpm --filter @pdfdiff/viewer-react build && pnpm --filter @pdfdiff/node build",
+    "build:packages": "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-text build && pnpm --filter @pdfdiff/pdfjs-browser build && pnpm --filter @pdfdiff/viewer-react build && pnpm --filter pdfdiff build",
     "build": "pnpm run build:packages && pnpm run typecheck && vite build",
     "bench:core": "pnpm run build:packages && node tools/benchmark-core.mjs",
     "bench:browser": "node tools/benchmark-browser.mjs",
@@ -20,6 +20,8 @@
     "start": "vite preview",
     "deploy": "pnpm run build && WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy --config wrangler.jsonc",
     "deploy:dry-run": "pnpm run build && WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy --config wrangler.jsonc --dry-run",
+    "prepdfdiff": "node tools/ensure-cli-built.mjs",
+    "pdfdiff": "node packages/pdfdiff/dist/cli.js",
     "test": "pnpm run build:packages && node --experimental-strip-types --test tests/*.test.ts",
     "test:dist": "pnpm run build && node --test tests/rendered-html.test.mjs",
     "test:viewer": "node tools/verify-viewer.mjs",
@@ -38,25 +40,26 @@
     "react-dom": "19.2.6"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.4",
+    "@eslint/js": "9.39.5",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.2",
-    "eslint": "9.39.4",
+    "@vitejs/plugin-react": "6.1.1",
+    "eslint": "9.39.5",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "16.4.0",
+    "pdfdiff": "workspace:*",
     "playwright": "1.62.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.59.3",
-    "vite": "8.0.13",
-    "wrangler": "4.92.0"
+    "typescript-eslint": "8.70.0",
+    "vite": "8.3.0",
+    "wrangler": "4.135.0"
   },
   "type": "module",
   "packageManager": "pnpm@11.24.0"

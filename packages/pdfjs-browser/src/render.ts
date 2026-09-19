@@ -1,17 +1,12 @@
 import { AnnotationMode, type PDFPageProxy } from "pdfjs-dist";
-import { measureAsync, throwIfAborted } from "@pdfdiff/core";
-import type { LoadedPdf, RenderOptions, RenderedPage, RenderedPagePair } from "./types.js";
+import { boundedRenderSize, measureAsync, pageCenterOffset } from "@pdfdiff/core";
+import type { RenderedPage } from "@pdfdiff/core";
+import type { LoadedPdf, RenderOptions, RenderedPagePair } from "./types.js";
 
 const BACKGROUND = "rgb(255, 255, 255)";
 const DEFAULT_SCALE = 1.5;
 const DEFAULT_MAX_PIXELS = 8_000_000;
 const DEFAULT_MAX_DIMENSION = 4096;
-
-interface RenderBounds {
-  width: number;
-  height: number;
-  scale: number;
-}
 
 function positiveOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
@@ -37,16 +32,14 @@ function createContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   return context;
 }
 
-function boundedRenderSize(widthPoints: number, heightPoints: number, options: RenderOptions): RenderBounds {
-  const requestedScale = positiveOr(options.scale, DEFAULT_SCALE);
-  const pixelScale = Math.sqrt(positiveOr(options.maxPixels, DEFAULT_MAX_PIXELS) / (widthPoints * heightPoints));
-  const dimensionScale = positiveOr(options.maxDimension, DEFAULT_MAX_DIMENSION) / Math.max(widthPoints, heightPoints);
-  const scale = Math.max(0.01, Math.min(requestedScale, pixelScale, dimensionScale));
-  return {
-    width: Math.max(1, Math.ceil(widthPoints * scale)),
-    height: Math.max(1, Math.ceil(heightPoints * scale)),
-    scale,
-  };
+function sizeFor(widthPoints: number, heightPoints: number, options: RenderOptions) {
+  return boundedRenderSize(
+    widthPoints,
+    heightPoints,
+    positiveOr(options.scale, DEFAULT_SCALE),
+    positiveOr(options.maxPixels, DEFAULT_MAX_PIXELS),
+    positiveOr(options.maxDimension, DEFAULT_MAX_DIMENSION),
+  );
 }
 
 function beginPageRender(
@@ -91,7 +84,7 @@ async function renderIntoCanvas(
   options: RenderOptions,
   side?: "earlier" | "newer",
 ): Promise<RenderedPage> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const rotation = page.rotate;
   const { context, renderTask } = beginPageRender(page, canvas, scale, offsetX, offsetY);
   const detachAbort = watchRenderAbort(renderTask, options.signal);
@@ -101,7 +94,7 @@ async function renderIntoCanvas(
       "pdf.render.canvas",
       async () => {
         await renderTask.promise;
-        throwIfAborted(options.signal);
+        options.signal?.throwIfAborted();
       },
       {
         pageNumber: page.pageNumber,
@@ -112,7 +105,7 @@ async function renderIntoCanvas(
       },
     );
   } catch (error) {
-    throwIfAborted(options.signal);
+    options.signal?.throwIfAborted();
     throw error;
   } finally {
     detachAbort();
@@ -143,11 +136,11 @@ export async function renderPage(
   pageNumber: number,
   options: RenderOptions = {},
 ): Promise<RenderedPage> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const page = await pageFor(pdf, pageNumber);
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const baseViewport = page.getViewport({ scale: 1, rotation: page.rotate });
-  const { width, height, scale } = boundedRenderSize(baseViewport.width, baseViewport.height, options);
+  const { width, height, scale } = sizeFor(baseViewport.width, baseViewport.height, options);
   const canvas = createCanvas(width, height);
   return renderIntoCanvas(page, canvas, baseViewport.width, baseViewport.height, scale, 0, 0, options);
 }
@@ -160,23 +153,21 @@ export async function renderPagePair(
   newerPageNumber: number,
   options: RenderOptions = {},
 ): Promise<RenderedPagePair> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const [earlierPage, newerPage] = await Promise.all([
     pageFor(earlier, earlierPageNumber),
     pageFor(newer, newerPageNumber),
   ]);
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const earlierViewport = earlierPage.getViewport({ scale: 1, rotation: earlierPage.rotate });
   const newerViewport = newerPage.getViewport({ scale: 1, rotation: newerPage.rotate });
   const widthPoints = Math.max(earlierViewport.width, newerViewport.width);
   const heightPoints = Math.max(earlierViewport.height, newerViewport.height);
-  const { width, height, scale } = boundedRenderSize(widthPoints, heightPoints, options);
+  const { width, height, scale } = sizeFor(widthPoints, heightPoints, options);
   const earlierCanvas = createCanvas(width, height);
   const newerCanvas = createCanvas(width, height);
-  const earlierOffsetX = (width - earlierViewport.width * scale) / 2;
-  const earlierOffsetY = (height - earlierViewport.height * scale) / 2;
-  const newerOffsetX = (width - newerViewport.width * scale) / 2;
-  const newerOffsetY = (height - newerViewport.height * scale) / 2;
+  const earlierOffset = pageCenterOffset(width, height, earlierViewport.width, earlierViewport.height, scale);
+  const newerOffset = pageCenterOffset(width, height, newerViewport.width, newerViewport.height, scale);
   const [earlierRendered, newerRendered] = await Promise.all([
     renderIntoCanvas(
       earlierPage,
@@ -184,8 +175,8 @@ export async function renderPagePair(
       earlierViewport.width,
       earlierViewport.height,
       scale,
-      earlierOffsetX,
-      earlierOffsetY,
+      earlierOffset.offsetX,
+      earlierOffset.offsetY,
       options,
       "earlier",
     ),
@@ -195,8 +186,8 @@ export async function renderPagePair(
       newerViewport.width,
       newerViewport.height,
       scale,
-      newerOffsetX,
-      newerOffsetY,
+      newerOffset.offsetX,
+      newerOffset.offsetY,
       options,
       "newer",
     ),

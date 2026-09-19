@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdfdiff.app/report.schema.json",
+  "title": "PDF Diff comparison report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "earlierName", "newerName", "generatedAt", "totals", "pages"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "earlierName": { "type": "string" },
+    "newerName": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "totals": { "$ref": "#/$defs/totals" },
+    "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } }
+  },
+  "$defs": {
+    "classes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content", "reflow", "formatting", "graphic"],
+      "properties": {
+        "content": { "type": "integer", "minimum": 0 },
+        "reflow": { "type": "integer", "minimum": 0 },
+        "formatting": { "type": "integer", "minimum": 0 },
+        "graphic": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pages",
+        "changedPages",
+        "addedPages",
+        "removedPages",
+        "movedPages",
+        "noisePages",
+        "textChanges",
+        "classes",
+        "pagesWithoutText",
+        "pagesWithUnreadableText"
+      ],
+      "properties": {
+        "pages": { "type": "integer", "minimum": 0 },
+        "changedPages": { "type": "integer", "minimum": 0 },
+        "addedPages": { "type": "integer", "minimum": 0 },
+        "removedPages": { "type": "integer", "minimum": 0 },
+        "movedPages": { "type": "integer", "minimum": 0 },
+        "noisePages": { "type": "integer", "minimum": 0 },
+        "textChanges": { "type": "integer", "minimum": 0 },
+        "classes": { "$ref": "#/$defs/classes" },
+        "pagesWithoutText": { "type": "integer", "minimum": 0 },
+        "pagesWithUnreadableText": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "alignment", "status", "noticeable", "classes", "textChanges", "hasText", "textUnreadable"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "earlierPage": { "type": "integer", "minimum": 1 },
+        "newerPage": { "type": "integer", "minimum": 1 },
+        "alignment": { "enum": ["matched", "added", "removed", "moved"] },
+        "status": { "enum": ["same", "changed", "added", "removed", "processing", "error"] },
+        "similarity": { "type": "number" },
+        "changedPercent": { "type": "number", "minimum": 0 },
+        "noticeable": { "type": "boolean" },
+        "classes": { "$ref": "#/$defs/classes" },
+        "textChanges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "before", "after"],
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "enum": ["added", "removed", "changed"] },
+              "before": { "type": "string" },
+              "after": { "type": "string" }
+            }
+          }
+        },
+        "hasText": { "type": "boolean" },
+        "textUnreadable": { "type": "boolean" }
+      }
+    }
+  }
+}

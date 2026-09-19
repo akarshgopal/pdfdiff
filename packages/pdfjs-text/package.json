@@ -16,16 +16,23 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "development": "./src/index.ts",
       "import": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json"
+    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "@pdfdiff/core": "workspace:*"
   },
+  "keywords": [
+    "pdf",
+    "pdfjs",
+    "text-extraction",
+    "diff",
+    "compare"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/akarshgopal/pdfdiff.git",

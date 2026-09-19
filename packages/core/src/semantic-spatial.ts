@@ -1,4 +1,3 @@
-import { throwIfAborted } from "./errors.js";
 import { isDecodableText } from "./text-quality.js";
 import type { PageText, TextQuad } from "./types.js";
 import type {
@@ -346,7 +345,7 @@ function exactLineMatches(
   const matches: SpatialLineMatch[] = [];
   const afterByText = byIdentityText(afterLines);
   for (const before of beforeLines) {
-    throwIfAborted(signal);
+    signal?.throwIfAborted();
     const after = closestExactLine(before, afterByText.get(before.identity), matchedAfter, beforePage, afterPage);
     if (!after) continue;
     matchedBefore.add(before);

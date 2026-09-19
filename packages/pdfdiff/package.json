@@ -1,11 +1,13 @@
 {
-  "name": "@pdfdiff/node",
+  "name": "pdfdiff",
   "version": "0.1.0",
-  "description": "Headless PDF comparison for Node, plus the pdfdiff CLI.",
+  "description": "Compare two PDF files. Text changes, visual overlays, and a CI-friendly report.",
   "license": "MIT",
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "llms.txt",
+    "report.schema.json"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,24 +17,33 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "development": "./src/index.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./report.schema.json": "./report.schema.json"
   },
   "scripts": {
-    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json"
+    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.8",
     "@pdfdiff/core": "workspace:*",
     "@pdfdiff/pdfjs-text": "workspace:*",
     "pdfjs-dist": "^6.2.108"
   },
+  "keywords": [
+    "pdf",
+    "diff",
+    "compare",
+    "cli",
+    "visual-diff"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/akarshgopal/pdfdiff.git",
-    "directory": "packages/node"
+    "directory": "packages/pdfdiff"
   },
-  "homepage": "https://github.com/akarshgopal/pdfdiff",
+  "homepage": "https://pdfdiff.app",
   "bugs": {
     "url": "https://github.com/akarshgopal/pdfdiff/issues"
   },

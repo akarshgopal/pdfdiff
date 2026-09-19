@@ -1,4 +1,3 @@
-import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { ChangeRegion, RegionOptions } from "./types.js";
 
@@ -30,7 +29,7 @@ interface RegionSummary {
 }
 
 function checkAbortPeriodically(index: number, signal: RegionOptions["signal"]): void {
-  if ((index & 0x3fff) === 0) throwIfAborted(signal);
+  if ((index & 0x3fff) === 0) signal?.throwIfAborted();
 }
 
 function neighborIndex(x: number, y: number, dx: number, dy: number, width: number, height: number): number {

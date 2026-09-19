@@ -72,30 +72,3 @@ export async function measureAsync<T>(
     throw error;
   }
 }
-
-export interface DiffMetricsCollector {
-  readonly record: DiffMetricSink;
-  /** Alias of `record` for call sites that pass `{ metrics: collector.sink }`. */
-  readonly sink: DiffMetricSink;
-  snapshot(): readonly DiffMetric[];
-}
-
-export function createDiffMetricsCollector(): DiffMetricsCollector {
-  const metrics: DiffMetric[] = [];
-  const record: DiffMetricSink = (metric) => {
-    metrics.push(metric);
-  };
-  return {
-    record,
-    sink: record,
-    snapshot: () => metrics.slice(),
-  };
-}
-
-export function summarizeDiffMetrics(metrics: readonly DiffMetric[]): ReadonlyArray<{
-  name: string;
-  durationMs: number;
-  status: DiffMetricStatus;
-}> {
-  return metrics.map((metric) => ({ name: metric.name, durationMs: metric.durationMs, status: metric.status }));
-}

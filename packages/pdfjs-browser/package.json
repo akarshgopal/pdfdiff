@@ -1,6 +1,7 @@
 {
   "name": "@pdfdiff/pdfjs-browser",
   "version": "0.1.0",
+  "private": true,
   "description": "Browser PDF.js adapter for PDF Diff.",
   "license": "MIT",
   "type": "module",
@@ -10,19 +11,11 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "publishConfig": {
-    "access": "public"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "development": "./src/index.ts",
       "import": "./dist/index.js"
-    },
-    "./text": {
-      "types": "./dist/text.d.ts",
-      "development": "./src/text.ts",
-      "import": "./dist/text.js"
     },
     "./raster-diff-worker": {
       "types": "./dist/raster-diff-worker.d.ts",

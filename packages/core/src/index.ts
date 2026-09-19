@@ -1,4 +1,3 @@
-export * from "./errors.js";
 export * from "./instrumentation.js";
 export * from "./types.js";
 export { DEFAULT_OVERLAY, hexToRgb, rgbToHex } from "./overlay.js";
@@ -6,6 +5,8 @@ export * from "./alignment.js";
 export * from "./regions.js";
 export * from "./semantic.js";
 export * from "./visual-diff.js";
+export { blankImage } from "./raster-utils.js";
+export * from "./visual-policy.js";
 export * from "./document-alignment.js";
 export * from "./classification.js";
 export * from "./report.js";

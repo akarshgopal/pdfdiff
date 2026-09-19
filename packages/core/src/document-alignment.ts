@@ -1,4 +1,3 @@
-import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { DiffMetricSink } from "./instrumentation.js";
 
@@ -120,7 +119,7 @@ function buildScoreGrid(
     grid[0]![column] = { score: column * GAP_PENALTY, step: "left" };
 
   for (let row = 1; row <= earlier.length; row += 1) {
-    throwIfAborted(signal);
+    signal?.throwIfAborted();
     for (let column = 1; column <= newer.length; column += 1) {
       if (!withinBand(row, column, band, drift)) continue;
       const similarity = pageSimilarity(earlier[row - 1]!, newer[column - 1]!);

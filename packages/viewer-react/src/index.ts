@@ -7,8 +7,6 @@ export {
   canDownloadPageImage,
   pageImageFileName,
   reportForComparison,
-  serializeReport,
-  reportFileName,
   type ExportFormat,
   type ExportChoice,
 } from "./export.js";

@@ -1,7 +1,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { isAbsolute, resolve } from "node:path";
-import { integerOption, metricSummary, now, percentile } from "./benchmark-utils.mjs";
+import { integerOption, metricSummary, percentile } from "./benchmark-utils.mjs";
 
 const DEFAULT_RUNS = 3;
 const DEFAULT_WARMUPS = 1;
@@ -34,7 +34,7 @@ async function runOnce(page, url, earlierPath, newerPath) {
   await page.locator('input[aria-label^="Choose one or two PDFs for earlier"]').setInputFiles(earlierPath);
   await page.locator('input[aria-label^="Choose one or two PDFs for newer"]').setInputFiles(newerPath);
 
-  const startedAt = now();
+  const startedAt = performance.now();
   await page.getByRole("button", { name: "Compare", exact: true }).click();
   await page.locator('section[aria-label="PDF comparison workspace"]').waitFor({ state: "visible" });
   await page.locator('section[aria-label="PDF comparison workspace"] img').first().waitFor({ state: "visible" });
@@ -47,7 +47,7 @@ async function runOnce(page, url, earlierPath, newerPath) {
   }));
   const comparisonMetric = browserState.metrics.find((metric) => metric.name === "comparison.total");
   return {
-    durationMs: Math.max(0, now() - startedAt),
+    durationMs: Math.max(0, performance.now() - startedAt),
     quality: {
       workspaceReady: true,
       pageCount: browserState.pageCount,
