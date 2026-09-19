@@ -1,0 +1,50 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24 ships npm ≥11.5.1 required for trusted publishing (OIDC)
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+
+      - name: Ensure npm supports OIDC
+        run: npm install -g "npm@>=11.5.1" && npm -v
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check package versions match tag
+        run: node tools/check-release-versions.mjs
+
+      - run: pnpm build:packages
+      - run: pnpm test
+
+      - name: Publish to npm (OIDC)
+        run: |
+          set -euo pipefail
+          # No NPM_TOKEN — trusted publishing via id-token
+          pnpm --filter @pdfdiff/core publish --access public --no-git-checks
+          pnpm --filter @pdfdiff/pdfjs-text publish --access public --no-git-checks
+          pnpm --filter @pdfdiff/cli publish --access public --no-git-checks
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

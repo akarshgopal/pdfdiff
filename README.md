@@ -173,3 +173,27 @@ files again when repeating a comparison.
 ## Learn More
 
 - [Cloudflare Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/)
+
+## Publishing
+
+The published packages are `@pdfdiff/core`, `@pdfdiff/pdfjs-text`, and
+`@pdfdiff/cli`, all at matching semver. `workspace:*` is rewritten by
+`pnpm publish` from the monorepo.
+
+### Automated release (GitHub tag → npm + Release)
+
+1. On [npmjs.com](https://www.npmjs.com/) open each package → **Trusted Publisher** →
+   GitHub → repository `akarshgopal/pdfdiff`, workflow filename `publish.yml`
+   (not the full path), allow **npm publish**.
+2. On `main`, bump all three `package.json` versions to the same `X.Y.Z`.
+3. Tag and push:
+   ```bash
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+4. `.github/workflows/publish.yml` builds, tests, publishes via OIDC (no
+   `NPM_TOKEN`), then creates a GitHub Release.
+
+Publish order in CI: core → pdfjs-text → `@pdfdiff/cli`.
+`@pdfdiff/pdfjs-browser` and `@pdfdiff/viewer-react` stay private.
+
