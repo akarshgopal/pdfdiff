@@ -1,6 +1,7 @@
 import { AnnotationMode, type PDFPageProxy } from "pdfjs-dist";
-import { boundedRenderSize, measureAsync, pageCenterOffset, throwIfAborted } from "@pdfdiff/core";
-import type { LoadedPdf, RenderOptions, RenderedPage, RenderedPagePair } from "./types.js";
+import { boundedRenderSize, measureAsync, pageCenterOffset } from "@pdfdiff/core";
+import type { RenderedPage } from "@pdfdiff/core";
+import type { LoadedPdf, RenderOptions, RenderedPagePair } from "./types.js";
 
 const BACKGROUND = "rgb(255, 255, 255)";
 const DEFAULT_SCALE = 1.5;
@@ -83,7 +84,7 @@ async function renderIntoCanvas(
   options: RenderOptions,
   side?: "earlier" | "newer",
 ): Promise<RenderedPage> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const rotation = page.rotate;
   const { context, renderTask } = beginPageRender(page, canvas, scale, offsetX, offsetY);
   const detachAbort = watchRenderAbort(renderTask, options.signal);
@@ -93,7 +94,7 @@ async function renderIntoCanvas(
       "pdf.render.canvas",
       async () => {
         await renderTask.promise;
-        throwIfAborted(options.signal);
+        options.signal?.throwIfAborted();
       },
       {
         pageNumber: page.pageNumber,
@@ -104,7 +105,7 @@ async function renderIntoCanvas(
       },
     );
   } catch (error) {
-    throwIfAborted(options.signal);
+    options.signal?.throwIfAborted();
     throw error;
   } finally {
     detachAbort();
@@ -135,9 +136,9 @@ export async function renderPage(
   pageNumber: number,
   options: RenderOptions = {},
 ): Promise<RenderedPage> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const page = await pageFor(pdf, pageNumber);
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const baseViewport = page.getViewport({ scale: 1, rotation: page.rotate });
   const { width, height, scale } = sizeFor(baseViewport.width, baseViewport.height, options);
   const canvas = createCanvas(width, height);
@@ -152,12 +153,12 @@ export async function renderPagePair(
   newerPageNumber: number,
   options: RenderOptions = {},
 ): Promise<RenderedPagePair> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const [earlierPage, newerPage] = await Promise.all([
     pageFor(earlier, earlierPageNumber),
     pageFor(newer, newerPageNumber),
   ]);
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const earlierViewport = earlierPage.getViewport({ scale: 1, rotation: earlierPage.rotate });
   const newerViewport = newerPage.getViewport({ scale: 1, rotation: newerPage.rotate });
   const widthPoints = Math.max(earlierViewport.width, newerViewport.width);

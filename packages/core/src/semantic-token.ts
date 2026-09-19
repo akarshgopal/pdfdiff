@@ -1,4 +1,3 @@
-import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import type { DiffMetricSink } from "./instrumentation.js";
 import type {
@@ -79,7 +78,7 @@ function extendDiagonal(
     x += 1;
     y += 1;
     work.value += 1;
-    if ((work.value & 0x1fff) === 0) throwIfAborted(signal);
+    if ((work.value & 0x1fff) === 0) signal?.throwIfAborted();
     if (work.value > work.limit) return { x, y, exhausted: true };
   }
   return { x, y, exhausted: false };
@@ -96,7 +95,7 @@ function findDiffTrace(
   const trace: Array<Map<number, number>> = [];
 
   for (let distance = 0; distance <= max; distance += 1) {
-    throwIfAborted(signal);
+    signal?.throwIfAborted();
     trace.push(new Map(v));
     for (let k = -distance; k <= distance; k += 2) {
       work.value += 1;
@@ -156,7 +155,7 @@ function backtrackEdits(
   let x = before.length;
   let y = after.length;
   for (let distance = trace.length - 1; distance > 0; distance -= 1) {
-    throwIfAborted(signal);
+    signal?.throwIfAborted();
     const previousV = trace[distance]!;
     const k = x - y;
     const down = movesDown(k, distance, previousV);

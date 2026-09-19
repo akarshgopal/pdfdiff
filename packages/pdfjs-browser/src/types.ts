@@ -1,5 +1,5 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import type { DiffMetricSink, PageText, ProgressEvent, RenderedPage as CoreRenderedPage } from "@pdfdiff/core";
+import type { DiffMetricSink, PageText, RenderedPage } from "@pdfdiff/core";
 
 export type PdfSource = File | ArrayBuffer | Uint8Array;
 
@@ -32,14 +32,6 @@ export interface RenderOptions {
   signal?: AbortSignal;
   metrics?: DiffMetricSink;
 }
-
-export interface DocumentTextOptions {
-  signal?: AbortSignal;
-  onProgress?: (event: ProgressEvent) => void;
-  metrics?: DiffMetricSink;
-}
-
-export type RenderedPage = CoreRenderedPage;
 
 export interface RenderedPagePair {
   readonly earlier: RenderedPage;

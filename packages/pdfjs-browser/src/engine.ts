@@ -16,7 +16,6 @@ import {
   diffSemanticPages,
   measureAsync,
   regionMergeGaps,
-  throwIfAborted,
   type ComparisonPage,
   type AlignedPagePair,
   type ComparisonReadyEvent,
@@ -27,14 +26,15 @@ import {
   type DiffMetricSink,
   type DiffOptions,
   type PageText,
+  type RenderedPage,
   type RgbColor,
 } from "@pdfdiff/core";
-import { extractDocumentText, extractPageText } from "./text.js";
+import { extractDocumentText, extractPageText } from "@pdfdiff/pdfjs-text";
 import { createRasterDiffClient, type RasterDiffClient, type RasterDiffWorkerFactory } from "./raster-diff-client.js";
 import { rasterImage } from "./raster-diff-job.js";
 import { loadPdfPair } from "./pdf.js";
 import { renderPage, renderPagePair } from "./render.js";
-import type { LoadedPdf, PdfSource, RenderedPage } from "./types.js";
+import type { LoadedPdf, PdfSource } from "./types.js";
 
 /** How many regions the viewer shows. */
 const MAX_REGIONS = 80;
@@ -86,7 +86,7 @@ function sourceByteLength(source: PdfSource): number {
 }
 
 function yieldToBrowser(signal: AbortSignal): Promise<void> {
-  throwIfAborted(signal);
+  signal?.throwIfAborted();
   return new Promise((resolve) => globalThis.setTimeout(resolve, 0));
 }
 
@@ -437,7 +437,7 @@ async function comparePdfPair(
          */
         let inFlight: Promise<ComparisonPage> | null = totalPages > 0 ? startPage(0) : null;
         for (let index = 0; index < totalPages; index += 1) {
-          throwIfAborted(signal);
+          signal?.throwIfAborted();
           const current = inFlight!;
           inFlight = index + 1 < totalPages ? startPage(index + 1) : null;
           // A failure here leaves the lookahead unobserved, which would surface
@@ -502,7 +502,7 @@ async function comparePdfPagePair(
         () => loadPair(earlier, newer, signal, onMetric),
         sourceAttributes,
       );
-      throwIfAborted(signal);
+      signal?.throwIfAborted();
       return compareExistingPage({
         earlier: pair.earlier,
         newer: pair.newer,

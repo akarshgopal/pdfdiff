@@ -1,4 +1,4 @@
-import { throwIfAborted, type DiffMetricSink } from "@pdfdiff/core";
+import { type DiffMetricSink } from "@pdfdiff/core";
 import { runRasterDiffJob, type RasterDiffJob, type RasterDiffJobResult } from "./raster-diff-job.js";
 import type { RasterDiffRequest, RasterDiffResponse } from "./raster-diff-worker.js";
 
@@ -69,7 +69,7 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
 
   return {
     async run(job, signal, metrics) {
-      throwIfAborted(signal);
+      signal?.throwIfAborted();
       const active = ensureWorker();
       if (!active) return replay(metrics, runRasterDiffJob(job));
 
@@ -96,7 +96,7 @@ export function createRasterDiffClient(createWorker?: RasterDiffWorkerFactory): 
         proven = true;
         return replay(metrics, result);
       } catch (error) {
-        throwIfAborted(signal);
+        signal?.throwIfAborted();
         // Before the worker has proven itself the job still owns its buffers,
         // so the page can still be compared here rather than lost.
         if (!proven) return replay(metrics, runRasterDiffJob(job));

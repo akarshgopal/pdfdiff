@@ -1,5 +1,5 @@
 import { getDocument, GlobalWorkerOptions, type PDFDocumentLoadingTask } from "pdfjs-dist";
-import { measureAsync, throwIfAborted } from "@pdfdiff/core";
+import { measureAsync } from "@pdfdiff/core";
 import type { LoadedPdf, PdfLoadOptions, PdfSource } from "./types.js";
 
 function isFile(source: PdfSource): source is File {
@@ -7,12 +7,12 @@ function isFile(source: PdfSource): source is File {
 }
 
 async function readSource(source: PdfSource, signal?: PdfLoadOptions["signal"]): Promise<Uint8Array> {
-  throwIfAborted(signal);
+  signal?.throwIfAborted();
   if (isFile(source)) {
     // arrayBuffer() already hands back a private copy; slicing it again doubles
     // peak memory for no benefit on files this size.
     const buffer = await source.arrayBuffer();
-    throwIfAborted(signal);
+    signal?.throwIfAborted();
     return new Uint8Array(buffer);
   }
   if (source instanceof ArrayBuffer) return new Uint8Array(source).slice();
@@ -61,13 +61,13 @@ function watchAbort(
 
 /** Load a PDF from caller-provided bytes. No URL fetch is performed. */
 export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): Promise<LoadedPdf> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   configureWorker(options.workerSrc);
 
   const data = await measureAsync(options.metrics, "pdf.source.read", () => readSource(source, options.signal), {
     sourceType: sourceType(source),
   });
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const task = getDocument({ data, ...assetUrls(options.assetBaseUrl) });
   const abort = watchAbort(task, options.signal);
 
@@ -77,7 +77,7 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
       "pdf.document.load",
       async () => {
         const loaded = await Promise.race([task.promise, abort.promise]);
-        throwIfAborted(options.signal);
+        options.signal?.throwIfAborted();
         return loaded;
       },
       { bytes: data.byteLength },
@@ -92,7 +92,7 @@ export async function loadPdf(source: PdfSource, options: PdfLoadOptions = {}): 
     };
   } catch (error) {
     await task.destroy().catch(() => undefined);
-    throwIfAborted(options.signal);
+    options.signal?.throwIfAborted();
     throw error;
   } finally {
     abort.detach();

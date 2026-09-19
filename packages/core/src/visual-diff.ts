@@ -1,6 +1,5 @@
 import pixelmatch from "pixelmatch";
 
-import { throwIfAborted } from "./errors.js";
 import { measure } from "./instrumentation.js";
 import { findChangeRegions } from "./regions.js";
 import type { RasterImage, RgbColor, VisualDiffOptions, VisualDiffResult } from "./types.js";
@@ -127,7 +126,7 @@ function overlayFromDiffMask(
   let modifiedPixels = 0;
 
   for (let index = 0; index < total; index += 1) {
-    if ((index & 0x3fff) === 0) throwIfAborted(options.signal);
+    if ((index & 0x3fff) === 0) options.signal?.throwIfAborted();
     const offset = index * 4;
     if (buffer[offset + 3] === 0) {
       writeUnchangedPixel(buffer, earlier.data, offset, unchangedOpacity);
@@ -199,7 +198,7 @@ export function overlayLayers(
   const modified = new Uint8ClampedArray(total * 4);
 
   for (let index = 0; index < total; index += 1) {
-    if ((index & 0x3fff) === 0) throwIfAborted(signal);
+    if ((index & 0x3fff) === 0) signal?.throwIfAborted();
     const offset = index * 4;
     const direction = directionMask[index];
     if (!direction) {
@@ -238,7 +237,7 @@ export function diffImages(
   const total = width * height;
   if (earlier.data.length !== total * 4 || newer.data.length !== total * 4)
     throw new RangeError("Raster buffers do not match their dimensions.");
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
 
   const attributes = { width, height, pixels: total };
   const pixelmatchOutput = measure(

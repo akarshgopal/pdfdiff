@@ -17,11 +17,6 @@
       "development": "./src/index.ts",
       "import": "./dist/index.js"
     },
-    "./text": {
-      "types": "./dist/text.d.ts",
-      "development": "./src/text.ts",
-      "import": "./dist/text.js"
-    },
     "./raster-diff-worker": {
       "types": "./dist/raster-diff-worker.d.ts",
       "development": "./src/raster-diff-worker.ts",

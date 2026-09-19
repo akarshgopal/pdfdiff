@@ -1,4 +1,3 @@
-export * from "./errors.js";
 export * from "./instrumentation.js";
 export * from "./types.js";
 export { DEFAULT_OVERLAY, hexToRgb, rgbToHex } from "./overlay.js";

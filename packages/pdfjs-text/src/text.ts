@@ -1,7 +1,6 @@
 import {
   isDecodableText,
   measureAsync,
-  throwIfAborted,
   type DiffMetricSink,
   type PageText,
   type PositionedTextItem,
@@ -179,18 +178,18 @@ async function extractPageTextUnmeasured(
   pageNumber: number,
   options: Pick<DocumentTextOptions, "signal"> = {},
 ): Promise<PageText> {
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   validatePageNumber(pageNumber, pdf.pageCount);
   const page = await pdf.pdf.getPage(pageNumber);
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
   const content = await page.getTextContent({ includeMarkedContent: false, disableNormalization: false });
-  throwIfAborted(options.signal);
+  options.signal?.throwIfAborted();
   const items: PositionedTextItem[] = [];
   let text = "";
   for (const item of content.items) {
     if (!isTextItem(item)) continue;
-    throwIfAborted(options.signal);
+    options.signal?.throwIfAborted();
     const draft = positionedTextItem(item, pageNumber, viewport.transform, 0);
     text += separatorBetween(items.at(-1), draft);
     const positioned = { ...draft, textStart: text.length, textEnd: text.length + draft.str.length };
@@ -230,7 +229,7 @@ export async function extractDocumentText(
   let completed = 0;
   const worker = async (): Promise<void> => {
     for (let pageNumber = next++; pageNumber <= pdf.pageCount; pageNumber = next++) {
-      throwIfAborted(options.signal);
+      options.signal?.throwIfAborted();
       pages[pageNumber - 1] = await extractPageText(pdf, pageNumber, options);
       completed += 1;
       options.onProgress?.({ completed, total: pdf.pageCount });
