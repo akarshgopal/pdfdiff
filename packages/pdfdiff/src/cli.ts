@@ -187,6 +187,13 @@ async function main(argv: readonly string[]): Promise<number> {
   return options.failOnChange && hasSubstantiveChanges(report) ? 1 : 0;
 }
 
+/** `… | head` closes the pipe early; that is the reader's business, not a crash. */
+const ignoreEpipe = (error: NodeJS.ErrnoException): void => {
+  if (error.code !== "EPIPE") throw error;
+};
+process.stdout.on("error", ignoreEpipe);
+process.stderr.on("error", ignoreEpipe);
+
 try {
   process.exitCode = await main(process.argv.slice(2));
 } catch (error) {

@@ -32,6 +32,8 @@ async function cli(...args: readonly string[]): Promise<CliRun> {
 
 const CAD_A = "examples/pdf-fixtures/cad/wheel-hub-rev-a.pdf";
 const CAD_B = "examples/pdf-fixtures/cad/wheel-hub-rev-b.pdf";
+const SHEET_A = "examples/pdf-fixtures/datasheets/ti-sn74lv126a-rev-i.pdf";
+const SHEET_B = "examples/pdf-fixtures/datasheets/ti-sn74lv126a-rev-j.pdf";
 const PCB_A = "examples/pdf-fixtures/pcb/olimexino-stm32-rev-a.pdf";
 const PCB_B = "examples/pdf-fixtures/pcb/olimexino-stm32-rev-b.pdf";
 
@@ -194,4 +196,14 @@ test("--images is rejected with --text-only", async () => {
   const { code, stderr } = await cli(EARLIER, NEWER, "--text-only", "--images", "/tmp/unused");
   assert.equal(code, 2);
   assert.match(stderr, /--images requires a visual comparison/);
+});
+
+// The datasheet pair, and JSON: the report has to be bigger than the 64KB pipe buffer,
+// or the whole thing lands in the buffer and the write never fails.
+test("a reader that closes the pipe early is not a crash", { timeout: 180_000 }, async () => {
+  const command = `node ${CLI} ${SHEET_A} ${SHEET_B} --text-only --report json --fail-on-change --quiet | head -c 200 > /dev/null`;
+  const { stdout, stderr } = await run("bash", ["-c", `${command}; echo "EXIT:\${PIPESTATUS[0]}"`]);
+  assert.doesNotMatch(stderr, /EPIPE|Unhandled|node:internal/, stderr);
+  // Closing the pipe must not swallow --fail-on-change either.
+  assert.match(stdout, /EXIT:1/);
 });
