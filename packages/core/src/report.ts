@@ -1,5 +1,5 @@
 import type { AlignedPagePair, PageAlignmentKind } from "./document-alignment.js";
-import type { ChangeClass, ChangeClassCounts } from "./classification.js";
+import type { ChangeClassCounts } from "./classification.js";
 import type { SemanticChangeKind } from "./semantic.js";
 import type { ComparisonPage, PageStatus } from "./types.js";
 
@@ -206,15 +206,13 @@ function changeLine(change: ReportTextChange): string {
   return `  ~ ${change.before} → ${change.after}`;
 }
 
-const CLASS_ORDER: readonly ChangeClass[] = ["content", "graphic", "reflow", "formatting"];
-
 /** Human-readable summary for a terminal or a redline appendix. */
 export function reportToText(report: ComparisonReport): string {
   const { totals } = report;
   const lines = [
     `${report.earlierName} → ${report.newerName}`,
     `${totals.changedPages} changed · ${totals.addedPages} added · ${totals.removedPages} removed · ${totals.movedPages} moved of ${totals.pages} pages`,
-    `${totals.textChanges} text changes · ${CLASS_ORDER.map((name) => `${totals.classes[name]} ${name}`).join(" · ")}`,
+    `${totals.textChanges} text changes`,
   ];
   if (totals.noisePages) lines.push(`${totals.noisePages} pages may include reflow or formatting`);
   if (totals.pagesWithUnreadableText)
@@ -253,7 +251,7 @@ export function reportToMarkdown(report: ComparisonReport): string {
     "",
     `${totals.changedPages} changed · ${totals.addedPages} added · ${totals.removedPages} removed · ${totals.movedPages} moved of ${totals.pages} pages`,
     "",
-    `${totals.textChanges} text changes · ${CLASS_ORDER.map((name) => `${totals.classes[name]} ${name}`).join(" · ")}`,
+    `${totals.textChanges} text changes`,
   ];
   if (totals.noisePages) lines.push("", `${totals.noisePages} pages may include reflow or formatting`);
   if (totals.pagesWithUnreadableText) {

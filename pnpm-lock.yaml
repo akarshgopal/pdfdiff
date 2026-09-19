@@ -63,6 +63,9 @@ importers:
       globals:
         specifier: 16.4.0
         version: 16.4.0
+      pdfdiff:
+        specifier: workspace:*
+        version: link:packages/pdfdiff
       playwright:
         specifier: 1.62.0
         version: 1.62.0

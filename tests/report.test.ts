@@ -148,6 +148,9 @@ test("a page that changed visually but has no text still appears in CSV", () => 
 test("the text report includes possible reflow by default", () => {
   const quiet = reportToText(REPORT);
   assert.match(quiet, /2 changed · 1 added · 0 removed · 1 moved of 4 pages/);
+  assert.match(quiet, /^2 text changes$/m);
+  assert.doesNotMatch(quiet, /text changes · /);
+  assert.doesNotMatch(quiet, /\d+ content · \d+ graphic · \d+ reflow · \d+ formatting/);
   assert.match(quiet, /~ 30 days → 60 days/);
   assert.match(quiet, /\+ New schedule/);
   assert.match(quiet, /1 pages may include reflow or formatting/);
@@ -204,6 +207,10 @@ test("a readable comparison is not flagged as unreadable", () => {
 test("markdown names pages and quotes text edits", () => {
   const markdown = reportToMarkdown(REPORT);
   assert.match(markdown, /^# spec-v1\.pdf → spec-v2\.pdf/m);
+  assert.match(markdown, /2 changed · 1 added · 0 removed · 1 moved of 4 pages/);
+  assert.match(markdown, /^2 text changes$/m);
+  assert.doesNotMatch(markdown, /text changes · /);
+  assert.doesNotMatch(markdown, /\d+ content · \d+ graphic · \d+ reflow · \d+ formatting/);
   assert.match(markdown, /## Page 1/);
   assert.match(markdown, /- changed: 30 days → 60 days/);
   assert.match(markdown, /- added: New schedule/);

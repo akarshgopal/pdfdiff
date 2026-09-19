@@ -73,21 +73,41 @@ test("comparing a document with itself reports no changes", async () => {
   assert.match(stdout, /0 changed · 0 added · 0 removed/);
 });
 
+test("no arguments prints usage to stderr and exits 2", async () => {
+  const { code, stdout, stderr } = await cli();
+  assert.equal(code, 2);
+  assert.equal(stdout, "");
+  assert.match(stderr, /Usage:/);
+  assert.match(stderr, /Exit codes:/);
+});
+
 test("bad usage exits 2 and prints the usage text", async () => {
   const missing = await cli(EARLIER);
   assert.equal(missing.code, 2);
+  assert.match(missing.stderr, /Usage:/);
   const badFormat = await cli(EARLIER, NEWER, "--report", "xml");
   assert.equal(badFormat.code, 2);
 });
 
-test("--help exits 0 and documents the options", async () => {
-  const { code, stdout } = await cli("--help");
+test("--help and -h exit 0 and document the options", async () => {
+  for (const flag of ["--help", "-h"]) {
+    const { code, stdout } = await cli(flag);
+    assert.equal(code, 0, flag);
+    assert.match(stdout, /--fail-on-change/);
+    assert.match(stdout, /--report <text\|json\|csv\|markdown>/);
+    assert.match(stdout, /--text-only/);
+    assert.match(stdout, /--images/);
+    assert.match(stdout, /Exit codes:/);
+    assert.match(stdout, /Suppress progress and warnings \(report still prints\)/);
+  }
+});
+
+test("--quiet still prints the report and omits the stderr warning", async () => {
+  const { code, stdout, stderr } = await cli(CAD_A, CAD_B, "--text-only", "--quiet");
   assert.equal(code, 0);
-  assert.match(stdout, /--fail-on-change/);
-  assert.match(stdout, /--report <text\|json\|csv\|markdown>/);
-  assert.match(stdout, /--text-only/);
-  assert.match(stdout, /--images/);
-  assert.match(stdout, /Exit codes:/);
+  assert.match(stdout, /WARNING: 1 pages embed fonts with no Unicode mapping/);
+  assert.doesNotMatch(stderr, /text changes on those pages cannot be detected/);
+  assert.doesNotMatch(stderr, /Comparing page/);
 });
 
 test("--version prints the package version", async () => {

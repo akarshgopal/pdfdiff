@@ -34,7 +34,7 @@ Options:
   --no-align                         Do not shift pages to cancel a small translation
   --threshold <0..1>                 Page match threshold for alignment (default: 0.55)
   --sensitivity <0..100>             Pixel-diff sensitivity (default: ${DEFAULT_SENSITIVITY})
-  --quiet                            Suppress progress and warnings
+  --quiet                            Suppress progress and warnings (report still prints)
   -V, --version                      Print the package version
   -h, --help                         Show this message
 
@@ -132,8 +132,8 @@ async function packageVersion(): Promise<string> {
 
 async function main(argv: readonly string[]): Promise<number> {
   if (argv.length === 0) {
-    process.stdout.write(USAGE);
-    return 0;
+    process.stderr.write(USAGE);
+    return 2;
   }
   const options = parseArguments(argv);
   if ("help" in options) {
