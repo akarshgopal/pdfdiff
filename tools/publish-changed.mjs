@@ -14,11 +14,7 @@ import { execSync } from "node:child_process";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Dependency order for first-time and workspace consumers. */
-const PACKAGES = [
-  "packages/core/package.json",
-  "packages/pdfjs-text/package.json",
-  "packages/pdfdiff/package.json",
-];
+const PACKAGES = ["packages/core/package.json", "packages/pdfjs-text/package.json", "packages/pdfdiff/package.json"];
 
 function readPkg(rel) {
   return JSON.parse(readFileSync(join(root, rel), "utf8"));

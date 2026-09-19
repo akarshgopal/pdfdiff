@@ -201,4 +201,3 @@ publishable `package.json` version on `main`.
    OIDC — no `NPM_TOKEN`.
 
 `@pdfdiff/pdfjs-browser` and `@pdfdiff/viewer-react` stay private.
-
