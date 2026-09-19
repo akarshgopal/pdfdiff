@@ -1,12 +1,20 @@
 name: publish
 
+# npm packages: publish when package.json versions change on main.
+# Git tags (v*) are reserved for the app/site — not used here.
+
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths:
+      - "packages/core/package.json"
+      - "packages/pdfjs-text/package.json"
+      - "packages/pdfdiff/package.json"
+      - ".github/workflows/publish.yml"
+      - "tools/publish-changed.mjs"
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 jobs:
@@ -29,22 +37,8 @@ jobs:
         run: npm install -g "npm@>=11.5.1" && npm -v
 
       - run: pnpm install --frozen-lockfile
-
-      - name: Check package versions match tag
-        run: node tools/check-release-versions.mjs
-
       - run: pnpm build:packages
       - run: pnpm test
 
-      - name: Publish to npm (OIDC)
-        run: |
-          set -euo pipefail
-          # No NPM_TOKEN — trusted publishing via id-token
-          pnpm --filter @pdfdiff/core publish --access public --no-git-checks
-          pnpm --filter @pdfdiff/pdfjs-text publish --access public --no-git-checks
-          pnpm --filter @pdfdiff/cli publish --access public --no-git-checks
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
+      - name: Publish new package versions (OIDC)
+        run: node tools/publish-changed.mjs

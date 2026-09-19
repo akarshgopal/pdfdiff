@@ -177,23 +177,24 @@ files again when repeating a comparison.
 ## Publishing
 
 The published packages are `@pdfdiff/core`, `@pdfdiff/pdfjs-text`, and
-`@pdfdiff/cli`, all at matching semver. `workspace:*` is rewritten by
-`pnpm publish` from the monorepo.
+`@pdfdiff/cli`. `workspace:*` is rewritten by `pnpm publish` from the monorepo.
 
-### Automated release (GitHub tag → npm + Release)
+### Automated npm release (version bump on `main`)
+
+Git tags (`v*`) are for the **app/site**. npm publishes when you bump a
+publishable `package.json` version on `main`.
 
 1. On [npmjs.com](https://www.npmjs.com/) open each package → **Trusted Publisher** →
    GitHub → repository `akarshgopal/pdfdiff`, workflow filename `publish.yml`
-   (not the full path), allow **npm publish**.
-2. On `main`, bump all three `package.json` versions to the same `X.Y.Z`.
-3. Tag and push:
-   ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
-4. `.github/workflows/publish.yml` builds, tests, publishes via OIDC (no
-   `NPM_TOKEN`), then creates a GitHub Release.
+   (filename only), allow **npm publish**.
+2. Bump the version(s) you want to ship in:
+   - `packages/core/package.json`
+   - `packages/pdfjs-text/package.json`
+   - `packages/pdfdiff/package.json` (`@pdfdiff/cli`)
+3. Merge/push to `main`. `.github/workflows/publish.yml` builds, tests, then
+   runs `tools/publish-changed.mjs`, which publishes only versions **not**
+   already on the registry (order: core → pdfjs-text → `@pdfdiff/cli`) via
+   OIDC — no `NPM_TOKEN`.
 
-Publish order in CI: core → pdfjs-text → `@pdfdiff/cli`.
 `@pdfdiff/pdfjs-browser` and `@pdfdiff/viewer-react` stay private.
 
