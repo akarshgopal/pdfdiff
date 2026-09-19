@@ -8,7 +8,7 @@
   "scripts": {
     "predev": "pnpm run build:packages",
     "dev": "vite",
-    "build:packages": "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-text build && pnpm --filter @pdfdiff/pdfjs-browser build && pnpm --filter @pdfdiff/viewer-react build && pnpm --filter pdfdiff build",
+    "build:packages": "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-text build && pnpm --filter @pdfdiff/pdfjs-browser build && pnpm --filter @pdfdiff/viewer-react build && pnpm --filter @pdfdiff/cli build",
     "build": "pnpm run build:packages && pnpm run typecheck && vite build",
     "bench:core": "pnpm run build:packages && node tools/benchmark-core.mjs",
     "bench:browser": "node tools/benchmark-browser.mjs",
@@ -51,7 +51,7 @@
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "16.4.0",
-    "pdfdiff": "workspace:*",
+    "@pdfdiff/cli": "workspace:*",
     "playwright": "1.62.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",

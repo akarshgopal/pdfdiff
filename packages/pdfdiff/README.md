@@ -10,13 +10,13 @@ Requires Node `>=22.13.0`. CLI packages ship as **0.1.0**. The repo tag
 ## Install
 
 ```bash
-npx pdfdiff earlier.pdf newer.pdf
-npx pdfdiff earlier.pdf newer.pdf --report json --fail-on-change
-npx pdfdiff earlier.pdf newer.pdf --images ./diff-out
+npx @pdfdiff/cli earlier.pdf newer.pdf
+npx @pdfdiff/cli earlier.pdf newer.pdf --report json --fail-on-change
+npx @pdfdiff/cli earlier.pdf newer.pdf --images ./diff-out
 ```
 
 ```ts
-import { comparePdfs } from "pdfdiff";
+import { comparePdfs } from "@pdfdiff/cli";
 
 const { report } = await comparePdfs("earlier.pdf", "newer.pdf");
 ```
@@ -77,7 +77,7 @@ diff. Its text cannot. `--fail-on-unreadable` makes that a hard failure.
 ## Node API
 
 ```ts
-import { comparePdfs, comparePdfText } from "pdfdiff";
+import { comparePdfs, comparePdfText } from "@pdfdiff/cli";
 
 const visual = await comparePdfs("a.pdf", "b.pdf", {
   onOverlay: async ({ earlierPage, newerPage, overlay }) => {
@@ -93,6 +93,6 @@ const text = await comparePdfText("a.pdf", "b.pdf");
 ## Publishing
 
 The published packages are `@pdfdiff/core`, `@pdfdiff/pdfjs-text`, and
-`pdfdiff`, all at `0.1.0`. `workspace:*` is rewritten by `pnpm publish` from
+`@pdfdiff/cli`, all at `0.1.0`. `workspace:*` is rewritten by `pnpm publish` from
 the monorepo; `pnpm pack` alone does not produce a consumer-installable
-tarball. Publish order: core → pdfjs-text → pdfdiff, with `--access public`.
+tarball. Publish order: core → pdfjs-text → @pdfdiff/cli, with `--access public`.

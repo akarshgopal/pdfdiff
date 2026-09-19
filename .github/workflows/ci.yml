@@ -25,9 +25,9 @@ jobs:
       - run: pnpm accuracy:check
       - run: pnpm test:dist
       - run: |
-          pnpm --filter pdfdiff pack --pack-destination packages/pdfdiff
-          contents=$(tar -tzf packages/pdfdiff/pdfdiff-*.tgz)
+          pnpm --filter @pdfdiff/cli pack --pack-destination packages/pdfdiff
+          contents=$(tar -tzf packages/pdfdiff/pdfdiff-cli-*.tgz)
           echo "$contents" | grep -qx 'package/dist/cli.js'
           echo "$contents" | grep -qx 'package/llms.txt'
           echo "$contents" | grep -qx 'package/report.schema.json'
-          rm -f packages/pdfdiff/pdfdiff-*.tgz
+          rm -f packages/pdfdiff/pdfdiff-cli-*.tgz

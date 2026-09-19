@@ -7,6 +7,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 if (existsSync(join(root, "packages/pdfdiff/dist/cli.js"))) process.exit(0);
 
 execSync(
-  "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-text build && pnpm --filter pdfdiff build",
+  "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-text build && pnpm --filter @pdfdiff/cli build",
   { cwd: root, stdio: "inherit" },
 );

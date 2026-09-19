@@ -1,5 +1,5 @@
 {
-  "name": "pdfdiff",
+  "name": "@pdfdiff/cli",
   "version": "0.1.0",
   "description": "Compare two PDF files. Text changes, visual overlays, and a CI-friendly report.",
   "license": "MIT",

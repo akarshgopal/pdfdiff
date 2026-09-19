@@ -25,7 +25,7 @@ pnpm build
 Headless CLI:
 
 ```bash
-npx pdfdiff earlier.pdf newer.pdf --report json --fail-on-change
+npx @pdfdiff/cli earlier.pdf newer.pdf --report json --fail-on-change
 ```
 
 CLI packages ship as 0.1.0; the repo tag `v1.0.0` is the app/site release, not
@@ -57,7 +57,7 @@ logic can be reused independently of the browser app:
   PDF files, then orchestrates the core algorithms.
 - `@pdfdiff/viewer-react` — a reusable React viewer for a completed comparison.
   It owns navigation, view modes, inspection controls, and keyboard shortcuts.
-- `pdfdiff` — headless comparison for Node, plus the `pdfdiff` CLI (`npx pdfdiff`).
+- `@pdfdiff/cli` — headless comparison for Node, plus the `pdfdiff` CLI (`npx @pdfdiff/cli`).
 - `app/` — the product shell: upload flow, privacy messaging, loading state,
   default engine wiring, analytics callbacks, and the in-app help section.
 - `main.tsx` and `index.html` — the static Vite application entry and metadata.
@@ -104,9 +104,9 @@ pnpm build:packages
 ```
 
 The published packages are `@pdfdiff/core`, `@pdfdiff/pdfjs-text`, and
-`pdfdiff`, all at `0.1.0`. `workspace:*` is rewritten by `pnpm publish` from
+`@pdfdiff/cli`, all at `0.1.0`. `workspace:*` is rewritten by `pnpm publish` from
 the monorepo; `pnpm pack` alone does not produce a consumer-installable
-tarball. Publish order: core → pdfjs-text → pdfdiff, with `--access public`.
+tarball. Publish order: core → pdfjs-text → @pdfdiff/cli, with `--access public`.
 `@pdfdiff/pdfjs-browser` and `@pdfdiff/viewer-react` stay private to this repo.
 The browser adapter expects its host bundler to provide the PDF.js worker URL:
 

@@ -5,7 +5,7 @@ Compare two PDF files from the command line or Node. Raster overlay plus extract
 ## CLI
 
 Not on npm yet. From a clone: `pnpm install && pnpm run build:packages`, then
-`pnpm exec pdfdiff`. Once published: `npx pdfdiff`. Packages ship as 0.1.0;
+`pnpm exec pdfdiff`. Once published: `npx @pdfdiff/cli`. Packages ship as 0.1.0;
 repo tag v1.0.0 is the app/site release.
 
 ```
@@ -24,7 +24,7 @@ JSON schema: `pdfdiff/report.schema.json`. Warnings go to stderr; the report goe
 ## Node
 
 ```ts
-import { comparePdfs } from "pdfdiff";
+import { comparePdfs } from "@pdfdiff/cli";
 const { report } = await comparePdfs("earlier.pdf", "newer.pdf");
 ```
 
