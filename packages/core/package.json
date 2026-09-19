@@ -16,16 +16,23 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "development": "./src/index.ts",
       "import": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json"
+    "build": "node ../clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "pixelmatch": "^7.2.0"
   },
+  "keywords": [
+    "pdf",
+    "diff",
+    "compare",
+    "raster",
+    "visual-diff"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/akarshgopal/pdfdiff.git",

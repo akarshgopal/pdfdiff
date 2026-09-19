@@ -7,20 +7,7 @@ the [browser app](https://pdfdiff.app) runs, without a browser.
 Requires Node `>=22.13.0`. CLI packages ship as **0.1.0**. The repo tag
 `v1.0.0` is the app/site release, not the npm CLI version.
 
-## Install (from this repo)
-
-These packages are not on npm yet. From a clone:
-
-```bash
-pnpm install
-pnpm run build:packages
-pnpm exec pdfdiff earlier.pdf newer.pdf
-```
-
-Prefer `pnpm exec pdfdiff` over `pnpm pdfdiff` in CI: a non-zero CLI exit
-otherwise becomes a pnpm ELIFECYCLE error.
-
-Once published to npm:
+## Install
 
 ```bash
 npx pdfdiff earlier.pdf newer.pdf
@@ -33,6 +20,17 @@ import { comparePdfs } from "pdfdiff";
 
 const { report } = await comparePdfs("earlier.pdf", "newer.pdf");
 ```
+
+Also available from source in this monorepo (contributors):
+
+```bash
+pnpm install
+pnpm run build:packages
+pnpm exec pdfdiff earlier.pdf newer.pdf
+```
+
+Prefer `pnpm exec pdfdiff` over `pnpm pdfdiff` in CI: a non-zero CLI exit
+otherwise becomes a pnpm ELIFECYCLE error.
 
 ## CLI
 
@@ -94,7 +92,7 @@ const text = await comparePdfText("a.pdf", "b.pdf");
 
 ## Publishing
 
-The published packages will be `@pdfdiff/core`, `@pdfdiff/pdfjs-text`, and
+The published packages are `@pdfdiff/core`, `@pdfdiff/pdfjs-text`, and
 `pdfdiff`, all at `0.1.0`. `workspace:*` is rewritten by `pnpm publish` from
 the monorepo; `pnpm pack` alone does not produce a consumer-installable
 tarball. Publish order: core → pdfjs-text → pdfdiff, with `--access public`.
