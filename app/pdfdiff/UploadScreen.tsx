@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Copy, ShieldCheck } from "lucide-react";
 import type { ChangeEvent, DragEvent, RefObject } from "react";
 import { Button } from "../../components/ui/button";
 import { FileDropzone } from "../../components/ui/file-dropzone";
@@ -12,6 +13,8 @@ import { SAMPLE_DOCUMENTS, type SampleId } from "./sampleDocuments";
 import { formatFileSize } from "../../lib/format";
 
 type FileSide = "earlier" | "newer";
+
+const REMEMBER_HINT = "Remember these PDFs in this browser so you can reopen the comparison";
 
 export interface UploadScreenProps {
   earlierFile: File | null;
@@ -134,36 +137,48 @@ export function UploadScreen({
               onChange={(event) => onInput("newer", event)}
             />
             <div className={styles.introActions}>
-              <Button
-                size="lg"
-                className={cx(styles.compareButton, ready && "w-full")}
-                disabled={!ready}
-                onClick={onCompare}
-              >
-                Compare <span aria-hidden="true">→</span>
-              </Button>
+              <div className={styles.introActionsRow}>
+                <Button
+                  size="lg"
+                  className={cx(styles.compareButton, ready && "flex-1")}
+                  disabled={!ready}
+                  onClick={onCompare}
+                >
+                  Compare <span aria-hidden="true">→</span>
+                </Button>
+                <label className={cx(styles.rememberOption, !ready && styles.rememberOptionIdle)}>
+                  <input
+                    className={styles.rememberCheckbox}
+                    type="checkbox"
+                    checked={rememberFiles}
+                    aria-labelledby="remember-label"
+                    aria-describedby="remember-tip"
+                    onChange={(event) => onRememberFilesChange(event.target.checked)}
+                  />
+                  <span className={styles.rememberLabel}>
+                    <span id="remember-label">Remember docs</span>
+                    <span id="remember-tip" className={styles.rememberTip} role="tooltip">
+                      {REMEMBER_HINT}
+                    </span>
+                  </span>
+                </label>
+              </div>
               <p className={styles.privacyNote}>
-                <span className={styles.privacyDot} aria-hidden="true" />
+                <ShieldCheck className={styles.privacyIcon} strokeWidth={1.8} aria-hidden="true" />
                 Files are compared in this browser and never uploaded.
               </p>
-              <label className={styles.rememberOption}>
-                <input
-                  className={styles.rememberCheckbox}
-                  type="checkbox"
-                  checked={rememberFiles}
-                  onChange={(event) => onRememberFilesChange(event.target.checked)}
-                />
-                Remember these PDFs in this browser so you can reopen the comparison
-              </label>
             </div>
-            <TrySample onTrySample={onTrySample} />
+            <CliHint />
             {error ? (
               <div className={styles.errorBox} role="alert">
                 {error}
               </div>
             ) : null}
           </div>
-          <HeroDemo />
+          <div className={styles.demoColumn}>
+            <HeroDemo />
+            <TrySample onTrySample={onTrySample} />
+          </div>
         </section>
         {history.length > 0 ? (
           <ComparisonHistory history={history} onRepeat={onRepeat} onClear={onClearHistory} />
@@ -193,6 +208,54 @@ function TrySample({ onTrySample }: { onTrySample: (id: SampleId) => void }) {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+const CLI_COMMAND = "npx @pdfdiff/cli earlier.pdf newer.pdf";
+
+function CliHint() {
+  const [copied, setCopied] = useState(false);
+  // No clipboard (insecure origin) or a refused write: select the command instead.
+  const timer = useRef<number | undefined>(undefined);
+  const command = useRef<HTMLElement>(null);
+  const copy = () => {
+    const select = () => {
+      const node = command.current;
+      if (!node) return;
+      getSelection()?.selectAllChildren(node);
+    };
+    const confirm = () => {
+      setCopied(true);
+      clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setCopied(false), 1500);
+    };
+    const written = navigator.clipboard?.writeText(CLI_COMMAND);
+    if (written) void written.then(confirm, select);
+    else select();
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return (
+    <div className={styles.cli}>
+      <h2 className={styles.cliLabel}>Run headless with @pdfdiff/cli</h2>
+      <button
+        className={styles.cliRow}
+        type="button"
+        aria-label={copied ? "Command copied" : `Copy command: ${CLI_COMMAND}`}
+        onClick={copy}
+      >
+        <code className={styles.cliCommand} ref={command}>
+          {CLI_COMMAND}
+        </code>
+        {copied ? (
+          <Check className={styles.cliCopied} strokeWidth={2.2} aria-hidden="true" />
+        ) : (
+          <Copy className={styles.cliCopy} strokeWidth={1.8} aria-hidden="true" />
+        )}
+      </button>
+      <a className={styles.cliLink} href="/llms.txt">
+        Agent docs
+      </a>
     </div>
   );
 }

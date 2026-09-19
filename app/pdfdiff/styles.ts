@@ -3,6 +3,9 @@ import { cx, ui } from "@pdfdiff/viewer-react/ui";
 /** One page gutter and one content width for every screen, marketing or legal. */
 const gutter = "px-5 lg:px-8";
 const container = "mx-auto w-full max-w-[1120px]";
+/** Space between the three groups of the hero column: headline, the compare CTA, the CLI.
+   Height-aware for the same reason the demo stage is: a short screen still fits. */
+const sectionGap = "mt-[clamp(1.75rem,5vh,3.25rem)]";
 
 export const styles = {
   root: "min-h-screen bg-background font-sans tracking-tight text-foreground",
@@ -22,22 +25,38 @@ export const styles = {
   headline: "text-[clamp(32px,4vw,48px)] font-semibold leading-display tracking-tighter",
   headlineAccent: "not-italic text-primary",
   introLead: "mt-3 max-w-md text-sm leading-relaxed text-muted-foreground",
-  uploadGrid: "mt-8 grid w-full grid-cols-1 gap-3.5 lg:grid-cols-[1fr_auto_1fr]",
+  uploadGrid: `${sectionGap} grid w-full grid-cols-1 gap-3.5 lg:grid-cols-[1fr_auto_1fr]`,
   swapUpload: cx(
     ui.control,
     ui.focus,
     "z-[1] mx-auto -my-1 size-[42px] self-center rounded-full bg-background text-lg font-bold text-primary transition-transform duration-150 hover:rotate-180 hover:bg-accent hover:text-primary lg:mx-0 lg:my-0",
   ),
-  rememberOption: `${ui.focus} flex cursor-pointer items-center gap-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground`,
+  rememberOption: `${ui.focus} group flex cursor-pointer items-center gap-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground`,
+  /** Muted until both files are in, so it never outshouts the primary button. */
+  rememberOptionIdle: "opacity-50 transition-opacity hover:opacity-100",
+  rememberLabel: "relative",
+  /** CSS-only tooltip: the native title delay is too slow for a short label.
+      Right-anchored and clamped — an opacity-0 absolute box still widens the page. */
+  rememberTip:
+    "pointer-events-none absolute bottom-full right-0 z-10 mb-2 w-max max-w-[min(18rem,calc(100vw-3rem))] rounded-lg border border-border bg-popover px-2.5 py-1.5 text-2xs leading-normal text-foreground opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 group-focus-within:opacity-100",
   rememberCheckbox: `${ui.focus} pdfdiff-switch`,
   introActions: "mt-5 flex w-full flex-col items-center gap-3 xl:items-start",
+  introActionsRow: "flex w-full flex-wrap items-center justify-center gap-x-5 gap-y-3 xl:justify-start",
   compareButton: "min-h-12 px-6",
-  samples: "mt-6 flex w-full flex-col items-center gap-2 xl:items-start",
+  demoColumn: "flex w-full flex-col",
+  samples: "mt-5 flex w-full flex-col items-center gap-2 xl:items-start",
   samplesLabel: cx(ui.caps, "m-0"),
   samplesRow: "flex flex-wrap justify-center gap-2 xl:justify-start",
   sampleButton: cx(ui.control, ui.focus, "min-h-8 px-3"),
+  cli: `${sectionGap} flex w-full flex-col items-center gap-2 xl:items-start`,
+  cliLabel: "m-0 text-xs font-medium text-muted-foreground",
+  cliRow: cx(ui.control, ui.focus, "w-full max-w-md justify-between gap-3 px-3 py-2 hover:bg-background"),
+  cliCommand: "min-w-0 truncate font-mono text-2xs text-foreground",
+  cliCopy: "size-4 shrink-0 text-muted-foreground",
+  cliCopied: "size-4 shrink-0 text-success",
+  cliLink: `${ui.focus} text-2xs font-medium text-primary underline-offset-4 hover:underline`,
   privacyNote: "inline-flex items-center gap-2 text-xs leading-relaxed text-muted-foreground",
-  privacyDot: "size-1.5 shrink-0 rounded-full bg-success",
+  privacyIcon: "size-4 shrink-0 text-success",
   errorBox:
     "mt-4 w-full rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left text-xs leading-normal text-destructive",
   pageDropActive: "outline-dashed outline-2 -outline-offset-4 outline-primary",
@@ -57,9 +76,13 @@ export const styles = {
   demoChip: "min-w-0 truncate rounded-lg border border-border bg-background px-2 py-1 font-medium",
   demoArrow: "shrink-0 text-primary",
   demoCount: "ml-auto shrink-0 rounded-lg bg-primary/10 px-2 py-1 hidden font-medium text-primary sm:inline",
-  /** One stage height for every mode, so switching view never moves the page. */
+  /**
+   * One stage height for every mode, so switching view never moves the page.
+   * It tracks viewport height as well as width, so a short laptop screen still
+   * gets header, hero and footer without scrolling.
+   */
   demoStage:
-    "grid h-[360px] grid-rows-[minmax(0,1fr)] place-items-center bg-stage p-[clamp(10px,2vw,22px)] sm:h-[444px]",
+    "grid h-[22.5rem] grid-rows-[minmax(0,1fr)] place-items-center bg-stage p-[clamp(0.625rem,2vw,1.375rem)] sm:h-[clamp(18.75rem,42vh,27.75rem)]",
   demoPage: "block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm",
   demoSplit: "grid h-full w-full grid-cols-2 place-items-center gap-2",
   demoSwipe: "relative aspect-[3/4] h-full w-auto max-w-[300px]",
