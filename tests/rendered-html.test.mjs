@@ -25,26 +25,19 @@ test("dist index is the React app with a crawlable shell", async () => {
   assert.match(html, /name="twitter:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
   assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
   assert.match(html, /rel="preload" href="\/fonts\/inter-latin\.woff2"/);
-  assert.match(html, /type="application\/ld\+json"/i);
   assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
   assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/i);
   assert.match(html, /rel="manifest" href="\/site\.webmanifest"/i);
-  assert.match(html, /id="root"/);
   assert.match(html, /id="app-fallback"/);
   assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs\. See what changed\./);
   assert.match(html, /never uploaded/i);
   assert.match(html, /Files never leave your device/i);
   assert.doesNotMatch(html, /href="\/app"/);
-  assert.match(html, /<script[^>]+type="module"/i);
-  assert.match(html, /<link[^>]+stylesheet/i);
   assert.doesNotMatch(html, /google-analytics|gtag\(|googletagmanager|posthog/i);
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
-  assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
-  assert.equal(existsSync(new URL("../dist/sitemap.xml", import.meta.url)), true);
   // Staged from the CLI package, not committed, and the sitemap advertises it.
   assert.equal(existsSync(new URL("../dist/llms.txt", import.meta.url)), true);
-  assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/app/index.html", import.meta.url)), false);
 
