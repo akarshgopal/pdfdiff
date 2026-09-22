@@ -9,7 +9,7 @@
     "predev": "pnpm run build:packages",
     "dev": "vite",
     "build:packages": "pnpm --filter @pdfdiff/core build && pnpm --filter @pdfdiff/pdfjs-text build && pnpm --filter @pdfdiff/pdfjs-browser build && pnpm --filter @pdfdiff/viewer-react build && pnpm --filter @pdfdiff/cli build",
-    "build": "pnpm run build:packages && pnpm run typecheck && vite build",
+    "build": "pnpm run build:packages && pnpm run typecheck && vite build && node tools/prerender-seo.mjs",
     "bench:core": "pnpm run build:packages && node tools/benchmark-core.mjs",
     "bench:browser": "node tools/benchmark-browser.mjs",
     "bench:report": "node tools/benchmark-report.mjs",

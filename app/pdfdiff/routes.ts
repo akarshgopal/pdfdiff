@@ -76,7 +76,7 @@ function setAttr(selector: string, attr: string, value: string): void {
   document.querySelector(selector)?.setAttribute(attr, value);
 }
 
-/** The SPA ships one HTML file, so each route has to rewrite the homepage tags. */
+/** Prerendered HTML covers crawlers; client navigation still rewrites these tags after mount. */
 export function applyDocumentMeta(route: AppRoute): void {
   const next = documentMetaForRoute(route, siteOrigin(), window.location.pathname);
   document.title = next.title;
