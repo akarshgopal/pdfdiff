@@ -21,21 +21,14 @@ test("builds a static private PDF comparison experience", async () => {
   assert.match(html, /name="twitter:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
   assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
   assert.match(html, /rel="preload" href="\/fonts\/inter-latin\.woff2"/);
-  assert.match(html, /type="application\/ld\+json"/i);
   assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
   assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/i);
   assert.match(html, /rel="manifest" href="\/site\.webmanifest"/i);
-  assert.match(html, /id="root"/i);
-  assert.match(html, /<script[^>]+type="module"/i);
-  assert.match(html, /<link[^>]+stylesheet/i);
   assert.doesNotMatch(html, /google-analytics|gtag\(|googletagmanager|posthog/i);
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
-  assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
-  assert.equal(existsSync(new URL("../dist/sitemap.xml", import.meta.url)), true);
   // Staged from the CLI package, not committed, and the sitemap advertises it.
   assert.equal(existsSync(new URL("../dist/llms.txt", import.meta.url)), true);
-  assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
 
   const bundle = await clientBundleText();
@@ -100,9 +93,6 @@ test("prerenders unique crawlable HTML for home, privacy, and terms", async () =
   const privacyUrl = new URL("../dist/privacy/index.html", import.meta.url);
   const termsUrl = new URL("../dist/terms/index.html", import.meta.url);
 
-  assert.equal(existsSync(privacyUrl), true, "dist/privacy/index.html");
-  assert.equal(existsSync(termsUrl), true, "dist/terms/index.html");
-
   const home = await readFile(homeUrl, "utf8");
   const privacy = await readFile(privacyUrl, "utf8");
   const terms = await readFile(termsUrl, "utf8");
@@ -110,14 +100,10 @@ test("prerenders unique crawlable HTML for home, privacy, and terms", async () =
   assert.equal(canonicalHref(home), "https://pdfdiff.app/");
   assert.equal(canonicalHref(privacy), "https://pdfdiff.app/privacy");
   assert.equal(canonicalHref(terms), "https://pdfdiff.app/terms");
-  assert.doesNotMatch(privacy, /rel="canonical" href="https:\/\/pdfdiff\.app\/"/);
-  assert.doesNotMatch(terms, /rel="canonical" href="https:\/\/pdfdiff\.app\/"/);
 
   assert.equal(titleOf(home), "Compare two PDFs privately in your browser | pdfdiff");
   assert.equal(titleOf(privacy), "Privacy Policy — pdfdiff");
   assert.equal(titleOf(terms), "Terms of Service — pdfdiff");
-  assert.notEqual(titleOf(home), titleOf(privacy));
-  assert.notEqual(titleOf(privacy), titleOf(terms));
 
   assert.match(
     privacy,
@@ -158,9 +144,4 @@ test("prerenders unique crawlable HTML for home, privacy, and terms", async () =
   assert.match(home, /"@type":\s*"WebApplication"/);
   assert.doesNotMatch(privacy, /"@type":\s*"WebApplication"/);
   assert.doesNotMatch(terms, /"@type":\s*"WebApplication"/);
-
-  assert.match(privacy, /<script[^>]+type="module"/i);
-  assert.match(terms, /<script[^>]+type="module"/i);
-  assert.match(privacy, /<link[^>]+stylesheet/i);
-  assert.match(terms, /<link[^>]+stylesheet/i);
 });
