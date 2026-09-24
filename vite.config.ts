@@ -1,10 +1,13 @@
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { SAMPLE_DOCUMENTS } from "./app/pdfdiff/sampleDocuments.ts";
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * PDF.js fetches these on demand and, when they are missing, silently drops
@@ -80,6 +83,19 @@ export default defineConfig(({ mode }) => {
   stageLlmsTxt();
   const env = loadEnv(mode, process.cwd(), "");
   return {
+    // Multi-page: dev does not SPA-fallback unknown paths to the marketing index.
+    // Production still does, via wrangler `not_found_handling` (see docs/mpa-unit1-notes.md).
+    appType: "mpa",
     plugins: [tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(rootDir, "index.html"),
+          privacy: path.resolve(rootDir, "privacy/index.html"),
+          terms: path.resolve(rootDir, "terms/index.html"),
+          app: path.resolve(rootDir, "app/index.html"),
+        },
+      },
+    },
   };
 });

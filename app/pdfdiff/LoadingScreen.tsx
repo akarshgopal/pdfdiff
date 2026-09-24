@@ -7,7 +7,7 @@ export function LoadingScreen({ onCancel }: { onCancel: () => void }) {
   return (
     <main className={styles.root}>
       <div className={styles.shell}>
-        <AppHeader />
+        <AppHeader href="/" />
         <section className={styles.loading} aria-live="polite" aria-busy="true">
           <div className={styles.loadingCard}>
             <div className={styles.loadingPreview} aria-hidden="true">

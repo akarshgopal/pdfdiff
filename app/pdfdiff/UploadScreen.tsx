@@ -80,7 +80,7 @@ export function UploadScreen({
       }}
     >
       <div className={styles.shell}>
-        <AppHeader />
+        <AppHeader href="/" />
         <section className={styles.intro} aria-labelledby="upload-heading">
           <div className={styles.introMain}>
             <h1 id="upload-heading" className={cx(styles.headline, ready && "text-[clamp(24px,2.6vw,30px)]")}>

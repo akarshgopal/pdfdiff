@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { HOME_DESCRIPTION, HOME_TITLE } from "../app/pdfdiff/routes.ts";
+import {
+  APP_DESCRIPTION,
+  APP_TITLE,
+  HOME_DESCRIPTION,
+  HOME_TITLE,
+  ROUTE_DOCUMENT_META,
+} from "../app/pdfdiff/routes.ts";
 import { rewriteAbsoluteSiteMetadata } from "../vite.config.ts";
 
 const root = new URL("../", import.meta.url);
@@ -67,6 +73,7 @@ test("robots.txt and sitemap.xml point at pdfdiff.app", async () => {
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/privacy<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/terms<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/app<\/loc>/);
 });
 
 test("VITE_SITE_URL rewrites robots.txt and sitemap.xml the same way as index.html", async () => {
@@ -90,4 +97,57 @@ test("CSP does not allow Google Fonts", async () => {
   const headers = await readFile(new URL("public/_headers", root), "utf8");
   assert.match(headers, /font-src 'self'/);
   assert.doesNotMatch(headers, /fonts\.googleapis|fonts\.gstatic/i);
+});
+
+test("landing page is static marketing HTML with a CTA to /app", async () => {
+  const html = await readFile(new URL("index.html", root), "utf8");
+  assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs/);
+  assert.match(html, /never uploaded/i);
+  assert.match(html, /Files never leave your device/i);
+  assert.match(html, /href="\/app"/);
+  assert.match(html, /src="\/static-shell\.ts"/);
+  assert.doesNotMatch(html, /id="root"|\/main\.tsx/);
+});
+
+test("privacy and terms are static HTML with their own titles, canonicals, and body copy", async () => {
+  const privacy = await readFile(new URL("privacy/index.html", root), "utf8");
+  const terms = await readFile(new URL("terms/index.html", root), "utf8");
+
+  assert.ok(privacy.includes(`<title>${ROUTE_DOCUMENT_META.privacy.title}</title>`));
+  assert.ok(privacy.includes(ROUTE_DOCUMENT_META.privacy.description));
+  assert.match(privacy, /rel="canonical" href="https:\/\/pdfdiff\.app\/privacy"/);
+  assert.match(privacy, /Short version:/);
+  assert.match(privacy, /never uploaded/i);
+  assert.match(privacy, /Last updated September 5, 2026/);
+  assert.doesNotMatch(privacy, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+
+  assert.ok(terms.includes(`<title>${ROUTE_DOCUMENT_META.terms.title}</title>`));
+  assert.ok(terms.includes(ROUTE_DOCUMENT_META.terms.description));
+  assert.match(terms, /rel="canonical" href="https:\/\/pdfdiff\.app\/terms"/);
+  assert.match(terms, /These terms govern your use of pdfdiff/);
+  assert.match(terms, /Last updated September 5, 2026/);
+  assert.doesNotMatch(terms, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+});
+
+test("app/index.html is the React compare workspace", async () => {
+  const html = await readFile(new URL("app/index.html", root), "utf8");
+  assert.ok(html.includes(`<title>${APP_TITLE}</title>`));
+  assert.ok(html.includes(`content="${APP_DESCRIPTION}"`));
+  assert.match(html, /rel="canonical" href="https:\/\/pdfdiff\.app\/app"/);
+  assert.match(html, /id="root"/);
+  assert.match(html, /src="\/main\.tsx"/);
+  assert.doesNotMatch(html, /"@type":\s*"WebApplication"/);
+  assert.doesNotMatch(html, /static-shell\.ts/);
+});
+
+test("VITE_SITE_URL rewrites the origin in every HTML input", async () => {
+  for (const file of ["index.html", "privacy/index.html", "terms/index.html", "app/index.html"]) {
+    const html = await readFile(new URL(file, root), "utf8");
+    assert.match(html, /https:\/\/pdfdiff\.app/, file);
+    assert.equal(rewriteAbsoluteSiteMetadata(html, null), html, file);
+    assert.equal(rewriteAbsoluteSiteMetadata(html, "https://pdfdiff.app"), html, file);
+    const preview = rewriteAbsoluteSiteMetadata(html, "https://pdfdiff.example");
+    assert.doesNotMatch(preview, /https:\/\/pdfdiff\.app/, file);
+    assert.match(preview, /https:\/\/pdfdiff\.example/, file);
+  }
 });
