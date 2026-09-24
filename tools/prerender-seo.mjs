@@ -131,7 +131,7 @@ function footerNav() {
 }
 
 function legalShell(title, body) {
-  return `<main>
+  return `<main id="app-fallback">
   <p><a href="/">← Back to pdfdiff</a></p>
   <header>
     <p>Legal</p>
@@ -143,7 +143,7 @@ function legalShell(title, body) {
 </main>`;
 }
 
-const HOME_BODY = `<main>
+const HOME_BODY = `<main id="app-fallback">
   <h1>Compare PDFs. See what changed.</h1>
   <p>
     Overlay two revisions page by page, text and drawings. Files are compared in this browser and never uploaded.

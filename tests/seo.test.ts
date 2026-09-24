@@ -10,13 +10,13 @@ function pngSize(buffer: Buffer): { width: number; height: number } {
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
 
-test("index.html ships visible crawlable copy in #root", async () => {
+test("index.html ships crawlable #root copy hidden until React mounts", async () => {
   const html = await readFile(new URL("index.html", root), "utf8");
   assert.match(html, /<div id="root">[\s\S]*<h1>[\s\S]*Compare PDFs/);
   assert.match(html, /never uploaded/i);
   assert.match(html, /Files never leave (your|the) device/i);
-  assert.doesNotMatch(html, /#app-fallback\s*\{\s*display:\s*none/);
-  assert.doesNotMatch(html, /id="app-fallback"/);
+  assert.match(html, /#app-fallback\s*\{\s*display:\s*none/);
+  assert.match(html, /id="app-fallback"/);
 });
 
 test("index.html ships title, description, social cards, and WebApplication JSON-LD", async () => {

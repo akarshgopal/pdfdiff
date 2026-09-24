@@ -138,8 +138,10 @@ test("prerenders unique crawlable HTML for home, privacy, and terms", async () =
   assert.match(home, /<div id="root"[^>]*>[\s\S]*<h1>[\s\S]*Compare PDFs/);
   assert.match(home, /Files are compared in this browser and never uploaded/);
   assert.match(home, /Files never leave (your|the) device/i);
-  assert.doesNotMatch(home, /#app-fallback\s*\{\s*display:\s*none/);
-  assert.doesNotMatch(home, /id="app-fallback"/);
+  for (const page of [home, privacy, terms]) {
+    assert.match(page, /#app-fallback\s*\{\s*display:\s*none/);
+    assert.match(page, /id="app-fallback"/);
+  }
 
   assert.match(home, /"@type":\s*"WebApplication"/);
   assert.doesNotMatch(privacy, /"@type":\s*"WebApplication"/);
