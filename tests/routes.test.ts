@@ -4,7 +4,6 @@ import {
   HOME_TITLE,
   INDEXABLE_ROBOTS,
   NOT_FOUND_ROBOTS,
-  ROUTE_DOCUMENT_META,
   appRouteFromPath,
   canonicalPathForRoute,
   documentMetaForRoute,
@@ -38,8 +37,8 @@ test("document meta points canonical and robots at the current route", () => {
 
   const privacy = documentMetaForRoute("privacy", origin, "/privacy");
   assert.equal(privacy.canonicalUrl, "https://pdfdiff.app/privacy");
-  assert.equal(privacy.title, ROUTE_DOCUMENT_META.privacy.title);
-  assert.equal(privacy.description, ROUTE_DOCUMENT_META.privacy.description);
+  assert.equal(privacy.title, "Privacy Policy — pdfdiff");
+  assert.equal(privacy.description, "How pdfdiff handles PDF files, browser storage, and technical data.");
   assert.equal(privacy.robots, INDEXABLE_ROBOTS);
 
   const missing = documentMetaForRoute("not-found", origin, "/old-docs");
