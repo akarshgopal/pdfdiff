@@ -129,6 +129,24 @@ test("privacy and terms are static HTML with their own titles, canonicals, and b
   assert.doesNotMatch(terms, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
 });
 
+/** First element of `tag`. Site chrome is that header; legal pages also have an article header. */
+function firstElement(html: string, tag: "header" | "footer"): string {
+  const match = html.match(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`));
+  assert.ok(match, `expected <${tag}>`);
+  return match[0];
+}
+
+test("landing, privacy, and terms share identical site header and footer", async () => {
+  const files = ["index.html", "privacy/index.html", "terms/index.html"] as const;
+  const pages = await Promise.all(files.map((file) => readFile(new URL(file, root), "utf8")));
+  const header = firstElement(pages[0], "header");
+  const footer = firstElement(pages[0], "footer");
+  for (const [index, html] of pages.entries()) {
+    assert.equal(firstElement(html, "header"), header, files[index]);
+    assert.equal(firstElement(html, "footer"), footer, files[index]);
+  }
+});
+
 test("app/index.html is the React compare workspace", async () => {
   const html = await readFile(new URL("app/index.html", root), "utf8");
   assert.ok(html.includes(`<title>${APP_TITLE}</title>`));
