@@ -35,9 +35,47 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <link rel="manifest" href="/site.webmanifest" />
     <script src="/theme-init.js"></script>
+    <style>
+      [data-404-mode="idle"] [data-404-diff] {
+        display: none;
+      }
+      [data-404-mode="diff"] [data-404-idle] {
+        display: none;
+      }
+      .pdfdiff-404-swipe {
+        animation: pdfdiff-404-swipe 4.8s ease-in-out infinite;
+      }
+      @keyframes pdfdiff-404-swipe {
+        0%,
+        100% {
+          clip-path: inset(0 55% 0 0);
+        }
+        50% {
+          clip-path: inset(0 10% 0 0);
+        }
+      }
+      .pdfdiff-404-handle {
+        animation: pdfdiff-404-handle 4.8s ease-in-out infinite;
+      }
+      @keyframes pdfdiff-404-handle {
+        0%,
+        100% {
+          left: 45%;
+        }
+        50% {
+          left: 90%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pdfdiff-404-swipe,
+        .pdfdiff-404-handle {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <main class="min-h-screen bg-background font-sans tracking-tight text-foreground">
+    <main class="min-h-screen bg-background font-sans tracking-tight text-foreground" data-404-mode="idle">
       <div class="flex min-h-screen w-full flex-col">
         <header
           class="flex min-h-[56px] items-center justify-between gap-5 border-b border-border bg-card px-5 lg:px-8"
@@ -46,20 +84,17 @@
             class="inline-flex items-center gap-2.5 text-base font-semibold tracking-tight whitespace-nowrap text-foreground no-underline"
             href="/"
             aria-label="pdfdiff home"
-            data-404-mark
           >
             <span
-              class="grid size-[26px] cursor-pointer place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-transform"
+              class="grid size-[26px] place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
               aria-hidden="true"
-              data-404-glyph
-              title=""
               >◐</span
             >
             pdfdiff
           </a>
           <div class="flex items-center gap-2">
             <a
-              class="inline-flex size-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-card text-2xs font-medium whitespace-nowrap text-muted-foreground no-underline transition-colors hover:border-foreground/30 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+              class="inline-flex size-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-card text-2xs font-medium whitespace-nowrap text-muted-foreground no-underline transition-colors hover:border-foreground/30 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
               href="https://github.com/akarshgopal/pdfdiff"
               target="_blank"
               rel="noopener noreferrer"
@@ -124,63 +159,122 @@
             </button>
           </div>
         </header>
-        <article class="mx-auto w-full max-w-[720px] flex-1 px-5 py-12 lg:px-8 lg:py-16" data-404-article>
-          <p
-            class="m-0 font-mono text-5xl font-semibold tracking-tight text-muted-foreground/40 sm:text-6xl"
-            aria-hidden="true"
-          >
-            404
-          </p>
-          <header class="mt-6">
-            <p class="m-0 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase" data-404-eyebrow>
-              Pair check failed
-            </p>
-            <h1 class="m-0 mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" data-404-title>
-              We couldn’t match this page
-            </h1>
-            <p class="m-0 mt-3 text-base leading-7 text-muted-foreground" data-404-lead>
-              Earlier and newer both came back empty. Either the URL drifted, or this path was never in the document.
-            </p>
-          </header>
-          <div
-            class="mt-10 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-            data-404-demo
-            aria-hidden="true"
-          >
-            <div
-              class="flex items-center justify-between border-b border-border px-4 py-2 text-2xs font-medium text-muted-foreground"
+
+        <article class="mx-auto w-full max-w-[720px] flex-1 px-5 py-12 lg:px-8 lg:py-16">
+          <div data-404-idle>
+            <p
+              class="m-0 font-mono text-5xl font-semibold tracking-tight text-muted-foreground/40 sm:text-6xl"
+              aria-hidden="true"
             >
-              <span>missing.pdf · p.?</span>
-              <span class="rounded-md bg-muted px-2 py-0.5 text-foreground/80">overlay</span>
-            </div>
-            <div class="relative grid aspect-[16/9] place-items-center bg-muted/40">
-              <div
-                class="pointer-events-none absolute inset-3 rounded-lg border border-dashed border-border/80 bg-background/60"
-              ></div>
-              <div class="relative z-10 max-w-[14rem] text-center">
-                <p class="m-0 text-sm font-medium text-foreground">No pages to align</p>
-                <p class="m-0 mt-1 text-xs leading-5 text-muted-foreground">
-                  Confidence: <span class="font-mono">0%</span>
-                </p>
-              </div>
-              <div
-                class="pointer-events-none absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-primary/50"
-                data-404-swipe
-              ></div>
-            </div>
+              404
+            </p>
+            <header class="mt-6">
+              <p class="m-0 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Not found</p>
+              <h1 class="m-0 mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">This page does not exist</h1>
+              <p class="m-0 mt-3 text-base leading-7 text-muted-foreground">
+                The URL is not a page on pdfdiff. It never paired with anything we ship.
+              </p>
+            </header>
+            <p class="m-0 mt-8 text-base leading-7 text-muted-foreground">
+              <a
+                class="rounded-sm text-primary underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                href="/"
+                >Return home</a
+              >
+              to compare two PDFs in your browser. Files never leave your device.
+            </p>
+            <p class="m-0 mt-6 text-xs text-muted-foreground/70">Tip: the classic cheat code still works here.</p>
           </div>
-          <p class="m-0 mt-8 text-base leading-7 text-muted-foreground">
-            <a
-              class="rounded-sm text-primary underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              href="/"
-              >Return home</a
-            >
-            and compare two PDFs that actually exist. Files never leave your device.
-          </p>
-          <p class="m-0 mt-4 hidden text-sm text-muted-foreground" data-404-egg role="status" aria-live="polite">
-            Nice. You found the only change on this page: there isn’t one.
-          </p>
+
+          <div data-404-diff hidden>
+            <header>
+              <p class="m-0 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Mispair cue</p>
+              <h1 class="m-0 mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                These two pages refuse to align
+              </h1>
+              <p class="m-0 mt-3 text-base leading-7 text-muted-foreground">
+                Earlier: <span class="font-mono text-foreground">/nowhere</span>. Newer:
+                <span class="font-mono text-foreground">/also-nowhere</span>. Overlay, split, and swipe all agree —
+                confidence <span class="font-mono">0%</span>.
+              </p>
+            </header>
+            <div class="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-sm" aria-hidden="true">
+              <div class="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
+                <button
+                  type="button"
+                  data-404-tab="overlay"
+                  class="rounded-md bg-muted px-2.5 py-1 text-2xs font-medium text-foreground"
+                >
+                  Overlay
+                </button>
+                <button
+                  type="button"
+                  data-404-tab="split"
+                  class="rounded-md px-2.5 py-1 text-2xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Split
+                </button>
+                <button
+                  type="button"
+                  data-404-tab="swipe"
+                  class="rounded-md px-2.5 py-1 text-2xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Swipe
+                </button>
+              </div>
+              <div class="relative aspect-[16/10] bg-muted/30" data-404-stage="overlay">
+                <div class="absolute inset-4 rounded-lg border border-dashed border-rose-500/50 bg-rose-500/10 p-4">
+                  <p class="m-0 text-xs font-semibold text-rose-600 dark:text-rose-400">EARLIER</p>
+                  <p class="m-0 mt-2 font-mono text-sm text-muted-foreground">[ page missing ]</p>
+                </div>
+                <div
+                  class="absolute inset-4 translate-x-2 translate-y-2 rounded-lg border border-dashed border-emerald-500/50 bg-emerald-500/10 p-4"
+                >
+                  <p class="m-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">NEWER</p>
+                  <p class="m-0 mt-2 font-mono text-sm text-muted-foreground">[ page missing ]</p>
+                </div>
+              </div>
+              <div class="relative hidden aspect-[16/10] bg-muted/30" data-404-stage="split">
+                <div
+                  class="absolute inset-y-4 right-1/2 left-4 mr-1 rounded-lg border border-dashed border-rose-500/40 bg-background/80 p-4"
+                >
+                  <p class="m-0 text-xs font-semibold text-rose-600 dark:text-rose-400">EARLIER</p>
+                  <p class="m-0 mt-6 text-center font-mono text-xs text-muted-foreground">404 · left</p>
+                </div>
+                <div
+                  class="absolute inset-y-4 right-4 left-1/2 ml-1 rounded-lg border border-dashed border-emerald-500/40 bg-background/80 p-4"
+                >
+                  <p class="m-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">NEWER</p>
+                  <p class="m-0 mt-6 text-center font-mono text-xs text-muted-foreground">404 · right</p>
+                </div>
+              </div>
+              <div class="relative hidden aspect-[16/10] overflow-hidden bg-muted/30" data-404-stage="swipe">
+                <div
+                  class="absolute inset-4 rounded-lg border border-dashed border-emerald-500/40 bg-emerald-500/5 p-4"
+                >
+                  <p class="m-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">NEWER</p>
+                  <p class="m-0 mt-8 text-center font-mono text-xs text-muted-foreground">still missing</p>
+                </div>
+                <div
+                  class="pdfdiff-404-swipe absolute inset-4 rounded-lg border border-dashed border-rose-500/40 bg-background p-4"
+                >
+                  <p class="m-0 text-xs font-semibold text-rose-600 dark:text-rose-400">EARLIER</p>
+                  <p class="m-0 mt-8 text-center font-mono text-xs text-muted-foreground">still missing</p>
+                </div>
+                <div class="pdfdiff-404-handle absolute top-4 bottom-4 w-0.5 -translate-x-1/2 bg-primary"></div>
+              </div>
+            </div>
+            <p class="m-0 mt-8 text-base leading-7 text-muted-foreground" role="status">
+              <a
+                class="rounded-sm text-primary underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                href="/"
+                >Return home</a
+              >
+              — real PDFs pair better than this.
+            </p>
+          </div>
         </article>
+
         <footer class="mt-auto border-t border-border bg-card px-5 lg:px-8">
           <div
             class="mx-auto flex min-h-16 w-full max-w-[1120px] flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center"
@@ -215,30 +309,59 @@
     </main>
     <script type="module" src="/static-shell.ts"></script>
     <script type="module">
-      // Easter egg: click the ◐ glyph seven times. The "pdfdiff" label still goes home.
-      const glyph = document.querySelector("[data-404-glyph]");
-      const egg = document.querySelector("[data-404-egg]");
-      const swipe = document.querySelector("[data-404-swipe]");
-      if (glyph && egg) {
-        let taps = 0;
-        let timer = 0;
-        glyph.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          taps += 1;
-          glyph.style.transform = `rotate(${taps * 45}deg)`;
-          window.clearTimeout(timer);
-          timer = window.setTimeout(() => {
-            taps = 0;
-            glyph.style.transform = "";
-          }, 1600);
-          if (taps >= 7) {
-            taps = 0;
-            glyph.style.transform = "rotate(360deg)";
-            egg.classList.remove("hidden");
-            if (swipe) swipe.classList.add("animate-pulse");
+      const root = document.querySelector("[data-404-mode]");
+      const idle = document.querySelector("[data-404-idle]");
+      const diff = document.querySelector("[data-404-diff]");
+      const sequence = [
+        "ArrowUp",
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowLeft",
+        "ArrowRight",
+        "b",
+        "a",
+      ];
+      let progress = 0;
+
+      function unlockDiff() {
+        if (!root || !idle || !diff) return;
+        root.setAttribute("data-404-mode", "diff");
+        idle.hidden = true;
+        diff.hidden = false;
+        setTab("swipe");
+      }
+
+      function setTab(name) {
+        for (const btn of document.querySelectorAll("[data-404-tab]")) {
+          const on = btn.getAttribute("data-404-tab") === name;
+          btn.classList.toggle("bg-muted", on);
+          btn.classList.toggle("text-foreground", on);
+          btn.classList.toggle("text-muted-foreground", !on);
+        }
+        for (const stage of document.querySelectorAll("[data-404-stage]")) {
+          stage.classList.toggle("hidden", stage.getAttribute("data-404-stage") !== name);
+        }
+      }
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+        const expected = sequence[progress];
+        if (key === expected || (expected.length === 1 && key === expected)) {
+          progress += 1;
+          if (progress === sequence.length) {
+            progress = 0;
+            unlockDiff();
           }
-        });
+        } else {
+          progress = key === sequence[0] ? 1 : 0;
+        }
+      });
+
+      for (const btn of document.querySelectorAll("[data-404-tab]")) {
+        btn.addEventListener("click", () => setTab(btn.getAttribute("data-404-tab")));
       }
     </script>
   </body>
