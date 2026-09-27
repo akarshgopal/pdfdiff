@@ -44,7 +44,7 @@ Oddity, left as documented: an unknown path is 404 on Vite and 200 marketing HTM
 ## Commits
 
 - `6e72e2336e33bae8f939a9bcd0013a885e31e1c6` — `fix(seo): serve MPA directory pages at their no-slash canonicals` (unit 3 code and `docs/mpa-unit3-notes.md`)
-- This file is the next commit, `docs: record mpa unit 4 verification`, parent `6e72e2336e33bae8f939a9bcd0013a885e31e1c6`.
+- `2893cb0f564d6630c5bfb62c9a9b20ac4829a0d3` — `docs: record mpa unit 4 verification` (this file)
 
 ## Verdict
 
