@@ -93,8 +93,12 @@ test("dist ships a noindex 404 page for Cloudflare 404-page handling", async () 
   assert.match(notFound, /This page does not exist/);
   assert.match(notFound, /never leave your device/i);
   assert.match(notFound, /data-404-mode/);
-  assert.match(notFound, /ArrowUp/);
   assert.match(notFound, /These two pages refuse to align/);
+  assert.match(notFound, /assets\/notFound-[^"]+\.js/);
+  const eggScript = notFound.match(/assets\/(notFound-[^"]+\.js)/)[1];
+  const egg = await readFile(new URL(`../dist/assets/${eggScript}`, import.meta.url), "utf8");
+  assert.match(egg, /ArrowUp/);
+  assert.match(egg, /unlockDiff|data-404-mode/);
   assert.doesNotMatch(notFound, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
   assert.ok(existsSync(new URL("../dist/404.html", import.meta.url)));
 });
