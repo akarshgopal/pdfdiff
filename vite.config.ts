@@ -62,24 +62,29 @@ export function rewriteAbsoluteSiteMetadata(text: string, origin: string | null)
   return text.replaceAll(PRODUCTION_SITE_ORIGIN, origin);
 }
 
-const MPA_DIRECTORY_INDEXES = new Set(["/app", "/privacy", "/terms"]);
+const MPA_DIRECTORY_INDEXES = new Set(["/privacy", "/terms"]);
+
+export type MpaDirectoryDecision =
+  { type: "rewrite"; url: string } | { type: "redirect"; url: string; status: 301 | 307 };
 
 /**
- * Vite's MPA static server only serves `app/index.html` at `/app/`.
- * Canonicals and wrangler `html_handling: drop-trailing-slash` use `/app`.
- * Rewrite the bare path onto the directory index, and send the slashed
- * (and `/index.html`) forms back to that bare path.
+ * `/privacy` and `/terms` are directory indexes. Vite serves them at the slashed
+ * path. Rewrite the bare path onto that index, and send the slashed (and
+ * `/index.html`) forms back to the bare canonical.
+ * `/app` is not a page. Bare, slashed, and `/index.html` forms redirect to `/`.
+ * The query string is preserved.
  */
-export function mpaDirectoryRequest(url: string): { type: "redirect" | "rewrite"; url: string } | null {
+export function mpaDirectoryRequest(url: string): MpaDirectoryDecision | null {
   const queryAt = url.indexOf("?");
   const path = queryAt === -1 ? url : url.slice(0, queryAt);
   const search = queryAt === -1 ? "" : url.slice(queryAt);
   if (!path.startsWith("/") || path.startsWith("//")) return null;
   const withoutIndex = path.endsWith("/index.html") ? path.slice(0, -"/index.html".length) : path;
   const bare = withoutIndex.replace(/\/+$/, "") || "/";
+  if (bare === "/app") return { type: "redirect", url: `/${search}`, status: 301 };
   if (!MPA_DIRECTORY_INDEXES.has(bare)) return null;
   if (path === bare) return { type: "rewrite", url: `${bare}/${search}` };
-  return { type: "redirect", url: `${bare}${search}` };
+  return { type: "redirect", url: `${bare}${search}`, status: 307 };
 }
 
 function mpaDirectoryIndexes(): Plugin {
@@ -94,7 +99,7 @@ function mpaDirectoryIndexes(): Plugin {
       return;
     }
     if (decision.type === "redirect") {
-      res.statusCode = 307;
+      res.statusCode = decision.status;
       res.setHeader("Location", decision.url);
       res.end();
       return;
@@ -134,8 +139,8 @@ export default defineConfig(({ mode }) => {
   stageLlmsTxt();
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    // Multi-page: unknown paths 404 locally. Production still serves the marketing
-    // index for those, via wrangler `not_found_handling` (see docs/mpa-unit1-notes.md).
+    // Multi-page: unknown paths 404 locally. Production still serves this index for
+    // those, via wrangler `not_found_handling`. `/app` redirects to `/` instead.
     appType: "mpa",
     plugins: [mpaDirectoryIndexes(), tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
     build: {
@@ -144,7 +149,6 @@ export default defineConfig(({ mode }) => {
           main: path.resolve(rootDir, "index.html"),
           privacy: path.resolve(rootDir, "privacy/index.html"),
           terms: path.resolve(rootDir, "terms/index.html"),
-          app: path.resolve(rootDir, "app/index.html"),
         },
       },
     },

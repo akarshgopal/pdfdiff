@@ -11,9 +11,7 @@ declare global {
   }
 }
 
-// Mounted only from /app. Landing, legal, and unknown URLs are static HTML
-// (unknown paths hit the Cloudflare SPA fallback, which serves the marketing index).
-applyDocumentMeta("app");
+applyDocumentMeta("home");
 
 function App() {
   const recordMetric = useCallback((metric: DiffMetric): void => {

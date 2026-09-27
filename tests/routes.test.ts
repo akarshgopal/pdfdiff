@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  APP_DESCRIPTION,
-  APP_TITLE,
   HOME_TITLE,
   INDEXABLE_ROBOTS,
   NOT_FOUND_ROBOTS,
@@ -12,11 +10,11 @@ import {
   documentMetaForRoute,
 } from "../app/pdfdiff/routes.ts";
 
-test("appRouteFromPath maps marketing, the compare app, legal pages, and unknown paths", () => {
+test("appRouteFromPath maps the product, legal pages, and unknown paths", () => {
   assert.equal(appRouteFromPath("/"), "home");
   assert.equal(appRouteFromPath(""), "home");
-  assert.equal(appRouteFromPath("/app"), "app");
-  assert.equal(appRouteFromPath("/app/"), "app");
+  assert.equal(appRouteFromPath("/app"), "home");
+  assert.equal(appRouteFromPath("/app/"), "home");
   assert.equal(appRouteFromPath("/privacy"), "privacy");
   assert.equal(appRouteFromPath("/privacy/"), "privacy");
   assert.equal(appRouteFromPath("/terms"), "terms");
@@ -26,9 +24,9 @@ test("appRouteFromPath maps marketing, the compare app, legal pages, and unknown
   assert.equal(appRouteFromPath("/app/extra"), "not-found");
 });
 
-test("canonical path is the route, not the homepage, including unknown URLs", () => {
+test("canonical path is the route, including the retired /app URL as home", () => {
   assert.equal(canonicalPathForRoute("home", "/"), "/");
-  assert.equal(canonicalPathForRoute("app", "/app/"), "/app");
+  assert.equal(canonicalPathForRoute("home", "/app/"), "/");
   assert.equal(canonicalPathForRoute("privacy", "/privacy"), "/privacy");
   assert.equal(canonicalPathForRoute("terms", "/terms/"), "/terms");
   assert.equal(canonicalPathForRoute("not-found", "/no-such-page"), "/no-such-page");
@@ -48,11 +46,10 @@ test("document meta points canonical and robots at the current route", () => {
   assert.equal(privacy.description, ROUTE_DOCUMENT_META.privacy.description);
   assert.equal(privacy.robots, INDEXABLE_ROBOTS);
 
-  const app = documentMetaForRoute("app", origin, "/app/");
-  assert.equal(app.canonicalUrl, "https://pdfdiff.app/app");
-  assert.equal(app.title, APP_TITLE);
-  assert.equal(app.description, APP_DESCRIPTION);
-  assert.equal(app.robots, INDEXABLE_ROBOTS);
+  const retired = documentMetaForRoute("home", origin, "/app/");
+  assert.equal(retired.canonicalUrl, "https://pdfdiff.app/");
+  assert.equal(retired.title, HOME_TITLE);
+  assert.equal(retired.robots, INDEXABLE_ROBOTS);
 
   const missing = documentMetaForRoute("not-found", origin, "/old-docs");
   assert.equal(missing.canonicalUrl, "https://pdfdiff.app/old-docs");

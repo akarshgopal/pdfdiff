@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import {
-  APP_DESCRIPTION,
-  APP_TITLE,
-  HOME_DESCRIPTION,
-  HOME_TITLE,
-  ROUTE_DOCUMENT_META,
-} from "../app/pdfdiff/routes.ts";
+import { HOME_DESCRIPTION, HOME_TITLE, ROUTE_DOCUMENT_META } from "../app/pdfdiff/routes.ts";
 import { mpaDirectoryRequest, rewriteAbsoluteSiteMetadata } from "../vite.config.ts";
 
 const root = new URL("../", import.meta.url);
@@ -73,7 +67,8 @@ test("robots.txt and sitemap.xml point at pdfdiff.app", async () => {
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/privacy<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/terms<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/app<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/llms\.txt<\/loc>/);
+  assert.doesNotMatch(sitemap, /<loc>https:\/\/pdfdiff\.app\/app\/?<\/loc>/);
 });
 
 test("VITE_SITE_URL rewrites robots.txt and sitemap.xml the same way as index.html", async () => {
@@ -99,36 +94,26 @@ test("CSP does not allow Google Fonts", async () => {
   assert.doesNotMatch(headers, /fonts\.googleapis|fonts\.gstatic/i);
 });
 
-test("landing page is static marketing HTML with a CTA to /app", async () => {
+test("index.html mounts the React app and keeps a crawlable fallback", async () => {
   const html = await readFile(new URL("index.html", root), "utf8");
-  assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs/);
+  assert.match(html, /id="root"/);
+  assert.match(html, /src="\/main\.tsx"/);
+  assert.match(html, /id="app-fallback"/);
+  assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs\. See what changed\./);
   assert.match(html, /never uploaded/i);
   assert.match(html, /Files never leave your device/i);
-  assert.match(html, /href="\/app"/);
-  assert.match(html, /src="\/static-shell\.ts"/);
-  assert.match(html, /data-hero-demo/);
-  assert.match(html, /data-hero-count/);
-  assert.match(html, /data-hero-caption/);
-  assert.match(html, /pdfdiff-swipe-top/);
-  assert.match(html, /pdfdiff-swipe-handle/);
-  assert.match(html, /ASSY-4471/);
-  assert.match(html, /aria-label="Demo comparison views"/);
-  assert.match(html, /Drag the divider to reveal one revision under the other/);
-  assert.match(html, /data-hero-mode="swipe"[^>]*aria-pressed="true"/);
-  for (const mode of ["overlay", "split", "text"]) {
-    assert.match(html, new RegExp(`data-hero-panel="${mode}"[^>]*\\bhidden\\b`), mode);
-  }
-  const swipe = html.match(/<div\b[^>]*data-hero-panel="swipe"[^>]*>/);
-  assert.ok(swipe, "expected the swipe panel");
-  assert.doesNotMatch(swipe[0], /\bhidden\b/);
-  assert.doesNotMatch(html, /On your device/);
-  assert.doesNotMatch(html, /id="root"|\/main\.tsx/);
+  assert.match(html, /#app-fallback\s*\{[^}]*display:\s*none/);
+  assert.match(html, /<noscript[\s\S]*#app-fallback[\s\S]*display:\s*revert/);
+  assert.doesNotMatch(html, /href="\/app"/);
+  assert.doesNotMatch(html, /data-hero-demo/);
+  assert.doesNotMatch(html, /static-shell\.ts/);
+});
 
+test("static shell toggles theme for the legal pages and does not mount React", async () => {
   const shell = await readFile(new URL("static-shell.ts", root), "utf8");
-  assert.match(shell, /\[data-hero-demo\]/);
-  assert.match(shell, /4200/);
-  assert.match(shell, /prefers-reduced-motion:\s*reduce/);
+  assert.match(shell, /\[data-theme-toggle\]/);
   assert.doesNotMatch(shell, /from ["']react["']/);
+  assert.doesNotMatch(shell, /\[data-hero-demo\]/);
 });
 
 test("privacy and terms are static HTML with their own titles, canonicals, and body copy", async () => {
@@ -158,8 +143,8 @@ function firstElement(html: string, tag: "header" | "footer"): string {
   return match[0];
 }
 
-test("landing, privacy, and terms share identical site header and footer", async () => {
-  const files = ["index.html", "privacy/index.html", "terms/index.html"] as const;
+test("privacy and terms share identical site header and footer", async () => {
+  const files = ["privacy/index.html", "terms/index.html"] as const;
   const pages = await Promise.all(files.map((file) => readFile(new URL(file, root), "utf8")));
   const header = firstElement(pages[0], "header");
   const footer = firstElement(pages[0], "footer");
@@ -167,28 +152,22 @@ test("landing, privacy, and terms share identical site header and footer", async
     assert.equal(firstElement(html, "header"), header, files[index]);
     assert.equal(firstElement(html, "footer"), footer, files[index]);
   }
+  const home = await readFile(new URL("index.html", root), "utf8");
+  assert.match(home, /id="root"/);
+  assert.match(home, /src="\/main\.tsx"/);
 });
 
-test("app/index.html is the React compare workspace", async () => {
-  const html = await readFile(new URL("app/index.html", root), "utf8");
-  assert.ok(html.includes(`<title>${APP_TITLE}</title>`));
-  assert.ok(html.includes(`content="${APP_DESCRIPTION}"`));
-  assert.match(html, /rel="canonical" href="https:\/\/pdfdiff\.app\/app"/);
-  assert.match(html, /id="root"/);
-  assert.match(html, /src="\/main\.tsx"/);
-  assert.doesNotMatch(html, /"@type":\s*"WebApplication"/);
-  assert.doesNotMatch(html, /static-shell\.ts/);
-});
-
-test("vite directory indexes follow the no-slash canonical paths", () => {
-  assert.deepEqual(mpaDirectoryRequest("/app"), { type: "rewrite", url: "/app/" });
+test("vite sends /app home and keeps legal directory indexes on the bare path", () => {
+  assert.deepEqual(mpaDirectoryRequest("/app"), { type: "redirect", url: "/", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app/"), { type: "redirect", url: "/", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app/index.html"), { type: "redirect", url: "/", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app?x=1"), { type: "redirect", url: "/?x=1", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app/?x=1"), { type: "redirect", url: "/?x=1", status: 301 });
   assert.deepEqual(mpaDirectoryRequest("/privacy"), { type: "rewrite", url: "/privacy/" });
   assert.deepEqual(mpaDirectoryRequest("/terms"), { type: "rewrite", url: "/terms/" });
-  assert.deepEqual(mpaDirectoryRequest("/app/"), { type: "redirect", url: "/app" });
-  assert.deepEqual(mpaDirectoryRequest("/privacy/"), { type: "redirect", url: "/privacy" });
-  assert.deepEqual(mpaDirectoryRequest("/terms/index.html"), { type: "redirect", url: "/terms" });
-  assert.deepEqual(mpaDirectoryRequest("/app?x=1"), { type: "rewrite", url: "/app/?x=1" });
-  assert.deepEqual(mpaDirectoryRequest("/privacy/?x=1"), { type: "redirect", url: "/privacy?x=1" });
+  assert.deepEqual(mpaDirectoryRequest("/privacy/"), { type: "redirect", url: "/privacy", status: 307 });
+  assert.deepEqual(mpaDirectoryRequest("/terms/index.html"), { type: "redirect", url: "/terms", status: 307 });
+  assert.deepEqual(mpaDirectoryRequest("/privacy/?x=1"), { type: "redirect", url: "/privacy?x=1", status: 307 });
   assert.equal(mpaDirectoryRequest("/"), null);
   assert.equal(mpaDirectoryRequest("/no-such-page"), null);
   assert.equal(mpaDirectoryRequest("/app/extra"), null);
@@ -196,7 +175,7 @@ test("vite directory indexes follow the no-slash canonical paths", () => {
 });
 
 test("VITE_SITE_URL rewrites the origin in every HTML input", async () => {
-  for (const file of ["index.html", "privacy/index.html", "terms/index.html", "app/index.html"]) {
+  for (const file of ["index.html", "privacy/index.html", "terms/index.html"]) {
     const html = await readFile(new URL(file, root), "utf8");
     assert.match(html, /https:\/\/pdfdiff\.app/, file);
     assert.equal(rewriteAbsoluteSiteMetadata(html, null), html, file);

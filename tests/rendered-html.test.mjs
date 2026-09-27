@@ -14,7 +14,7 @@ function moduleSources(html) {
   return [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"[^>]*>/gi)].map((match) => match[1]);
 }
 
-test("builds a crawlable marketing page and a separate compare workspace", async () => {
+test("dist index is the React app with a crawlable shell", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
   assert.match(html, /<title>Compare two PDFs privately in your browser \| pdfdiff<\/title>/i);
   assert.match(html, /name="description"\s+content="[^"]*Files never leave your device[^"]*"/i);
@@ -30,12 +30,14 @@ test("builds a crawlable marketing page and a separate compare workspace", async
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
   assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/i);
   assert.match(html, /rel="manifest" href="\/site\.webmanifest"/i);
-  assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs/);
-  assert.match(html, /href="\/app"/);
+  assert.match(html, /id="root"/);
+  assert.match(html, /id="app-fallback"/);
+  assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs\. See what changed\./);
   assert.match(html, /never uploaded/i);
+  assert.match(html, /Files never leave your device/i);
+  assert.doesNotMatch(html, /href="\/app"/);
   assert.match(html, /<script[^>]+type="module"/i);
   assert.match(html, /<link[^>]+stylesheet/i);
-  assert.doesNotMatch(html, /id="root"|\/main\.tsx/i);
   assert.doesNotMatch(html, /google-analytics|gtag\(|googletagmanager|posthog/i);
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
   assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
@@ -44,23 +46,30 @@ test("builds a crawlable marketing page and a separate compare workspace", async
   assert.equal(existsSync(new URL("../dist/llms.txt", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/app/index.html", import.meta.url)), false);
 
   const sitemap = await readFile(new URL("../dist/sitemap.xml", import.meta.url), "utf8");
-  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/app<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/privacy<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/terms<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/llms\.txt<\/loc>/);
+  assert.doesNotMatch(sitemap, /<loc>https:\/\/pdfdiff\.app\/app\/?<\/loc>/);
 
-  const marketingModules = await Promise.all(
-    moduleSources(html).map((src) => readFile(new URL(`../dist${src}`, import.meta.url), "utf8")),
-  );
-  assert.doesNotMatch(marketingModules.join("\n"), /createRoot|PdfDiffApp/);
+  const redirects = await readFile(new URL("../dist/_redirects", import.meta.url), "utf8");
+  assert.match(redirects, /^\/app \/ 301$/m);
+  assert.match(redirects, /^\/app\/ \/ 301$/m);
+
+  assert.ok(moduleSources(html).some((src) => src.startsWith("/assets/") && src.endsWith(".js")));
 
   const bundle = await clientBundleText();
   assert.match(bundle, /never uploaded/i);
+  assert.match(bundle, /Try a sample/);
+  assert.match(bundle, /Earlier/);
 });
 
-test("dist ships static legal pages and the React compare entry", async () => {
+test("dist ships static legal pages and no /app workspace", async () => {
   const privacy = await readFile(new URL("../dist/privacy/index.html", import.meta.url), "utf8");
   const terms = await readFile(new URL("../dist/terms/index.html", import.meta.url), "utf8");
-  const app = await readFile(new URL("../dist/app/index.html", import.meta.url), "utf8");
 
   assert.match(privacy, /<title>Privacy Policy — pdfdiff<\/title>/);
   assert.match(privacy, /rel="canonical" href="https:\/\/pdfdiff\.app\/privacy"/);
@@ -75,17 +84,6 @@ test("dist ships static legal pages and the React compare entry", async () => {
   assert.match(terms, /Last updated September 5, 2026/);
   assert.doesNotMatch(terms, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
   assert.notEqual(privacy.match(/<title>([^<]*)<\/title>/)?.[1], terms.match(/<title>([^<]*)<\/title>/)?.[1]);
-
-  assert.match(app, /<title>Compare PDFs in your browser \| pdfdiff<\/title>/);
-  assert.match(app, /rel="canonical" href="https:\/\/pdfdiff\.app\/app"/);
-  assert.match(app, /id="root"/);
-  assert.match(app, /<script[^>]*type="module"[^>]*>/);
-  assert.ok(moduleSources(app).some((src) => src.startsWith("/assets/") && src.endsWith(".js")));
-  assert.doesNotMatch(app, /fonts\.googleapis|fonts\.gstatic|google-analytics|gtag\(|googletagmanager|posthog/i);
-  const appModules = await Promise.all(
-    moduleSources(app).map((src) => readFile(new URL(`../dist${src}`, import.meta.url), "utf8")),
-  );
-  assert.match(appModules.join("\n"), /never uploaded/i);
 });
 
 test("built CSS self-hosts Inter", async () => {

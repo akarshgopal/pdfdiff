@@ -1,9 +1,9 @@
-export type AppRoute = "home" | "app" | "privacy" | "terms" | "not-found";
+export type AppRoute = "home" | "privacy" | "terms" | "not-found";
 
 export function appRouteFromPath(pathname: string): AppRoute {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/") return "home";
-  if (path === "/app") return "app";
+  // /app is the retired workspace URL. It redirects to /; if the app still mounts, it is home.
+  if (path === "/" || path === "/app") return "home";
   if (path === "/privacy") return "privacy";
   if (path === "/terms") return "terms";
   return "not-found";
@@ -13,18 +13,10 @@ export const HOME_TITLE = "Compare two PDFs privately in your browser | pdfdiff"
 export const HOME_DESCRIPTION =
   "Free, browser-based PDF compare. See text and drawing changes between two revisions, page by page. Files never leave your device. Nothing is uploaded.";
 
-export const APP_TITLE = "Compare PDFs in your browser | pdfdiff";
-export const APP_DESCRIPTION =
-  "Upload two PDF revisions and see text and drawing changes page by page. Files never leave your device. Nothing is uploaded.";
-
 export const ROUTE_DOCUMENT_META: Record<AppRoute, { title: string; description: string }> = {
   home: {
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,
-  },
-  app: {
-    title: APP_TITLE,
-    description: APP_DESCRIPTION,
   },
   privacy: {
     title: "Privacy Policy — pdfdiff",
@@ -45,7 +37,6 @@ export const NOT_FOUND_ROBOTS = "noindex, follow";
 
 export function canonicalPathForRoute(route: AppRoute, pathname: string): string {
   if (route === "home") return "/";
-  if (route === "app") return "/app";
   if (route === "privacy") return "/privacy";
   if (route === "terms") return "/terms";
   return pathname.replace(/\/+$/, "") || "/";
@@ -88,8 +79,7 @@ function setAttr(selector: string, attr: string, value: string): void {
 
 /**
  * Sets title, description, canonical, and social tags for one route.
- * Only the compare workspace (`/app`) calls this. Landing and legal pages
- * ship those tags in their HTML files.
+ * `/` already ships the home tags. Privacy and terms are static HTML and do not call this.
  */
 export function applyDocumentMeta(route: AppRoute): void {
   const next = documentMetaForRoute(route, siteOrigin(), window.location.pathname);
