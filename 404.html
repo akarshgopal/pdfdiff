@@ -46,10 +46,13 @@
             class="inline-flex items-center gap-2.5 text-base font-semibold tracking-tight whitespace-nowrap text-foreground no-underline"
             href="/"
             aria-label="pdfdiff home"
+            data-404-mark
           >
             <span
-              class="grid size-[26px] place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+              class="grid size-[26px] cursor-pointer place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-transform"
               aria-hidden="true"
+              data-404-glyph
+              title=""
               >◐</span
             >
             pdfdiff
@@ -121,24 +124,61 @@
             </button>
           </div>
         </header>
-        <article class="mx-auto w-full max-w-[720px] flex-1 px-5 py-12 lg:px-8 lg:py-16">
-          <a
-            class="inline-flex text-sm font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
-            href="/"
-            >← Back to pdfdiff</a
+        <article class="mx-auto w-full max-w-[720px] flex-1 px-5 py-12 lg:px-8 lg:py-16" data-404-article>
+          <p
+            class="m-0 font-mono text-5xl font-semibold tracking-tight text-muted-foreground/40 sm:text-6xl"
+            aria-hidden="true"
           >
-          <header class="mt-8">
-            <p class="m-0 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Not found</p>
-            <h1 class="m-0 mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">This page does not exist</h1>
-            <p class="m-0 mt-3 text-base text-muted-foreground">The URL is not a page on pdfdiff.</p>
+            404
+          </p>
+          <header class="mt-6">
+            <p class="m-0 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase" data-404-eyebrow>
+              Pair check failed
+            </p>
+            <h1 class="m-0 mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" data-404-title>
+              We couldn’t match this page
+            </h1>
+            <p class="m-0 mt-3 text-base leading-7 text-muted-foreground" data-404-lead>
+              Earlier and newer both came back empty. Either the URL drifted, or this path was never in the document.
+            </p>
           </header>
+          <div
+            class="mt-10 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+            data-404-demo
+            aria-hidden="true"
+          >
+            <div
+              class="flex items-center justify-between border-b border-border px-4 py-2 text-2xs font-medium text-muted-foreground"
+            >
+              <span>missing.pdf · p.?</span>
+              <span class="rounded-md bg-muted px-2 py-0.5 text-foreground/80">overlay</span>
+            </div>
+            <div class="relative grid aspect-[16/9] place-items-center bg-muted/40">
+              <div
+                class="pointer-events-none absolute inset-3 rounded-lg border border-dashed border-border/80 bg-background/60"
+              ></div>
+              <div class="relative z-10 max-w-[14rem] text-center">
+                <p class="m-0 text-sm font-medium text-foreground">No pages to align</p>
+                <p class="m-0 mt-1 text-xs leading-5 text-muted-foreground">
+                  Confidence: <span class="font-mono">0%</span>
+                </p>
+              </div>
+              <div
+                class="pointer-events-none absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-primary/50"
+                data-404-swipe
+              ></div>
+            </div>
+          </div>
           <p class="m-0 mt-8 text-base leading-7 text-muted-foreground">
             <a
               class="rounded-sm text-primary underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               href="/"
               >Return home</a
             >
-            to compare two PDFs in your browser. Files never leave your device.
+            and compare two PDFs that actually exist. Files never leave your device.
+          </p>
+          <p class="m-0 mt-4 hidden text-sm text-muted-foreground" data-404-egg role="status" aria-live="polite">
+            Nice. You found the only change on this page: there isn’t one.
           </p>
         </article>
         <footer class="mt-auto border-t border-border bg-card px-5 lg:px-8">
@@ -174,5 +214,32 @@
       </div>
     </main>
     <script type="module" src="/static-shell.ts"></script>
+    <script type="module">
+      // Easter egg: click the ◐ glyph seven times. The "pdfdiff" label still goes home.
+      const glyph = document.querySelector("[data-404-glyph]");
+      const egg = document.querySelector("[data-404-egg]");
+      const swipe = document.querySelector("[data-404-swipe]");
+      if (glyph && egg) {
+        let taps = 0;
+        let timer = 0;
+        glyph.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          taps += 1;
+          glyph.style.transform = `rotate(${taps * 45}deg)`;
+          window.clearTimeout(timer);
+          timer = window.setTimeout(() => {
+            taps = 0;
+            glyph.style.transform = "";
+          }, 1600);
+          if (taps >= 7) {
+            taps = 0;
+            glyph.style.transform = "rotate(360deg)";
+            egg.classList.remove("hidden");
+            if (swipe) swipe.classList.add("animate-pulse");
+          }
+        });
+      }
+    </script>
   </body>
 </html>
