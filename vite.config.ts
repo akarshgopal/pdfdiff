@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Connect, type Plugin } from "vite";
 import { SAMPLE_DOCUMENTS } from "./app/pdfdiff/sampleDocuments.ts";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
@@ -62,6 +62,57 @@ export function rewriteAbsoluteSiteMetadata(text: string, origin: string | null)
   return text.replaceAll(PRODUCTION_SITE_ORIGIN, origin);
 }
 
+const MPA_DIRECTORY_INDEXES = new Set(["/app", "/privacy", "/terms"]);
+
+/**
+ * Vite's MPA static server only serves `app/index.html` at `/app/`.
+ * Canonicals and wrangler `html_handling: drop-trailing-slash` use `/app`.
+ * Rewrite the bare path onto the directory index, and send the slashed
+ * (and `/index.html`) forms back to that bare path.
+ */
+export function mpaDirectoryRequest(url: string): { type: "redirect" | "rewrite"; url: string } | null {
+  const queryAt = url.indexOf("?");
+  const path = queryAt === -1 ? url : url.slice(0, queryAt);
+  const search = queryAt === -1 ? "" : url.slice(queryAt);
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
+  const withoutIndex = path.endsWith("/index.html") ? path.slice(0, -"/index.html".length) : path;
+  const bare = withoutIndex.replace(/\/+$/, "") || "/";
+  if (!MPA_DIRECTORY_INDEXES.has(bare)) return null;
+  if (path === bare) return { type: "rewrite", url: `${bare}/${search}` };
+  return { type: "redirect", url: `${bare}${search}` };
+}
+
+function mpaDirectoryIndexes(): Plugin {
+  const attach: Connect.NextHandleFunction = (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
+    const decision = mpaDirectoryRequest(req.url ?? "/");
+    if (!decision) {
+      next();
+      return;
+    }
+    if (decision.type === "redirect") {
+      res.statusCode = 307;
+      res.setHeader("Location", decision.url);
+      res.end();
+      return;
+    }
+    req.url = decision.url;
+    next();
+  };
+  return {
+    name: "pdfdiff-mpa-directory-indexes",
+    configureServer(server) {
+      server.middlewares.use(attach);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(attach);
+    },
+  };
+}
+
 function absoluteMetadata(origin: string | null): Plugin {
   return {
     name: "pdfdiff-absolute-metadata",
@@ -83,10 +134,10 @@ export default defineConfig(({ mode }) => {
   stageLlmsTxt();
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    // Multi-page: dev does not SPA-fallback unknown paths to the marketing index.
-    // Production still does, via wrangler `not_found_handling` (see docs/mpa-unit1-notes.md).
+    // Multi-page: unknown paths 404 locally. Production still serves the marketing
+    // index for those, via wrangler `not_found_handling` (see docs/mpa-unit1-notes.md).
     appType: "mpa",
-    plugins: [tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
+    plugins: [mpaDirectoryIndexes(), tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
     build: {
       rollupOptions: {
         input: {

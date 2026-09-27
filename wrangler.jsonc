@@ -4,6 +4,9 @@
   "compatibility_date": "2026-08-30",
   "assets": {
     "directory": "./dist",
+    // Canonicals, the sitemap, and in-page links use /privacy, /terms, and /app (no slash).
+    // Default auto-trailing-slash would 307 those directory indexes to the slashed form.
+    "html_handling": "drop-trailing-slash",
     "not_found_handling": "single-page-application",
   },
 }

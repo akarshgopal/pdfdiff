@@ -127,4 +127,6 @@ test("Cloudflare deployment contains static assets only", async () => {
   assert.doesNotMatch(config, /"main"\s*:/);
   assert.doesNotMatch(config, /"binding"\s*:/);
   assert.match(config, /"directory"\s*:\s*"\.\/dist"/);
+  assert.match(config, /"html_handling"\s*:\s*"drop-trailing-slash"/);
+  assert.match(config, /"not_found_handling"\s*:\s*"single-page-application"/);
 });

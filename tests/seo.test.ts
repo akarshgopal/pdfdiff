@@ -8,7 +8,7 @@ import {
   HOME_TITLE,
   ROUTE_DOCUMENT_META,
 } from "../app/pdfdiff/routes.ts";
-import { rewriteAbsoluteSiteMetadata } from "../vite.config.ts";
+import { mpaDirectoryRequest, rewriteAbsoluteSiteMetadata } from "../vite.config.ts";
 
 const root = new URL("../", import.meta.url);
 
@@ -156,6 +156,21 @@ test("app/index.html is the React compare workspace", async () => {
   assert.match(html, /src="\/main\.tsx"/);
   assert.doesNotMatch(html, /"@type":\s*"WebApplication"/);
   assert.doesNotMatch(html, /static-shell\.ts/);
+});
+
+test("vite directory indexes follow the no-slash canonical paths", () => {
+  assert.deepEqual(mpaDirectoryRequest("/app"), { type: "rewrite", url: "/app/" });
+  assert.deepEqual(mpaDirectoryRequest("/privacy"), { type: "rewrite", url: "/privacy/" });
+  assert.deepEqual(mpaDirectoryRequest("/terms"), { type: "rewrite", url: "/terms/" });
+  assert.deepEqual(mpaDirectoryRequest("/app/"), { type: "redirect", url: "/app" });
+  assert.deepEqual(mpaDirectoryRequest("/privacy/"), { type: "redirect", url: "/privacy" });
+  assert.deepEqual(mpaDirectoryRequest("/terms/index.html"), { type: "redirect", url: "/terms" });
+  assert.deepEqual(mpaDirectoryRequest("/app?x=1"), { type: "rewrite", url: "/app/?x=1" });
+  assert.deepEqual(mpaDirectoryRequest("/privacy/?x=1"), { type: "redirect", url: "/privacy?x=1" });
+  assert.equal(mpaDirectoryRequest("/"), null);
+  assert.equal(mpaDirectoryRequest("/no-such-page"), null);
+  assert.equal(mpaDirectoryRequest("/app/extra"), null);
+  assert.equal(mpaDirectoryRequest("/application"), null);
 });
 
 test("VITE_SITE_URL rewrites the origin in every HTML input", async () => {
