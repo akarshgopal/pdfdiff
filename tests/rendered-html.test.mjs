@@ -73,7 +73,7 @@ test("dist ships static legal pages and no /app workspace", async () => {
 
   assert.match(privacy, /<title>Privacy Policy — pdfdiff<\/title>/);
   assert.match(privacy, /rel="canonical" href="https:\/\/pdfdiff\.app\/privacy"/);
-  assert.match(privacy, /How\ pdfdiff\ handles\ PDF\ files,\ browser\ storage,\ and\ technical\ data\./);
+  assert.match(privacy, /How pdfdiff handles PDF files, browser storage, and technical data\./);
   assert.match(privacy, /Last updated September 5, 2026/);
   assert.match(privacy, /never uploaded/i);
   assert.doesNotMatch(privacy, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
