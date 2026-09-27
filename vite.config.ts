@@ -139,8 +139,8 @@ export default defineConfig(({ mode }) => {
   stageLlmsTxt();
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    // Multi-page: unknown paths 404 locally. Production still serves this index for
-    // those, via wrangler `not_found_handling`. `/app` redirects to `/` instead.
+    // Multi-page: unknown paths 404 locally. Production serves dist/404.html via
+    // wrangler `not_found_handling: "404-page"`. `/app` redirects to `/` instead.
     appType: "mpa",
     plugins: [mpaDirectoryIndexes(), tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
     build: {
@@ -149,6 +149,7 @@ export default defineConfig(({ mode }) => {
           main: path.resolve(rootDir, "index.html"),
           privacy: path.resolve(rootDir, "privacy/index.html"),
           terms: path.resolve(rootDir, "terms/index.html"),
+          notFound: path.resolve(rootDir, "404.html"),
         },
       },
     },

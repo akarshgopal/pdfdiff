@@ -7,6 +7,6 @@
     // Canonicals for /privacy and /terms have no slash. /app is not a page: public/_redirects sends it to /.
     // Default auto-trailing-slash would 307 the legal directory indexes to the slashed form.
     "html_handling": "drop-trailing-slash",
-    "not_found_handling": "single-page-application",
+    "not_found_handling": "404-page",
   },
 }

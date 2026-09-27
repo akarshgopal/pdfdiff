@@ -16,7 +16,7 @@ This reverses the marketing-only `/` plus `/app` workspace split. The product ma
 
 `static-shell.ts` only toggles the theme for privacy and terms. The static hero cycler is gone with `[data-hero-demo]`. React `HeroDemo` is the demo again. `LegalPage` and `NotFoundPage` stay deleted.
 
-`routes.ts` maps `/` and `/app` to `"home"`. The separate `app` route, `APP_TITLE`, and `APP_DESCRIPTION` are gone. The home canonical stays `/`. `main.tsx` calls `applyDocumentMeta("home")` and does not rewrite the homepage to the old `/app` title. Unknown paths still use Cloudflare `not_found_handling: single-page-application` (the `/` index). Vite `appType: "mpa"` still 404s unknown paths locally.
+`routes.ts` maps `/` and `/app` to `"home"`. The separate `app` route, `APP_TITLE`, and `APP_DESCRIPTION` are gone. The home canonical stays `/`. `main.tsx` calls `applyDocumentMeta("home")` and does not rewrite the homepage to the old `/app` title. Unknown paths use Cloudflare `not_found_handling: "404-page"` (`dist/404.html`, `noindex`). Vite `appType: "mpa"` 404s unknown paths locally the same way.
 
 ## How `/` mounts React
 
@@ -78,3 +78,7 @@ No Playwright browser binary is installed here, so this pass did not click the d
 ## Commit
 
 - `122e067dd134e450c38545dd4b3f31ae6b464877` — `fix: restore PdfDiffApp on / and redirect /app to /`
+
+## 404 page
+
+`404.html` is a Vite MPA input (built to `dist/404.html`). Wrangler `not_found_handling` is `"404-page"`, so unknown URLs return that document with HTTP 404 instead of soft-falling back to `/`. The page is `noindex` and matches static legal chrome (theme toggle via `static-shell.ts`). `/app` still 301s to `/` via `_redirects` before not-found handling.

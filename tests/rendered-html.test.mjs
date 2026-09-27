@@ -86,6 +86,16 @@ test("dist ships static legal pages and no /app workspace", async () => {
   assert.notEqual(privacy.match(/<title>([^<]*)<\/title>/)?.[1], terms.match(/<title>([^<]*)<\/title>/)?.[1]);
 });
 
+test("dist ships a noindex 404 page for Cloudflare 404-page handling", async () => {
+  const notFound = await readFile(new URL("../dist/404.html", import.meta.url), "utf8");
+  assert.match(notFound, /<title>Page not found — pdfdiff<\/title>/);
+  assert.match(notFound, /name="robots" content="noindex, follow"/);
+  assert.match(notFound, /This page does not exist/);
+  assert.match(notFound, /never leave your device/i);
+  assert.doesNotMatch(notFound, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+  assert.ok(existsSync(new URL("../dist/404.html", import.meta.url)));
+});
+
 test("built CSS self-hosts Inter", async () => {
   const assetsDirectory = new URL("../dist/assets/", import.meta.url);
   const files = await readdir(assetsDirectory);
@@ -126,5 +136,5 @@ test("Cloudflare deployment contains static assets only", async () => {
   assert.doesNotMatch(config, /"binding"\s*:/);
   assert.match(config, /"directory"\s*:\s*"\.\/dist"/);
   assert.match(config, /"html_handling"\s*:\s*"drop-trailing-slash"/);
-  assert.match(config, /"not_found_handling"\s*:\s*"single-page-application"/);
+  assert.match(config, /"not_found_handling"\s*:\s*"404-page"/);
 });
