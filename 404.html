@@ -349,15 +349,15 @@
       window.addEventListener("keydown", (event) => {
         const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
         const expected = sequence[progress];
-        if (key === expected || (expected.length === 1 && key === expected)) {
+        if (key === expected) {
           progress += 1;
           if (progress === sequence.length) {
             progress = 0;
             unlockDiff();
           }
-        } else {
-          progress = key === sequence[0] ? 1 : 0;
+          return;
         }
+        progress = key === sequence[0] ? 1 : 0;
       });
 
       for (const btn of document.querySelectorAll("[data-404-tab]")) {

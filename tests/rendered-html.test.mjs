@@ -90,10 +90,11 @@ test("dist ships a noindex 404 page for Cloudflare 404-page handling", async () 
   const notFound = await readFile(new URL("../dist/404.html", import.meta.url), "utf8");
   assert.match(notFound, /<title>Page not found — pdfdiff<\/title>/);
   assert.match(notFound, /name="robots" content="noindex, follow"/);
-  assert.match(notFound, /We couldn.t match this page|Pair check failed/);
+  assert.match(notFound, /This page does not exist/);
   assert.match(notFound, /never leave your device/i);
-  assert.match(notFound, /data-404-mark/);
-  assert.match(notFound, /data-404-egg/);
+  assert.match(notFound, /data-404-mode/);
+  assert.match(notFound, /ArrowUp/);
+  assert.match(notFound, /These two pages refuse to align/);
   assert.doesNotMatch(notFound, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
   assert.ok(existsSync(new URL("../dist/404.html", import.meta.url)));
 });
