@@ -29,7 +29,7 @@ A Chrome pass against `vite preview` (not part of `pnpm test`) showed the swipe 
 
 ## Commit
 
-Recorded in the follow-up once this commit’s sha exists.
+- `a4d4d0ec1404007fae10a8e4b67620064ba19cbb` — `fix(landing): restore HeroDemo swipe animation on static /`
 
 ## Out of scope
 
