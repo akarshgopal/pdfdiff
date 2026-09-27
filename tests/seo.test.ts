@@ -106,7 +106,29 @@ test("landing page is static marketing HTML with a CTA to /app", async () => {
   assert.match(html, /Files never leave your device/i);
   assert.match(html, /href="\/app"/);
   assert.match(html, /src="\/static-shell\.ts"/);
+  assert.match(html, /data-hero-demo/);
+  assert.match(html, /data-hero-count/);
+  assert.match(html, /data-hero-caption/);
+  assert.match(html, /pdfdiff-swipe-top/);
+  assert.match(html, /pdfdiff-swipe-handle/);
+  assert.match(html, /ASSY-4471/);
+  assert.match(html, /aria-label="Demo comparison views"/);
+  assert.match(html, /Drag the divider to reveal one revision under the other/);
+  assert.match(html, /data-hero-mode="swipe"[^>]*aria-pressed="true"/);
+  for (const mode of ["overlay", "split", "text"]) {
+    assert.match(html, new RegExp(`data-hero-panel="${mode}"[^>]*\\bhidden\\b`), mode);
+  }
+  const swipe = html.match(/<div\b[^>]*data-hero-panel="swipe"[^>]*>/);
+  assert.ok(swipe, "expected the swipe panel");
+  assert.doesNotMatch(swipe[0], /\bhidden\b/);
+  assert.doesNotMatch(html, /On your device/);
   assert.doesNotMatch(html, /id="root"|\/main\.tsx/);
+
+  const shell = await readFile(new URL("static-shell.ts", root), "utf8");
+  assert.match(shell, /\[data-hero-demo\]/);
+  assert.match(shell, /4200/);
+  assert.match(shell, /prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(shell, /from ["']react["']/);
 });
 
 test("privacy and terms are static HTML with their own titles, canonicals, and body copy", async () => {

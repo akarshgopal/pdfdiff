@@ -208,15 +208,341 @@
               >
             </div>
           </div>
-          <div class="rounded-xl border border-border bg-card p-6 text-left">
-            <h2 class="m-0 text-xl font-semibold tracking-tight">On your device</h2>
-            <ul class="m-0 mt-4 grid list-disc gap-2 pl-5 text-sm leading-relaxed text-muted-foreground">
-              <li>Compare two PDF revisions page by page</li>
-              <li>Visual overlay of text and drawing changes</li>
-              <li>Runs entirely in the browser</li>
-              <li>Files never leave the device</li>
-              <li>No account required</li>
-            </ul>
+          <div class="w-full overflow-hidden rounded-xl border border-border bg-card text-left" data-hero-demo>
+            <div class="flex items-center gap-2 border-b border-border bg-card px-3 py-2.5 text-2xs">
+              <span class="min-w-0 truncate rounded-lg border border-border bg-background px-2 py-1 font-medium"
+                >assy-4471-revA.pdf</span
+              >
+              <span class="shrink-0 text-primary" aria-hidden="true">→</span>
+              <span class="min-w-0 truncate rounded-lg border border-border bg-background px-2 py-1 font-medium"
+                >assy-4471-revB.pdf</span
+              >
+              <span
+                class="ml-auto hidden shrink-0 rounded-lg bg-primary/10 px-2 py-1 font-medium text-primary sm:inline"
+                data-hero-count
+                >3 areas on this page</span
+              >
+            </div>
+            <div
+              class="grid h-[22.5rem] grid-rows-[minmax(0,1fr)] place-items-center bg-stage p-[clamp(0.625rem,2vw,1.375rem)] sm:h-[clamp(18.75rem,42vh,27.75rem)]"
+            >
+              <svg
+                viewBox="0 0 300 400"
+                class="block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm"
+                role="presentation"
+                data-hero-panel="overlay"
+                hidden
+              >
+                <rect x="0" y="0" width="300" height="400" class="fill-background" />
+                <g class="text-foreground" opacity="0.4">
+                  <g stroke="currentColor" fill="none" stroke-width="1.4">
+                    <rect x="28" y="26" width="244" height="180" rx="2" opacity="0.35" />
+                    <path d="M56 172h60l24-44h56" />
+                    <circle cx="196" cy="128" r="14" />
+                    <path d="M196 114v-22M196 142v24" />
+                    <rect x="44" y="44" width="54" height="30" rx="2" />
+                    <path d="M44 88h54M44 96h38" opacity="0.5" />
+                    <path d="M120 44h60l16 22h56" />
+                    <path d="M240 66v40" stroke-dasharray="4 3" opacity="0.6" />
+                    <path d="M56 106h34v34H56z" opacity="0.5" />
+                    <path d="M56 106l34 34M90 106l-34 34" opacity="0.25" />
+                    <path d="M28 196h244" opacity="0.2" />
+                    <path d="M28 340h244M28 366h244" opacity="0.35" />
+                    <text x="30" y="358" font-size="9" fill="currentColor" stroke="none" opacity="0.6">
+                      ASSY-4471 · SHEET 1 OF 3
+                    </text>
+                  </g>
+                  <g fill="currentColor" opacity="0.55">
+                    <rect x="28" y="232" width="196" height="6" rx="3" />
+                    <rect x="28" y="246" width="214" height="6" rx="3" />
+                    <rect x="28" y="274" width="206" height="6" rx="3" />
+                    <rect x="28" y="288" width="120" height="6" rx="3" />
+                  </g>
+                </g>
+                <g style="color: #ee4856">
+                  <g stroke="currentColor" fill="none" stroke-width="1.4">
+                    <rect x="116" y="146" width="40" height="34" rx="2" />
+                    <text x="108" y="196" font-size="10" fill="currentColor" stroke="none">24.0</text>
+                    <text x="196" y="358" font-size="9" fill="currentColor" stroke="none">REV A</text>
+                  </g>
+                  <g fill="currentColor" opacity="0.55">
+                    <rect x="28" y="260" width="150" height="6" rx="3" />
+                  </g>
+                </g>
+                <g style="color: #10bebe">
+                  <g stroke="currentColor" fill="none" stroke-width="1.4">
+                    <rect x="134" y="146" width="40" height="34" rx="2" />
+                    <text x="152" y="196" font-size="10" fill="currentColor" stroke="none">26.5</text>
+                    <circle cx="84" cy="59" r="6" />
+                    <text x="232" y="358" font-size="9" fill="currentColor" stroke="none">REV B</text>
+                  </g>
+                  <g fill="currentColor" opacity="0.55">
+                    <rect x="28" y="260" width="178" height="6" rx="3" />
+                    <rect x="28" y="302" width="188" height="6" rx="3" />
+                  </g>
+                </g>
+              </svg>
+              <div class="grid h-full w-full grid-cols-2 place-items-center gap-2" data-hero-panel="split" hidden>
+                <svg
+                  viewBox="0 0 300 400"
+                  class="block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm"
+                  role="presentation"
+                >
+                  <rect x="0" y="0" width="300" height="400" class="fill-background" />
+                  <g class="text-foreground">
+                    <g stroke="currentColor" fill="none" stroke-width="1.4">
+                      <rect x="28" y="26" width="244" height="180" rx="2" opacity="0.35" />
+                      <path d="M56 172h60l24-44h56" />
+                      <circle cx="196" cy="128" r="14" />
+                      <path d="M196 114v-22M196 142v24" />
+                      <rect x="44" y="44" width="54" height="30" rx="2" />
+                      <path d="M44 88h54M44 96h38" opacity="0.5" />
+                      <path d="M120 44h60l16 22h56" />
+                      <path d="M240 66v40" stroke-dasharray="4 3" opacity="0.6" />
+                      <path d="M56 106h34v34H56z" opacity="0.5" />
+                      <path d="M56 106l34 34M90 106l-34 34" opacity="0.25" />
+                      <path d="M28 196h244" opacity="0.2" />
+                      <path d="M28 340h244M28 366h244" opacity="0.35" />
+                      <text x="30" y="358" font-size="9" fill="currentColor" stroke="none" opacity="0.6">
+                        ASSY-4471 · SHEET 1 OF 3
+                      </text>
+                    </g>
+                    <g stroke="currentColor" fill="none" stroke-width="1.4">
+                      <rect x="116" y="146" width="40" height="34" rx="2" />
+                      <text x="108" y="196" font-size="10" fill="currentColor" stroke="none">24.0</text>
+                      <text x="196" y="358" font-size="9" fill="currentColor" stroke="none">REV A</text>
+                    </g>
+                    <g fill="currentColor" opacity="0.55">
+                      <rect x="28" y="232" width="196" height="6" rx="3" />
+                      <rect x="28" y="246" width="214" height="6" rx="3" />
+                      <rect x="28" y="260" width="150" height="6" rx="3" />
+                      <rect x="28" y="274" width="206" height="6" rx="3" />
+                      <rect x="28" y="288" width="120" height="6" rx="3" />
+                    </g>
+                  </g>
+                </svg>
+                <svg
+                  viewBox="0 0 300 400"
+                  class="block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm"
+                  role="presentation"
+                >
+                  <rect x="0" y="0" width="300" height="400" class="fill-background" />
+                  <g class="text-foreground">
+                    <g stroke="currentColor" fill="none" stroke-width="1.4">
+                      <rect x="28" y="26" width="244" height="180" rx="2" opacity="0.35" />
+                      <path d="M56 172h60l24-44h56" />
+                      <circle cx="196" cy="128" r="14" />
+                      <path d="M196 114v-22M196 142v24" />
+                      <rect x="44" y="44" width="54" height="30" rx="2" />
+                      <path d="M44 88h54M44 96h38" opacity="0.5" />
+                      <path d="M120 44h60l16 22h56" />
+                      <path d="M240 66v40" stroke-dasharray="4 3" opacity="0.6" />
+                      <path d="M56 106h34v34H56z" opacity="0.5" />
+                      <path d="M56 106l34 34M90 106l-34 34" opacity="0.25" />
+                      <path d="M28 196h244" opacity="0.2" />
+                      <path d="M28 340h244M28 366h244" opacity="0.35" />
+                      <text x="30" y="358" font-size="9" fill="currentColor" stroke="none" opacity="0.6">
+                        ASSY-4471 · SHEET 1 OF 3
+                      </text>
+                    </g>
+                    <g stroke="currentColor" fill="none" stroke-width="1.4">
+                      <rect x="134" y="146" width="40" height="34" rx="2" />
+                      <text x="152" y="196" font-size="10" fill="currentColor" stroke="none">26.5</text>
+                      <circle cx="84" cy="59" r="6" />
+                      <text x="232" y="358" font-size="9" fill="currentColor" stroke="none">REV B</text>
+                    </g>
+                    <g fill="currentColor" opacity="0.55">
+                      <rect x="28" y="232" width="196" height="6" rx="3" />
+                      <rect x="28" y="246" width="214" height="6" rx="3" />
+                      <rect x="28" y="260" width="178" height="6" rx="3" />
+                      <rect x="28" y="274" width="206" height="6" rx="3" />
+                      <rect x="28" y="288" width="120" height="6" rx="3" />
+                      <rect x="28" y="302" width="188" height="6" rx="3" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+              <div class="relative aspect-[3/4] h-full w-auto max-w-[300px]" data-hero-panel="swipe">
+                <svg
+                  viewBox="0 0 300 400"
+                  class="block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm"
+                  role="presentation"
+                >
+                  <rect x="0" y="0" width="300" height="400" class="fill-background" />
+                  <g class="text-foreground">
+                    <g stroke="currentColor" fill="none" stroke-width="1.4">
+                      <rect x="28" y="26" width="244" height="180" rx="2" opacity="0.35" />
+                      <path d="M56 172h60l24-44h56" />
+                      <circle cx="196" cy="128" r="14" />
+                      <path d="M196 114v-22M196 142v24" />
+                      <rect x="44" y="44" width="54" height="30" rx="2" />
+                      <path d="M44 88h54M44 96h38" opacity="0.5" />
+                      <path d="M120 44h60l16 22h56" />
+                      <path d="M240 66v40" stroke-dasharray="4 3" opacity="0.6" />
+                      <path d="M56 106h34v34H56z" opacity="0.5" />
+                      <path d="M56 106l34 34M90 106l-34 34" opacity="0.25" />
+                      <path d="M28 196h244" opacity="0.2" />
+                      <path d="M28 340h244M28 366h244" opacity="0.35" />
+                      <text x="30" y="358" font-size="9" fill="currentColor" stroke="none" opacity="0.6">
+                        ASSY-4471 · SHEET 1 OF 3
+                      </text>
+                    </g>
+                    <g stroke="currentColor" fill="none" stroke-width="1.4">
+                      <rect x="116" y="146" width="40" height="34" rx="2" />
+                      <text x="108" y="196" font-size="10" fill="currentColor" stroke="none">24.0</text>
+                      <text x="196" y="358" font-size="9" fill="currentColor" stroke="none">REV A</text>
+                    </g>
+                    <g fill="currentColor" opacity="0.55">
+                      <rect x="28" y="232" width="196" height="6" rx="3" />
+                      <rect x="28" y="246" width="214" height="6" rx="3" />
+                      <rect x="28" y="260" width="150" height="6" rx="3" />
+                      <rect x="28" y="274" width="206" height="6" rx="3" />
+                      <rect x="28" y="288" width="120" height="6" rx="3" />
+                    </g>
+                  </g>
+                </svg>
+                <div class="pdfdiff-swipe-top absolute inset-0">
+                  <svg
+                    viewBox="0 0 300 400"
+                    class="block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm"
+                    role="presentation"
+                  >
+                    <rect x="0" y="0" width="300" height="400" class="fill-background" />
+                    <g class="text-foreground">
+                      <g stroke="currentColor" fill="none" stroke-width="1.4">
+                        <rect x="28" y="26" width="244" height="180" rx="2" opacity="0.35" />
+                        <path d="M56 172h60l24-44h56" />
+                        <circle cx="196" cy="128" r="14" />
+                        <path d="M196 114v-22M196 142v24" />
+                        <rect x="44" y="44" width="54" height="30" rx="2" />
+                        <path d="M44 88h54M44 96h38" opacity="0.5" />
+                        <path d="M120 44h60l16 22h56" />
+                        <path d="M240 66v40" stroke-dasharray="4 3" opacity="0.6" />
+                        <path d="M56 106h34v34H56z" opacity="0.5" />
+                        <path d="M56 106l34 34M90 106l-34 34" opacity="0.25" />
+                        <path d="M28 196h244" opacity="0.2" />
+                        <path d="M28 340h244M28 366h244" opacity="0.35" />
+                        <text x="30" y="358" font-size="9" fill="currentColor" stroke="none" opacity="0.6">
+                          ASSY-4471 · SHEET 1 OF 3
+                        </text>
+                      </g>
+                      <g stroke="currentColor" fill="none" stroke-width="1.4">
+                        <rect x="134" y="146" width="40" height="34" rx="2" />
+                        <text x="152" y="196" font-size="10" fill="currentColor" stroke="none">26.5</text>
+                        <circle cx="84" cy="59" r="6" />
+                        <text x="232" y="358" font-size="9" fill="currentColor" stroke="none">REV B</text>
+                      </g>
+                      <g fill="currentColor" opacity="0.55">
+                        <rect x="28" y="232" width="196" height="6" rx="3" />
+                        <rect x="28" y="246" width="214" height="6" rx="3" />
+                        <rect x="28" y="260" width="178" height="6" rx="3" />
+                        <rect x="28" y="274" width="206" height="6" rx="3" />
+                        <rect x="28" y="288" width="120" height="6" rx="3" />
+                        <rect x="28" y="302" width="188" height="6" rx="3" />
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+                <div
+                  class="pdfdiff-swipe-handle absolute inset-y-0 w-px -translate-x-1/2 bg-primary"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <svg
+                viewBox="0 0 300 400"
+                class="block h-auto max-h-full w-full max-w-[300px] rounded-sm border border-border shadow-sm"
+                role="presentation"
+                data-hero-panel="text"
+                hidden
+              >
+                <rect x="0" y="0" width="300" height="400" class="fill-background" />
+                <g class="text-foreground">
+                  <g>
+                    <rect x="28" y="230" width="196" height="6" rx="3" fill="currentColor" opacity="0.5" />
+                  </g>
+                  <g>
+                    <rect x="28" y="244" width="214" height="6" rx="3" fill="currentColor" opacity="0.5" />
+                  </g>
+                  <g>
+                    <rect x="25" y="254" width="156" height="14" rx="3" fill="#ee4856" opacity="0.16" />
+                    <rect x="28" y="258" width="150" height="6" rx="3" fill="currentColor" opacity="0.3" />
+                    <path d="M28 261h150" stroke="#ee4856" stroke-width="1.2" />
+                  </g>
+                  <g>
+                    <rect x="25" y="268" width="184" height="14" rx="3" fill="#10bebe" opacity="0.16" />
+                    <rect x="28" y="272" width="178" height="6" rx="3" fill="currentColor" opacity="0.5" />
+                  </g>
+                  <g>
+                    <rect x="28" y="286" width="206" height="6" rx="3" fill="currentColor" opacity="0.5" />
+                  </g>
+                  <g>
+                    <rect x="28" y="300" width="120" height="6" rx="3" fill="currentColor" opacity="0.5" />
+                  </g>
+                  <g>
+                    <rect x="25" y="310" width="194" height="14" rx="3" fill="#10bebe" opacity="0.16" />
+                    <rect x="28" y="314" width="188" height="6" rx="3" fill="currentColor" opacity="0.5" />
+                  </g>
+                  <g opacity="0.3">
+                    <g stroke="currentColor" fill="none" stroke-width="1.4">
+                      <rect x="28" y="26" width="244" height="180" rx="2" opacity="0.35" />
+                      <path d="M56 172h60l24-44h56" />
+                      <circle cx="196" cy="128" r="14" />
+                      <path d="M196 114v-22M196 142v24" />
+                      <rect x="44" y="44" width="54" height="30" rx="2" />
+                      <path d="M44 88h54M44 96h38" opacity="0.5" />
+                      <path d="M120 44h60l16 22h56" />
+                      <path d="M240 66v40" stroke-dasharray="4 3" opacity="0.6" />
+                      <path d="M56 106h34v34H56z" opacity="0.5" />
+                      <path d="M56 106l34 34M90 106l-34 34" opacity="0.25" />
+                      <path d="M28 196h244" opacity="0.2" />
+                      <path d="M28 340h244M28 366h244" opacity="0.35" />
+                      <text x="30" y="358" font-size="9" fill="currentColor" stroke="none" opacity="0.6">
+                        ASSY-4471 · SHEET 1 OF 3
+                      </text>
+                    </g>
+                  </g>
+                </g>
+              </svg>
+            </div>
+            <div class="border-t border-border bg-card px-3 py-2.5">
+              <div class="inline-flex gap-1" role="group" aria-label="Demo comparison views">
+                <button
+                  class="inline-flex min-h-7 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-transparent bg-transparent px-2.5 text-2xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  data-hero-mode="overlay"
+                  aria-pressed="false"
+                >
+                  Overlay
+                </button>
+                <button
+                  class="inline-flex min-h-7 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-transparent bg-transparent px-2.5 text-2xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  data-hero-mode="split"
+                  aria-pressed="false"
+                >
+                  Split
+                </button>
+                <button
+                  class="inline-flex min-h-7 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-2xs font-medium whitespace-nowrap text-foreground transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  data-hero-mode="swipe"
+                  aria-pressed="true"
+                >
+                  Swipe
+                </button>
+                <button
+                  class="inline-flex min-h-7 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-transparent bg-transparent px-2.5 text-2xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  data-hero-mode="text"
+                  aria-pressed="false"
+                >
+                  Text
+                </button>
+              </div>
+              <p class="mt-2 min-h-[2lh] text-2xs leading-normal text-muted-foreground" data-hero-caption>
+                Drag the divider to reveal one revision under the other.
+              </p>
+            </div>
           </div>
         </section>
         <footer class="mt-auto border-t border-border bg-card px-5 lg:px-8">
