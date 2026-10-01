@@ -12,11 +12,9 @@
     <meta name="application-name" content="PDF Diff" />
     <meta name="apple-mobile-web-app-title" content="PDF Diff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <link rel="canonical" href="https://pdfdiff.app/404" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="PDF Diff" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:url" content="https://pdfdiff.app/404" />
     <meta property="og:title" content="Page not found — pdfdiff" />
     <meta property="og:description" content="This URL is not a page on pdfdiff." />
     <meta property="og:image" content="https://pdfdiff.app/og.png" />
@@ -160,7 +158,7 @@
           </div>
         </header>
 
-        <article class="mx-auto w-full max-w-[720px] flex-1 px-5 py-12 lg:px-8 lg:py-16">
+        <article class="mx-auto w-full max-w-3xl flex-1 px-5 py-12 lg:px-8 lg:py-16">
           <div data-404-idle>
             <p
               class="m-0 font-mono text-5xl font-semibold tracking-tight text-muted-foreground/40 sm:text-6xl"
@@ -169,7 +167,7 @@
               404
             </p>
             <header class="mt-6">
-              <p class="m-0 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Not found</p>
+              <p class="m-0 text-3xs font-semibold tracking-caps text-muted-foreground uppercase">Not found</p>
               <h1 class="m-0 mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">This page does not exist</h1>
               <p class="m-0 mt-3 text-base leading-7 text-muted-foreground">
                 The URL is not a page on pdfdiff. It never paired with anything we ship.
@@ -188,7 +186,7 @@
 
           <div data-404-diff hidden>
             <header>
-              <p class="m-0 text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Mispair cue</p>
+              <p class="m-0 text-3xs font-semibold tracking-caps text-muted-foreground uppercase">Mispair cue</p>
               <h1 class="m-0 mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
                 These two pages refuse to align
               </h1>
@@ -198,67 +196,74 @@
                 confidence <span class="font-mono">0%</span>.
               </p>
             </header>
-            <div class="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-sm" aria-hidden="true">
+            <div class="mt-8 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <div class="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
                 <button
                   type="button"
                   data-404-tab="overlay"
-                  class="rounded-md bg-muted px-2.5 py-1 text-2xs font-medium text-foreground"
+                  aria-pressed="true"
+                  class="rounded-lg bg-muted px-2.5 py-1 text-2xs font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   Overlay
                 </button>
                 <button
                   type="button"
                   data-404-tab="split"
-                  class="rounded-md px-2.5 py-1 text-2xs font-medium text-muted-foreground hover:text-foreground"
+                  aria-pressed="false"
+                  class="rounded-lg px-2.5 py-1 text-2xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   Split
                 </button>
                 <button
                   type="button"
                   data-404-tab="swipe"
-                  class="rounded-md px-2.5 py-1 text-2xs font-medium text-muted-foreground hover:text-foreground"
+                  aria-pressed="false"
+                  class="rounded-lg px-2.5 py-1 text-2xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   Swipe
                 </button>
               </div>
-              <div class="relative aspect-[16/10] bg-muted/30" data-404-stage="overlay">
-                <div class="absolute inset-4 rounded-lg border border-dashed border-rose-500/50 bg-rose-500/10 p-4">
-                  <p class="m-0 text-xs font-semibold text-rose-600 dark:text-rose-400">EARLIER</p>
+              <div class="relative aspect-[16/10] bg-muted/30" data-404-stage="overlay" aria-hidden="true">
+                <div
+                  class="absolute inset-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/10 p-4"
+                >
+                  <p class="m-0 text-xs font-semibold text-destructive">EARLIER</p>
                   <p class="m-0 mt-2 font-mono text-sm text-muted-foreground">[ page missing ]</p>
                 </div>
                 <div
-                  class="absolute inset-4 translate-x-2 translate-y-2 rounded-lg border border-dashed border-emerald-500/50 bg-emerald-500/10 p-4"
+                  class="absolute inset-4 translate-x-2 translate-y-2 rounded-lg border border-dashed border-success/50 bg-success/10 p-4"
                 >
-                  <p class="m-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">NEWER</p>
+                  <p class="m-0 text-xs font-semibold text-success-ink">NEWER</p>
                   <p class="m-0 mt-2 font-mono text-sm text-muted-foreground">[ page missing ]</p>
                 </div>
               </div>
-              <div class="relative hidden aspect-[16/10] bg-muted/30" data-404-stage="split">
+              <div class="relative hidden aspect-[16/10] bg-muted/30" data-404-stage="split" aria-hidden="true">
                 <div
-                  class="absolute inset-y-4 right-1/2 left-4 mr-1 rounded-lg border border-dashed border-rose-500/40 bg-background/80 p-4"
+                  class="absolute inset-y-4 right-1/2 left-4 mr-1 rounded-lg border border-dashed border-destructive/40 bg-background/80 p-4"
                 >
-                  <p class="m-0 text-xs font-semibold text-rose-600 dark:text-rose-400">EARLIER</p>
+                  <p class="m-0 text-xs font-semibold text-destructive">EARLIER</p>
                   <p class="m-0 mt-6 text-center font-mono text-xs text-muted-foreground">404 · left</p>
                 </div>
                 <div
-                  class="absolute inset-y-4 right-4 left-1/2 ml-1 rounded-lg border border-dashed border-emerald-500/40 bg-background/80 p-4"
+                  class="absolute inset-y-4 right-4 left-1/2 ml-1 rounded-lg border border-dashed border-success/40 bg-background/80 p-4"
                 >
-                  <p class="m-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">NEWER</p>
+                  <p class="m-0 text-xs font-semibold text-success-ink">NEWER</p>
                   <p class="m-0 mt-6 text-center font-mono text-xs text-muted-foreground">404 · right</p>
                 </div>
               </div>
-              <div class="relative hidden aspect-[16/10] overflow-hidden bg-muted/30" data-404-stage="swipe">
-                <div
-                  class="absolute inset-4 rounded-lg border border-dashed border-emerald-500/40 bg-emerald-500/5 p-4"
-                >
-                  <p class="m-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">NEWER</p>
+              <div
+                class="relative hidden aspect-[16/10] overflow-hidden bg-muted/30"
+                data-404-stage="swipe"
+                aria-hidden="true"
+              >
+                <div class="absolute inset-4 rounded-lg border border-dashed border-success/40 bg-success/5 p-4">
+                  <p class="m-0 text-xs font-semibold text-success-ink">NEWER</p>
                   <p class="m-0 mt-8 text-center font-mono text-xs text-muted-foreground">still missing</p>
                 </div>
                 <div
-                  class="pdfdiff-404-swipe absolute inset-4 rounded-lg border border-dashed border-rose-500/40 bg-background p-4"
+                  class="pdfdiff-404-swipe absolute inset-4 rounded-lg border border-dashed border-destructive/40 bg-background p-4"
                 >
-                  <p class="m-0 text-xs font-semibold text-rose-600 dark:text-rose-400">EARLIER</p>
+                  <p class="m-0 text-xs font-semibold text-destructive">EARLIER</p>
                   <p class="m-0 mt-8 text-center font-mono text-xs text-muted-foreground">still missing</p>
                 </div>
                 <div class="pdfdiff-404-handle absolute top-4 bottom-4 w-0.5 -translate-x-1/2 bg-primary"></div>
@@ -337,6 +342,7 @@
       function setTab(name) {
         for (const btn of document.querySelectorAll("[data-404-tab]")) {
           const on = btn.getAttribute("data-404-tab") === name;
+          btn.setAttribute("aria-pressed", String(on));
           btn.classList.toggle("bg-muted", on);
           btn.classList.toggle("text-foreground", on);
           btn.classList.toggle("text-muted-foreground", !on);
@@ -357,7 +363,8 @@
           }
           return;
         }
-        progress = key === sequence[0] ? 1 : 0;
+        // A third ArrowUp still leaves the input ending in ↑↑, so keep that prefix.
+        if (progress !== 2 || key !== sequence[0]) progress = key === sequence[0] ? 1 : 0;
       });
 
       for (const btn of document.querySelectorAll("[data-404-tab]")) {
