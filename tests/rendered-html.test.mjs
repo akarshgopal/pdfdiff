@@ -10,7 +10,11 @@ async function clientBundleText() {
   return (await Promise.all(scripts.map((file) => readFile(new URL(file, assetsDirectory), "utf8")))).join("\n");
 }
 
-test("builds a static private PDF comparison experience", async () => {
+function moduleSources(html) {
+  return [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"[^>]*>/gi)].map((match) => match[1]);
+}
+
+test("dist index is the React app with a crawlable shell", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
   assert.match(html, /<title>Compare two PDFs privately in your browser \| pdfdiff<\/title>/i);
   assert.match(html, /name="description"\s+content="[^"]*Files never leave your device[^"]*"/i);
@@ -21,25 +25,75 @@ test("builds a static private PDF comparison experience", async () => {
   assert.match(html, /name="twitter:image" content="https:\/\/pdfdiff\.app\/og\.png"/i);
   assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/i);
   assert.match(html, /rel="preload" href="\/fonts\/inter-latin\.woff2"/);
-  assert.match(html, /type="application\/ld\+json"/i);
   assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /rel="icon" href="\/favicon\.svg"/i);
   assert.match(html, /rel="apple-touch-icon" href="\/apple-touch-icon\.png"/i);
   assert.match(html, /rel="manifest" href="\/site\.webmanifest"/i);
-  assert.match(html, /id="root"/i);
-  assert.match(html, /<script[^>]+type="module"/i);
-  assert.match(html, /<link[^>]+stylesheet/i);
+  assert.match(html, /id="app-fallback"/);
+  assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs\. See what changed\./);
+  assert.match(html, /never uploaded/i);
+  assert.match(html, /Files never leave your device/i);
+  assert.doesNotMatch(html, /href="\/app"/);
   assert.doesNotMatch(html, /google-analytics|gtag\(|googletagmanager|posthog/i);
   assert.equal(existsSync(new URL("../dist/server/", import.meta.url)), false);
-  assert.equal(existsSync(new URL("../dist/robots.txt", import.meta.url)), true);
-  assert.equal(existsSync(new URL("../dist/sitemap.xml", import.meta.url)), true);
   // Staged from the CLI package, not committed, and the sitemap advertises it.
   assert.equal(existsSync(new URL("../dist/llms.txt", import.meta.url)), true);
-  assert.equal(existsSync(new URL("../dist/og.png", import.meta.url)), true);
   assert.equal(existsSync(new URL("../dist/fonts/inter-latin.woff2", import.meta.url)), true);
+  assert.equal(existsSync(new URL("../dist/app/index.html", import.meta.url)), false);
+
+  const sitemap = await readFile(new URL("../dist/sitemap.xml", import.meta.url), "utf8");
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/privacy<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/terms<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/llms\.txt<\/loc>/);
+  assert.doesNotMatch(sitemap, /<loc>https:\/\/pdfdiff\.app\/app\/?<\/loc>/);
+
+  const redirects = await readFile(new URL("../dist/_redirects", import.meta.url), "utf8");
+  assert.match(redirects, /^\/app \/ 301$/m);
+  assert.match(redirects, /^\/app\/ \/ 301$/m);
+
+  assert.ok(moduleSources(html).some((src) => src.startsWith("/assets/") && src.endsWith(".js")));
 
   const bundle = await clientBundleText();
   assert.match(bundle, /never uploaded/i);
+  assert.match(bundle, /Try a sample/);
+  assert.match(bundle, /Earlier/);
+});
+
+test("dist ships static legal pages and no /app workspace", async () => {
+  const privacy = await readFile(new URL("../dist/privacy/index.html", import.meta.url), "utf8");
+  const terms = await readFile(new URL("../dist/terms/index.html", import.meta.url), "utf8");
+
+  assert.match(privacy, /<title>Privacy Policy — pdfdiff<\/title>/);
+  assert.match(privacy, /rel="canonical" href="https:\/\/pdfdiff\.app\/privacy"/);
+  assert.match(privacy, /How pdfdiff handles PDF files, browser storage, and technical data\./);
+  assert.match(privacy, /Last updated September 5, 2026/);
+  assert.match(privacy, /never uploaded/i);
+  assert.doesNotMatch(privacy, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+
+  assert.match(terms, /<title>Terms of Service — pdfdiff<\/title>/);
+  assert.match(terms, /rel="canonical" href="https:\/\/pdfdiff\.app\/terms"/);
+  assert.match(terms, /These terms govern your use of pdfdiff/);
+  assert.match(terms, /Last updated September 5, 2026/);
+  assert.doesNotMatch(terms, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+  assert.notEqual(privacy.match(/<title>([^<]*)<\/title>/)?.[1], terms.match(/<title>([^<]*)<\/title>/)?.[1]);
+});
+
+test("dist ships a noindex 404 page for Cloudflare 404-page handling", async () => {
+  const notFound = await readFile(new URL("../dist/404.html", import.meta.url), "utf8");
+  assert.match(notFound, /<title>Page not found — pdfdiff<\/title>/);
+  assert.match(notFound, /name="robots" content="noindex, follow"/);
+  assert.match(notFound, /This page does not exist/);
+  assert.match(notFound, /never leave your device/i);
+  assert.match(notFound, /data-404-mode/);
+  assert.match(notFound, /These two pages refuse to align/);
+  assert.match(notFound, /assets\/notFound-[^"]+\.js/);
+  const eggScript = notFound.match(/assets\/(notFound-[^"]+\.js)/)[1];
+  const egg = await readFile(new URL(`../dist/assets/${eggScript}`, import.meta.url), "utf8");
+  assert.match(egg, /ArrowUp/);
+  assert.match(egg, /unlockDiff|data-404-mode/);
+  assert.doesNotMatch(notFound, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+  assert.ok(existsSync(new URL("../dist/404.html", import.meta.url)));
 });
 
 test("built CSS self-hosts Inter", async () => {
@@ -81,4 +135,6 @@ test("Cloudflare deployment contains static assets only", async () => {
   assert.doesNotMatch(config, /"main"\s*:/);
   assert.doesNotMatch(config, /"binding"\s*:/);
   assert.match(config, /"directory"\s*:\s*"\.\/dist"/);
+  assert.match(config, /"html_handling"\s*:\s*"drop-trailing-slash"/);
+  assert.match(config, /"not_found_handling"\s*:\s*"404-page"/);
 });

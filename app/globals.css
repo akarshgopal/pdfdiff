@@ -2,6 +2,8 @@
 @import "@pdfdiff/viewer-react/theme.css";
 @source "./";
 @source "../components";
+@source "../privacy";
+@source "../terms";
 
 /* Latin Inter, variable 400–700. CSP font-src is 'self' only. */
 @font-face {

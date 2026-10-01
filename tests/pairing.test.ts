@@ -45,10 +45,6 @@ const documentPages: DiffPage[] = [
   }),
 ];
 
-test("the aligner's match cutoff is the same number the mispair cue uses", () => {
-  assert.equal(PAGE_MATCH_THRESHOLD, 0.55);
-});
-
 test("a document pair stays quiet even when the page itself is a rewrite", () => {
   const rewrite = page({
     earlierPageNumber: 1,

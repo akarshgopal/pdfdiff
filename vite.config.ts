@@ -1,10 +1,13 @@
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Connect, type Plugin } from "vite";
 import { SAMPLE_DOCUMENTS } from "./app/pdfdiff/sampleDocuments.ts";
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * PDF.js fetches these on demand and, when they are missing, silently drops
@@ -59,6 +62,62 @@ export function rewriteAbsoluteSiteMetadata(text: string, origin: string | null)
   return text.replaceAll(PRODUCTION_SITE_ORIGIN, origin);
 }
 
+const MPA_DIRECTORY_INDEXES = new Set(["/privacy", "/terms"]);
+
+export type MpaDirectoryDecision =
+  { type: "rewrite"; url: string } | { type: "redirect"; url: string; status: 301 | 307 };
+
+/**
+ * `/privacy` and `/terms` are directory indexes. Vite serves them at the slashed
+ * path. Rewrite the bare path onto that index, and send the slashed (and
+ * `/index.html`) forms back to the bare canonical.
+ * `/app` is not a page. Bare, slashed, and `/index.html` forms redirect to `/`.
+ * The query string is preserved.
+ */
+export function mpaDirectoryRequest(url: string): MpaDirectoryDecision | null {
+  const queryAt = url.indexOf("?");
+  const path = queryAt === -1 ? url : url.slice(0, queryAt);
+  const search = queryAt === -1 ? "" : url.slice(queryAt);
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
+  const withoutIndex = path.endsWith("/index.html") ? path.slice(0, -"/index.html".length) : path;
+  const bare = withoutIndex.replace(/\/+$/, "") || "/";
+  if (bare === "/app") return { type: "redirect", url: `/${search}`, status: 301 };
+  if (!MPA_DIRECTORY_INDEXES.has(bare)) return null;
+  if (path === bare) return { type: "rewrite", url: `${bare}/${search}` };
+  return { type: "redirect", url: `${bare}${search}`, status: 307 };
+}
+
+function mpaDirectoryIndexes(): Plugin {
+  const attach: Connect.NextHandleFunction = (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
+    const decision = mpaDirectoryRequest(req.url ?? "/");
+    if (!decision) {
+      next();
+      return;
+    }
+    if (decision.type === "redirect") {
+      res.statusCode = decision.status;
+      res.setHeader("Location", decision.url);
+      res.end();
+      return;
+    }
+    req.url = decision.url;
+    next();
+  };
+  return {
+    name: "pdfdiff-mpa-directory-indexes",
+    configureServer(server) {
+      server.middlewares.use(attach);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(attach);
+    },
+  };
+}
+
 function absoluteMetadata(origin: string | null): Plugin {
   return {
     name: "pdfdiff-absolute-metadata",
@@ -80,6 +139,19 @@ export default defineConfig(({ mode }) => {
   stageLlmsTxt();
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    plugins: [tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
+    // Multi-page: unknown paths 404 locally. Production serves dist/404.html via
+    // wrangler `not_found_handling: "404-page"`. `/app` redirects to `/` instead.
+    appType: "mpa",
+    plugins: [mpaDirectoryIndexes(), tailwindcss(), react(), absoluteMetadata(canonicalOrigin(env.VITE_SITE_URL))],
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(rootDir, "index.html"),
+          privacy: path.resolve(rootDir, "privacy/index.html"),
+          terms: path.resolve(rootDir, "terms/index.html"),
+          notFound: path.resolve(rootDir, "404.html"),
+        },
+      },
+    },
   };
 });

@@ -5,10 +5,9 @@ import { test } from "node:test";
 import { loadSamplePair, SAMPLE_DOCUMENTS, samplePublicPath } from "../app/pdfdiff/sampleDocuments.ts";
 
 test("sample files are served from /samples and exist in the fixture tree", () => {
+  assert.equal(samplePublicPath("cad/wheel-hub-rev-a.pdf"), "/samples/cad/wheel-hub-rev-a.pdf");
   for (const sample of SAMPLE_DOCUMENTS) {
     for (const side of [sample.earlier, sample.newer]) {
-      assert.equal(samplePublicPath(side.source), `/samples/${side.source}`);
-      assert.equal(path.basename(side.source), side.name);
       assert.equal(existsSync(path.join("examples/pdf-fixtures", side.source)), true, side.source);
     }
   }

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { HOME_DESCRIPTION, HOME_TITLE } from "../app/pdfdiff/routes.ts";
-import { rewriteAbsoluteSiteMetadata } from "../vite.config.ts";
+import { HOME_DESCRIPTION, HOME_TITLE, ROUTE_DOCUMENT_META } from "../app/pdfdiff/routes.ts";
+import { mpaDirectoryRequest, rewriteAbsoluteSiteMetadata } from "../vite.config.ts";
 
 const root = new URL("../", import.meta.url);
 
@@ -67,6 +67,8 @@ test("robots.txt and sitemap.xml point at pdfdiff.app", async () => {
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/privacy<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/terms<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/pdfdiff\.app\/llms\.txt<\/loc>/);
+  assert.doesNotMatch(sitemap, /<loc>https:\/\/pdfdiff\.app\/app\/?<\/loc>/);
 });
 
 test("VITE_SITE_URL rewrites robots.txt and sitemap.xml the same way as index.html", async () => {
@@ -90,4 +92,96 @@ test("CSP does not allow Google Fonts", async () => {
   const headers = await readFile(new URL("public/_headers", root), "utf8");
   assert.match(headers, /font-src 'self'/);
   assert.doesNotMatch(headers, /fonts\.googleapis|fonts\.gstatic/i);
+});
+
+test("index.html mounts the React app and keeps a crawlable fallback", async () => {
+  const html = await readFile(new URL("index.html", root), "utf8");
+  assert.match(html, /id="root"/);
+  assert.match(html, /src="\/main\.tsx"/);
+  assert.match(html, /id="app-fallback"/);
+  assert.match(html, /<h1[^>]*>[\s\S]*Compare PDFs\. See what changed\./);
+  assert.match(html, /never uploaded/i);
+  assert.match(html, /Files never leave your device/i);
+  assert.match(html, /#app-fallback\s*\{[^}]*display:\s*none/);
+  assert.match(html, /<noscript[\s\S]*#app-fallback[\s\S]*display:\s*revert/);
+  assert.doesNotMatch(html, /href="\/app"/);
+  assert.doesNotMatch(html, /data-hero-demo/);
+  assert.doesNotMatch(html, /static-shell\.ts/);
+});
+
+test("static shell toggles theme for the legal pages and does not mount React", async () => {
+  const shell = await readFile(new URL("static-shell.ts", root), "utf8");
+  assert.match(shell, /\[data-theme-toggle\]/);
+  assert.doesNotMatch(shell, /from ["']react["']/);
+  assert.doesNotMatch(shell, /\[data-hero-demo\]/);
+});
+
+test("privacy and terms are static HTML with their own titles, canonicals, and body copy", async () => {
+  const privacy = await readFile(new URL("privacy/index.html", root), "utf8");
+  const terms = await readFile(new URL("terms/index.html", root), "utf8");
+
+  assert.ok(privacy.includes(`<title>${ROUTE_DOCUMENT_META.privacy.title}</title>`));
+  assert.ok(privacy.includes(ROUTE_DOCUMENT_META.privacy.description));
+  assert.match(privacy, /rel="canonical" href="https:\/\/pdfdiff\.app\/privacy"/);
+  assert.match(privacy, /Short version:/);
+  assert.match(privacy, /never uploaded/i);
+  assert.match(privacy, /Last updated September 5, 2026/);
+  assert.doesNotMatch(privacy, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+
+  assert.ok(terms.includes(`<title>${ROUTE_DOCUMENT_META.terms.title}</title>`));
+  assert.ok(terms.includes(ROUTE_DOCUMENT_META.terms.description));
+  assert.match(terms, /rel="canonical" href="https:\/\/pdfdiff\.app\/terms"/);
+  assert.match(terms, /These terms govern your use of pdfdiff/);
+  assert.match(terms, /Last updated September 5, 2026/);
+  assert.doesNotMatch(terms, /"@type":\s*"WebApplication"|id="root"|\/main\.tsx/);
+});
+
+/** First element of `tag`. Site chrome is that header; legal pages also have an article header. */
+function firstElement(html: string, tag: "header" | "footer"): string {
+  const match = html.match(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`));
+  assert.ok(match, `expected <${tag}>`);
+  return match[0];
+}
+
+test("privacy and terms share identical site header and footer", async () => {
+  const files = ["privacy/index.html", "terms/index.html"] as const;
+  const pages = await Promise.all(files.map((file) => readFile(new URL(file, root), "utf8")));
+  const header = firstElement(pages[0], "header");
+  const footer = firstElement(pages[0], "footer");
+  for (const [index, html] of pages.entries()) {
+    assert.equal(firstElement(html, "header"), header, files[index]);
+    assert.equal(firstElement(html, "footer"), footer, files[index]);
+  }
+  const home = await readFile(new URL("index.html", root), "utf8");
+  assert.match(home, /id="root"/);
+  assert.match(home, /src="\/main\.tsx"/);
+});
+
+test("vite sends /app home and keeps legal directory indexes on the bare path", () => {
+  assert.deepEqual(mpaDirectoryRequest("/app"), { type: "redirect", url: "/", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app/"), { type: "redirect", url: "/", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app/index.html"), { type: "redirect", url: "/", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app?x=1"), { type: "redirect", url: "/?x=1", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/app/?x=1"), { type: "redirect", url: "/?x=1", status: 301 });
+  assert.deepEqual(mpaDirectoryRequest("/privacy"), { type: "rewrite", url: "/privacy/" });
+  assert.deepEqual(mpaDirectoryRequest("/terms"), { type: "rewrite", url: "/terms/" });
+  assert.deepEqual(mpaDirectoryRequest("/privacy/"), { type: "redirect", url: "/privacy", status: 307 });
+  assert.deepEqual(mpaDirectoryRequest("/terms/index.html"), { type: "redirect", url: "/terms", status: 307 });
+  assert.deepEqual(mpaDirectoryRequest("/privacy/?x=1"), { type: "redirect", url: "/privacy?x=1", status: 307 });
+  assert.equal(mpaDirectoryRequest("/"), null);
+  assert.equal(mpaDirectoryRequest("/no-such-page"), null);
+  assert.equal(mpaDirectoryRequest("/app/extra"), null);
+  assert.equal(mpaDirectoryRequest("/application"), null);
+});
+
+test("VITE_SITE_URL rewrites the origin in every HTML input", async () => {
+  for (const file of ["index.html", "privacy/index.html", "terms/index.html"]) {
+    const html = await readFile(new URL(file, root), "utf8");
+    assert.match(html, /https:\/\/pdfdiff\.app/, file);
+    assert.equal(rewriteAbsoluteSiteMetadata(html, null), html, file);
+    assert.equal(rewriteAbsoluteSiteMetadata(html, "https://pdfdiff.app"), html, file);
+    const preview = rewriteAbsoluteSiteMetadata(html, "https://pdfdiff.example");
+    assert.doesNotMatch(preview, /https:\/\/pdfdiff\.app/, file);
+    assert.match(preview, /https:\/\/pdfdiff\.example/, file);
+  }
 });

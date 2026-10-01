@@ -1,6 +1,6 @@
 import { cx, ui } from "@pdfdiff/viewer-react/ui";
 
-/** One page gutter and one content width for every screen, marketing or legal. */
+/** One page gutter and one content width for every screen. */
 const gutter = "px-5 lg:px-8";
 const container = "mx-auto w-full max-w-[1120px]";
 /** Space between the three groups of the hero column: headline, the compare CTA, the CLI.
@@ -110,18 +110,4 @@ export const styles = {
   loadingTitle: "mt-4 text-lg font-semibold tracking-tight",
   loadingCopy: "mt-2 text-xs leading-normal text-muted-foreground",
   loadingCancel: "mt-4",
-  /** Legal pages: same shell, narrower measure. */
-  legalArticle: `${gutter} mx-auto w-full max-w-[800px] flex-1 pb-20 pt-[clamp(48px,7vw,82px)]`,
-  legalBack: `${ui.focus} rounded-lg text-sm font-medium text-muted-foreground no-underline hover:text-foreground`,
-  legalHeader: "mt-8 border-b border-border pb-10",
-  legalTitle: "mt-3 text-[clamp(34px,5vw,52px)] font-semibold leading-display tracking-tighter",
-  legalUpdated: "mt-4 text-sm text-muted-foreground",
-  legalBody: "mt-10 grid gap-9",
-  legalSection: "border-t border-border pt-8 first:border-0 first:pt-0",
-  legalSectionTitle: "m-0 text-xl font-semibold tracking-tight",
-  legalProse: "mt-3 grid gap-3 text-base leading-7 text-muted-foreground",
-  legalLead: "text-base leading-7 text-muted-foreground",
-  legalCallout: "rounded-xl border border-success/30 bg-success/5 px-5 py-4 text-base leading-7 text-foreground",
-  legalList: "m-0 grid gap-2 pl-5",
-  legalLink: `${ui.focus} rounded-sm text-primary underline underline-offset-4`,
 } as const;

@@ -2,7 +2,8 @@ export type AppRoute = "home" | "privacy" | "terms" | "not-found";
 
 export function appRouteFromPath(pathname: string): AppRoute {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/") return "home";
+  // /app is the retired workspace URL. It redirects to /; if the app still mounts, it is home.
+  if (path === "/" || path === "/app") return "home";
   if (path === "/privacy") return "privacy";
   if (path === "/terms") return "terms";
   return "not-found";
@@ -76,7 +77,10 @@ function setAttr(selector: string, attr: string, value: string): void {
   document.querySelector(selector)?.setAttribute(attr, value);
 }
 
-/** The SPA ships one HTML file, so each route has to rewrite the homepage tags. */
+/**
+ * Sets title, description, canonical, and social tags for one route.
+ * `/` already ships the home tags. Privacy and terms are static HTML and do not call this.
+ */
 export function applyDocumentMeta(route: AppRoute): void {
   const next = documentMetaForRoute(route, siteOrigin(), window.location.pathname);
   document.title = next.title;

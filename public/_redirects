@@ -1,0 +1,5 @@
+# The product lives at /. These run before html_handling, so /app is not a second page.
+# A destination with no query keeps the incoming query string.
+/app / 301
+/app/ / 301
+/app/index.html / 301
