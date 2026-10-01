@@ -176,7 +176,7 @@ export function HeroDemo() {
 
   useEffect(() => {
     if (!auto || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = setInterval(() => setMode((current) => MODES[(MODES.indexOf(current) + 1) % MODES.length]!), 4200);
+    const timer = setInterval(() => setMode((current) => MODES[(MODES.indexOf(current) + 1) % MODES.length]!), 1000);
     return () => clearInterval(timer);
   }, [auto]);
 
