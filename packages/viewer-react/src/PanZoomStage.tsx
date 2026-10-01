@@ -31,6 +31,9 @@ export function PanZoomStage({
   const dragRef = useRef<{ pointerId: number; clientX: number; clientY: number; panX: number; panY: number } | null>(
     null,
   );
+  /** Touch points on the stage; two of them make a pinch. */
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ distance: number; zoom: number; midX: number; midY: number } | null>(null);
   const [panning, setPanning] = useState(false);
 
   // The transform is written straight to the node. Scaling a composited layer
@@ -72,6 +75,26 @@ export function PanZoomStage({
     return () => observer.disconnect();
   }, [applyTransform]);
 
+  // Hold the point at (clientX, clientY) still while zooming. The shift is its
+  // distance from the transform origin times the scale change — and the origin
+  // is the top edge but the horizontal centre, so x measures from the middle.
+  const zoomAt = (clientX: number, clientY: number, nextZoom: number) => {
+    const content = contentRef.current;
+    // zoomRef, not the prop: a pinch fires several moves per render, and each
+    // must start from the scale the previous one already applied.
+    const current = zoomRef.current;
+    if (!content || nextZoom === current) return;
+    const rect = content.getBoundingClientRect();
+    const shrink = 1 - nextZoom / current;
+    panRef.current = {
+      x: panRef.current.x + (clientX - rect.left - rect.width / 2) * shrink,
+      y: panRef.current.y + (clientY - rect.top) * shrink,
+    };
+    zoomRef.current = nextZoom;
+    applyTransform(nextZoom);
+    onZoomChange(nextZoom);
+  };
+
   // React attaches onWheel as a passive root listener, where preventDefault is
   // ignored, so the zoom handler owns a non-passive listener on the stage.
   const handleWheel = (event: globalThis.WheelEvent) => {
@@ -83,18 +106,7 @@ export function PanZoomStage({
       applyTransform(zoom);
       return;
     }
-    const nextZoom = clampZoom(Math.round((zoom * Math.exp(-event.deltaY * 0.0015)) / 5) * 5);
-    if (nextZoom === zoom) return;
-    // Hold the point under the cursor still. The shift is its distance from
-    // the transform origin times the scale change — and the origin is the
-    // top edge but the horizontal centre, so x measures from the middle.
-    const rect = content.getBoundingClientRect();
-    const shrink = 1 - nextZoom / zoom;
-    panRef.current = {
-      x: panRef.current.x + (event.clientX - rect.left - rect.width / 2) * shrink,
-      y: panRef.current.y + (event.clientY - rect.top) * shrink,
-    };
-    onZoomChange(nextZoom);
+    zoomAt(event.clientX, event.clientY, clampZoom(Math.round((zoom * Math.exp(-event.deltaY * 0.0015)) / 5) * 5));
   };
   const wheelHandler = useRef(handleWheel);
   useEffect(() => {
@@ -119,6 +131,20 @@ export function PanZoomStage({
     if (!stage) return;
     event.preventDefault();
     stage.setPointerCapture(event.pointerId);
+    const pointers = pointersRef.current;
+    if (event.pointerType === "touch") pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.size === 2) {
+      // A second finger turns the drag into a pinch.
+      const [a, b] = [...pointers.values()] as [{ x: number; y: number }, { x: number; y: number }];
+      pinchRef.current = {
+        distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        zoom,
+        midX: (a.x + b.x) / 2,
+        midY: (a.y + b.y) / 2,
+      };
+      dragRef.current = null;
+      return;
+    }
     dragRef.current = {
       pointerId: event.pointerId,
       clientX: event.clientX,
@@ -130,6 +156,22 @@ export function PanZoomStage({
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const pointers = pointersRef.current;
+    const pinch = pinchRef.current;
+    if (pinch && pointers.has(event.pointerId)) {
+      event.preventDefault();
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const [a, b] = [...pointers.values()] as [{ x: number; y: number }, { x: number; y: number }];
+      const midX = (a.x + b.x) / 2;
+      const midY = (a.y + b.y) / 2;
+      // Moving both fingers together pans; spreading them zooms about their midpoint.
+      panRef.current = { x: panRef.current.x + midX - pinch.midX, y: panRef.current.y + midY - pinch.midY };
+      pinch.midX = midX;
+      pinch.midY = midY;
+      applyTransform(zoomRef.current);
+      zoomAt(midX, midY, clampZoom((pinch.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance));
+      return;
+    }
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     event.preventDefault();
@@ -139,6 +181,13 @@ export function PanZoomStage({
 
   const stopPanning = (event: PointerEvent<HTMLDivElement>) => {
     const stage = stageRef.current;
+    // ponytail: lifting one finger ends the pinch without resuming a one-finger pan; lift and touch again to pan.
+    if (pointersRef.current.delete(event.pointerId) && pinchRef.current) {
+      pinchRef.current = null;
+      if (stage?.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
+      setPanning(false);
+      return;
+    }
     if (dragRef.current?.pointerId !== event.pointerId) return;
     if (stage?.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
     dragRef.current = null;
